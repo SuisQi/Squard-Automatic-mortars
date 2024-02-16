@@ -2,4 +2,7 @@
 /.idea/
 /classify/
 /runs/
+/dist/
+/build/
+/v16.9.1
 __pycache__
