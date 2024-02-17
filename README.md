@@ -1,5 +1,9 @@
 # 半自动迫击炮
 
+项目基于已开源的迫击炮计算器，截取屏幕内容使用ocr识别屏幕的方位和密位并自动转动到相应的位置，整个过程没有读取游戏内存
+
+
+
 **演示地址** https://www.bilibili.com/video/BV1hQ4y1c7YN/?spm_id_from=333.337.search-card.all.click
 
 
