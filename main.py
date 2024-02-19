@@ -1,5 +1,6 @@
 import json
 import os
+import random
 import re
 import time
 import traceback
@@ -9,6 +10,8 @@ import cv2
 import ddddocr
 import numpy as np
 import pyautogui
+
+from utils.utils import generate_bezier_points
 
 pyautogui.FAILSAFE = False
 from utils.calculate_press_time import calculate_press_ad_time, calculate_press_ws_time
@@ -296,15 +299,52 @@ class Squard():
         self._mouse = Mouse_ghub()
         self._count = 0
 
-    def _mouse_move_mail(self, gap):
+    def _mouse_move_mail(self, gap,move_orientation=False):
+
         for i in range(abs(gap)):
             time.sleep(0.01)
-            self._mouse.move(0, 27 * (-1 if gap > 0 else 1))
+            self._mouse.move((28 if i % 10 == 0 else 0) if not move_orientation else 0, 27 * (-1 if gap > 0 else 1) )
 
     def _mouse_move_orientation(self, gap):
+        count = 0
         for i in range(int(abs(gap) * 10)):
             time.sleep(0.01)
+            if i % 5 == 0:
+                count = count + 1
+                time.sleep(random.uniform(0.1, 0.3))
+            # self._mouse.move(12 * (1 if gap > 0 else -1), 27 if i % 5 == 0 else 0)
             self._mouse.move(12 * (1 if gap > 0 else -1), 0)
+        # self._mouse_move_mail(count,move_orientation=True)
+
+    def _move_mail(self, target, deep=0):
+
+        img = self._screen.capture(resolution_case['mail_t_x'], resolution_case['mail_t_y'],
+                                   resolution_case['mail_b_x'], resolution_case['mail_b_y'])
+        mail = get_mil(img)
+        if not mail:
+            return None
+        # log(f"识别到当前密位：{mail}")
+        # cv2.imwrite(f'{mail}.png', img)
+        if mail > 1580 or mail < 800:
+            log(f"识别密位错误，重新识别")
+            # cv2.imwrite(f'./imgs/error/mails/{mail}_{time.time()}.png', img)
+            if mail < 900:
+                self._mouse_move_mail(3)
+            else:
+                self._mouse_move_mail(-3)
+            if deep >= 4:
+                return None
+            return self._move_mail(target, deep + 1)
+
+        gap = target - mail
+        if gap >= 1:
+            if deep > 3:
+                return False
+            self._mouse_move_mail(gap)
+            time.sleep(0.1)
+            return self._move_mail(target, deep + 1)
+        else:
+            return True
 
     def _move_target_mail(self, target, deep=0):
         '''
@@ -329,20 +369,40 @@ class Squard():
             if deep >= 4:
                 return None
             return self._move_target_mail(target, deep + 1)
-
         gap = target - mail
+        start_point = 0  # 起始水平位置
+        end_point = gap  # 终点水平位置
+        # 设定控制点以创建过头然后修正的效果
+        # 第一个控制点向目标方向推进，第二个控制点过头一些，然后终点回归
+        control_points = [int(gap * (1 / 4)), int(gap * (6 / 5)), int(gap * 9 / 10),
+                          int(gap * 12 / 11)]  # 控制点列表，可以调整以改变曲线形状
 
-        if abs(gap) <= 1:
-            return True
-        if abs(gap) > 35:
-            press_key('w' if gap > 0 else 's', calculate_press_ws_time(abs(gap)))
-
-            return self._move_target_mail(target, deep)
-        elif abs(gap) <= 35:
+        bezier_points = generate_bezier_points(start_point, end_point, control_points,
+                                               num_points=(8 if abs(gap) > 100 else (5 if abs(gap) > 15 else 2)))
+        print(bezier_points)
+        if len(bezier_points) == 2:
             self._mouse_move_mail(gap)
-            time.sleep(0.1)
-            return self._move_target_mail(target, deep)
-        return True
+            return True
+        for i in range(1, len(bezier_points)):
+            gap = bezier_points[i] - bezier_points[i - 1]
+            if abs(gap) > 35:
+                press_key('w' if gap > 0 else 's', calculate_press_ws_time(abs(gap)))
+            elif abs(gap) <= 35:
+                self._mouse_move_mail(gap)
+                time.sleep(random.uniform(0.1, 0.3))
+        #
+
+        # if abs(gap) <= 1:
+        #     return True
+        # if abs(gap) > 35:
+        #     press_key('w' if gap > 0 else 's', calculate_press_ws_time(abs(gap)))
+        #
+        #     return self._move_target_mail(target, deep)
+        # elif abs(gap) <= 35:
+        #     self._mouse_move_mail(gap)
+        #     time.sleep(0.1)
+        #     return self._move_target_mail(target, deep)
+        return self._move_mail(target)
 
     def _move_target_orientation(self, target):
         '''
@@ -395,15 +455,20 @@ class Squard():
         :return:
         '''
         try:
-            f1 = self._move_target_orientation(dir)
             f2 = self._move_target_mail(angle)
+            f1 = self._move_target_orientation(dir)
+
             # if not f1 or not f2:
             #     log("跳过该点")
             #     return
+
+            time.sleep(random.uniform(0.5, 1))
             log("开炮!!!")
             for i in range(count):
+
                 if stop():
                     break
+
                 self._mouse.leftDown()
 
                 time.sleep(1.2)
