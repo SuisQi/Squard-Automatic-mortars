@@ -3,12 +3,14 @@
 
 import json
 import os
+import random
 import socket
 import sys
 import threading
 import subprocess
 import time
 import logging
+import traceback
 from functools import wraps
 
 from flask_socketio import SocketIO
@@ -76,25 +78,28 @@ def listen_fire():
     log("启动成功")
     squard = Squard()
     while True:
-        list_items = STATE['standard']
-        # item = json.loads(list_items[0])
+        try:
+            list_items = STATE['standard']
+            # item = json.loads(list_items[0])
 
-        if stop():
-            time.sleep(0.5)
-            continue
-
-        for item in list_items:
             if stop():
-                break
-            item = json.loads(item)
-            log(f"目标方位：{round(item['dir'], 1)}，密位{item['angle']}")
+                time.sleep(0.5)
+                continue
 
-            mortarRounds = int(STATE['control']['mortarRounds'])
+            for item in list_items:
+                if stop():
+                    break
+                item = json.loads(item)
+                log(f"目标方位：{round(item['dir'], 1)}，密位{item['angle']}")
 
-            squard.fire(mortarRounds, round(item['dir'], 1), item['angle'])
+                mortarRounds = int(STATE['control']['mortarRounds'])
 
-        log("停火")
-        STATE['control']['state'] = 0
+                squard.fire(mortarRounds, round(item['dir'], 1), item['angle'])
+                time.sleep(random.uniform(0.5, 1))
+            log("停火")
+            STATE['control']['state'] = 0
+        except Exception as e:
+            print(traceback.format_exc())
 
 
 def check(f):
@@ -202,5 +207,5 @@ if __name__ == '__main__':
     s.connect(("10.255.255.255", 1))
     IP = s.getsockname()[0]
     print(f'将手机和电脑保持同一局域网，关闭AP隔离保护，手机浏览器打开{IP}:5173')
-    with DisableFlaskLogging():
-        socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
+    # with DisableFlaskLogging():
+    socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
