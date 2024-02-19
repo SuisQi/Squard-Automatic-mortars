@@ -5,13 +5,14 @@ a = Analysis(
     ['index.py'],
     pathex=[],
     binaries=[],
-    datas=[("./charsets.json","."),("./best.onnx","."),("./squard.onnx","."),
+    datas=[("./charsets.json","."),("./squard.onnx","."),
     ('D:\\conda\\anaconda3\\envs\\squard\\Lib\\site-packages\\onnxruntime\\capi\\onnxruntime_providers_shared.dll', 'onnxruntime\\capi'),
     ("./config.ini","."),
     ("./charsets_orientation.json","."),
     ("./squard_orientation.onnx","."),
     ("./v16.9.1","./v16.9.1"),
-    ("./templates/","./templates/")
+    ("./templates/","./templates/"),
+    ("./resolution_case.json",".")
     ],
     hiddenimports=['engineio.async_drivers.threading','torch','pytorch'],
     hookspath=[],
