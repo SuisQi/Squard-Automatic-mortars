@@ -53,15 +53,19 @@ app.logger.setLevel(logging.ERROR)
 log_ = logging.getLogger('werkzeug')
 log_.setLevel(logging.ERROR)
 
+node_path = ""
+if os.path.exists("./v16.9.1"):
+    node_path = "v16.9.1\\"
+
 
 def start_map():
-    subprocess.run(f"live-server --host={ip} --port=8000 ./templates/map", shell=True,
+    subprocess.run(f"{node_path}live-server --host={ip} --port=8000 ./templates/map", shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
 
 def start_control():
-    subprocess.run(f"live-server --host={ip} --port=5173 ./templates/control", shell=True,
+    subprocess.run(f"{node_path}live-server --host={ip} --port=5173 ./templates/control", shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
@@ -184,6 +188,11 @@ def get_state():
     return R(200, data=state)
 
 
+@app.route("/listFires", methods=["GET"])
+def list_fires():
+    return R(200, data=STATE['standard'])
+
+
 @app.route('/setMortarRounds', methods=["GET"])
 # @check
 def set_mortarRounds():
@@ -207,5 +216,5 @@ if __name__ == '__main__':
     s.connect(("10.255.255.255", 1))
     IP = s.getsockname()[0]
     print(f'将手机和电脑保持同一局域网，关闭AP隔离保护，手机浏览器打开{IP}:5173')
-    # with DisableFlaskLogging():
-    socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
+    with DisableFlaskLogging():
+        socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
