@@ -8,7 +8,7 @@ from prettytable import PrettyTable
 
 import requests
 
-from API.Aes import decrypt_aes
+# from API.Aes import decrypt_aes
 
 # 创建ConfigParser对象
 config = configparser.ConfigParser()
