@@ -379,7 +379,7 @@ class Squard():
 
         bezier_points = generate_bezier_points(start_point, end_point, control_points,
                                                num_points=(8 if abs(gap) > 100 else (5 if abs(gap) > 15 else 2)))
-        print(bezier_points)
+        # print(bezier_points)
         if len(bezier_points) == 2:
             self._mouse_move_mail(gap)
             return True
