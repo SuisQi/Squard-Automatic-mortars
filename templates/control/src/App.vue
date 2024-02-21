@@ -69,8 +69,9 @@ const onMortarRoundsChange=(event:any)=>{
         >
           <el-table :data="fires" stripe style="width: 100%">
             <el-table-column prop="entityId" label="id"  width="40"/>
-            <el-table-column prop="angle" label="密位" />
             <el-table-column prop="dir" label="方位"  />
+            <el-table-column prop="angle" label="密位" />
+
 
           </el-table>
 
