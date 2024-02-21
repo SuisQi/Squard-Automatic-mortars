@@ -6,3 +6,5 @@
 /build/
 /v16.9.1
 __pycache__
+/templates/control/node_modules/
+/templates/map/node_modules/
