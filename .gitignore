@@ -8,3 +8,5 @@
 __pycache__
 /templates/control/node_modules/
 /templates/map/node_modules/
+/templates/map/.idea/
+/templates/control/.idea/
