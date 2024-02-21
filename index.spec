@@ -11,7 +11,8 @@ a = Analysis(
     ("./charsets_orientation.json","."),
     ("./squard_orientation.onnx","."),
     ("./v16.9.1","./v16.9.1"),
-    ("./templates/","./templates/"),
+    ("./templates/control/dist","./templates/control/dist"),
+    ("./templates/map/public","./templates/map/public"),
     ("./resolution_case.json",".")
     ],
     hiddenimports=['engineio.async_drivers.threading','torch','pytorch'],
@@ -39,6 +40,7 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon='logo.ico',
 )
 coll = COLLECT(
     exe,
@@ -47,5 +49,6 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
+
     name='半自动计算器',
 )
