@@ -59,13 +59,13 @@ if os.path.exists("./v16.9.1"):
 
 
 def start_map():
-    subprocess.run(f"{node_path}live-server --host={ip} --port=8000 ./templates/map", shell=True,
+    subprocess.run(f"{node_path}live-server --host={ip} --port=8000 ./templates/map/public", shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
 
 def start_control():
-    subprocess.run(f"{node_path}live-server --host={ip} --port=5173 ./templates/control", shell=True,
+    subprocess.run(f"{node_path}live-server --host={ip} --port=5173 ./templates/control/dist", shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
