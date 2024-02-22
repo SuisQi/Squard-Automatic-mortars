@@ -15,3 +15,20 @@ export const setMortarRounds = (value:number)=>{
 export const list_fires = ()=>{
     return axios.get(baseURL + "listFires")
 }
+export const list_mail_trajectories = ()=>{
+    return axios.get(baseURL + "list_mail_trajectories")
+}
+export const get_bezier_points = (data:any)=>{
+    return axios.post(baseURL + "get_bezier_points",data)
+}
+export const reset_mail_trajectory = (data:any)=>{
+    return axios.post(baseURL + "reset_mail_trajectory",data)
+}
+export const get_settings = ()=>{
+    return axios.get(baseURL + "get_settings")
+}
+export const update_settings = (data:any)=>{
+    if(data==""||!data)
+        return
+    return axios.post(baseURL + "update_settings",data)
+}
