@@ -288,7 +288,7 @@ if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
-    # display_squard()
+    display_squard()
     if not os.path.exists("./settings/custom_trajectory.json"):
         with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -297,7 +297,7 @@ if __name__ == '__main__':
 
     threading.Thread(target=listen_for_logs).start()
     threading.Thread(target=start_map).start()
-    # threading.Thread(target=start_control).start()
+    threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
