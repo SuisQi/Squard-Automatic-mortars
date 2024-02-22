@@ -11,7 +11,8 @@ import ddddocr
 import numpy as np
 import pyautogui
 
-from utils.utils import generate_bezier_points
+
+from utils.utils import generate_bezier_points, get_settings
 
 pyautogui.FAILSAFE = False
 from utils.calculate_press_time import calculate_press_ad_time, calculate_press_ws_time
@@ -299,11 +300,11 @@ class Squard():
         self._mouse = Mouse_ghub()
         self._count = 0
 
-    def _mouse_move_mail(self, gap,move_orientation=False):
+    def _mouse_move_mail(self, gap, move_orientation=False):
 
         for i in range(abs(gap)):
             time.sleep(0.01)
-            self._mouse.move((28 if i % 10 == 0 else 0) if not move_orientation else 0, 27 * (-1 if gap > 0 else 1) )
+            self._mouse.move((28 if i % 10 == 0 else 0) if not move_orientation else 0, 27 * (-1 if gap > 0 else 1))
 
     def _mouse_move_orientation(self, gap):
         count = 0
@@ -328,7 +329,7 @@ class Squard():
         if mail > 1580 or mail < 800:
             log(f"识别密位错误，重新识别")
             # cv2.imwrite(f'./imgs/error/mails/{mail}_{time.time()}.png', img)
-            if mail < 900:
+            if mail < 800:
                 self._mouse_move_mail(3)
             else:
                 self._mouse_move_mail(-3)
@@ -337,7 +338,7 @@ class Squard():
             return self._move_mail(target, deep + 1)
 
         gap = target - mail
-        if gap >= 1:
+        if gap >= get_settings()['mail_gap']:
             if deep > 3:
                 return False
             self._mouse_move_mail(gap)
@@ -374,19 +375,26 @@ class Squard():
         end_point = gap  # 终点水平位置
         # 设定控制点以创建过头然后修正的效果
         # 第一个控制点向目标方向推进，第二个控制点过头一些，然后终点回归
-        control_points = [int(gap * (1 / 4)), int(gap * (6 / 5)), int(gap * 9 / 10),
-                          int(gap * 12 / 11)]  # 控制点列表，可以调整以改变曲线形状
-
-        bezier_points = generate_bezier_points(start_point, end_point, control_points,
-                                               num_points=(8 if abs(gap) > 100 else (5 if abs(gap) > 15 else 2)))
-        # print(bezier_points)
-        if len(bezier_points) == 2:
-            self._mouse_move_mail(gap)
-            return True
+        # control_points = [int(gap * (1 / 4)), int(gap * (6 / 5)), int(gap * 9 / 10),
+        #                   int(gap * 12 / 11)]  # 控制点列表，可以调整以改变曲线形状
+        with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
+            trajectory = json.load(f)
+        mail_trajectory = random.choice(trajectory['trajectory']['mail'])
+        control_points = list(map(lambda f: int(gap * f), mail_trajectory['points']))
+        bezier_points = generate_bezier_points(start_point, end_point,
+                                               control_points,
+                                               num_points=mail_trajectory['num_points'] if mail_trajectory[
+                                                                                               'num_points'] >= 2 else 2)
+        print(control_points)
+        print(bezier_points)
+        # if len(bezier_points) == 2:
+        #     self._mouse_move_mail(gap)
+        #     return True
         for i in range(1, len(bezier_points)):
             gap = bezier_points[i] - bezier_points[i - 1]
             if abs(gap) > 35:
                 press_key('w' if gap > 0 else 's', calculate_press_ws_time(abs(gap)))
+                time.sleep(0.1)
             elif abs(gap) <= 35:
                 self._mouse_move_mail(gap)
                 time.sleep(random.uniform(0.1, 0.3))
@@ -404,7 +412,7 @@ class Squard():
         #     return self._move_target_mail(target, deep)
         return self._move_mail(target)
 
-    def _move_target_orientation(self, target):
+    def _move_target_orientation(self, target, deep=0):
         '''
 
         :param target:
@@ -435,16 +443,19 @@ class Squard():
         # cv2.imwrite(f'{orientation}.png', img)
         gap = shortest_angle_distance(orientation, target)
         # log(f"误差{round(abs(gap), 2)}")
-        if round(abs(gap), 2) <= 0.1:
+        if round(abs(gap), 2) <= get_settings()['orientation_gap']:
             return True
+        if deep >= 5:
+            return
         if abs(gap) > 10:
             seconds = calculate_press_ad_time(abs(gap))
             press_key('d' if gap > 0 else 'a', seconds)
-            return self._move_target_orientation(target)
+            return self._move_target_orientation(target, deep + 1)
         else:
             self._mouse_move_orientation(gap)
-            time.sleep(0.3)
-            return self._move_target_orientation(target)
+            time.sleep(0.1)
+            return self._move_target_orientation(target, deep + 1)
+
 
     def fire(self, count, dir, angle):
         '''
@@ -462,7 +473,7 @@ class Squard():
             #     log("跳过该点")
             #     return
 
-            time.sleep(random.uniform(0.5, 1))
+            time.sleep(random.uniform(get_settings()['beforeFire'][0], get_settings()['beforeFire'][0]))
             log("开炮!!!")
             for i in range(count):
 
@@ -481,6 +492,7 @@ class Squard():
                     self._mouse.rightDown()
                     self._mouse.rightUp()
                     self._count = 0
+
                 time.sleep(0.1)
         except Exception as e:
             print(e)

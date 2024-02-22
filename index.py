@@ -22,6 +22,8 @@ from API.R import R
 from flask_cors import CORS
 from flask import Flask, request, jsonify
 
+from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords, get_settings
+
 # 获取本机计算机名称
 hostname = socket.gethostname()
 # 获取本机ip
@@ -78,6 +80,9 @@ def listen_for_logs():
         time.sleep(0.01)
 
 
+
+
+
 def listen_fire():
     log("启动成功")
     squard = Squard()
@@ -99,7 +104,7 @@ def listen_fire():
                 mortarRounds = int(STATE['control']['mortarRounds'])
 
                 squard.fire(mortarRounds, round(item['dir'], 1), item['angle'])
-                time.sleep(random.uniform(0.5, 1))
+                time.sleep(random.uniform(get_settings()['afterFire'][0], get_settings()['afterFire'][0]))
             log("停火")
             STATE['control']['state'] = 0
         except Exception as e:
@@ -201,14 +206,98 @@ def set_mortarRounds():
     return R(0)
 
 
+@app.route("/get_bezier_points", methods=['POST'])
+def get_bezier_points_api():
+    data = request.get_json()
+
+    points = generate_bezier_points(0, data['height'] / 2,
+                                    list(map(lambda f: f * data['height'] * 0.5, data['points'])),
+                                    num_points=data['num_points']).tolist()
+    x_coords = calculate_nonuniform_x_coords(points)
+    x_coords = list(map(lambda f: f * data['width'], x_coords))
+    with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
+        trajectory = json.load(f)
+    mail_trajector = list(filter(lambda e: e['name'] == data['name'], trajectory['trajectory']['mail']))
+    if mail_trajector:
+        mail_trajector = mail_trajector[0]
+        mail_trajector['points'] = data['points']
+        mail_trajector['num_points'] = data['num_points']
+    with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as f:
+        json.dump(trajectory, f)
+
+    return R(200, data=list(zip(x_coords, points)))
+
+
+@app.route("/list_mail_trajectories", methods=["GET"])
+def list_mail_trajectories():
+    global data
+    data = []
+    if not os.path.exists("./settings/custom_trajectory.json"):
+        with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    else:
+        with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
+            data = json.load(f)
+    return R(200, data=data['trajectory']['mail'])
+
+
+@app.route("/reset_mail_trajectory", methods=["POST"])
+def reset_mail_trajectory():
+    data = request.get_json()
+    name = data['name']
+    with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
+        custom_trajectory = json.load(f)
+    with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
+        default_trajectory = json.load(f)
+    c_t = list(filter(lambda f: f["name"] == name, custom_trajectory['trajectory']['mail']))[0]
+    d_t = list(filter(lambda f: f["name"] == name, default_trajectory['trajectory']['mail']))[0]
+    if not d_t:
+        c_t['points'] = default_trajectory['trajectory']['mail']['points']
+        c_t['num_points'] = default_trajectory['trajectory']['mail']['num_points']
+    else:
+        c_t['points'] = d_t['points']
+        c_t['num_points'] = d_t['num_points']
+    with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as f:
+        json.dump(custom_trajectory, f)
+    return R(200, data=c_t)
+
+
+@app.route("/update_settings", methods=["POST"])
+def update_settings():
+    data = request.get_json()
+    try:
+        with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
+            custom_trajectory = json.load(f)
+        custom_trajectory['settings'] = data
+        with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as e:
+            json.dump(custom_trajectory, e)
+    except Exception as e:
+        print(e)
+    return R(200)
+
+
+@app.route("/get_settings", methods=["GET"])
+def get_settings_():
+    with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
+        custom_trajectory = json.load(f)
+
+    return R(200, custom_trajectory['settings'])
+
+
 if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
-    display_squard()
+    # display_squard()
+    if not os.path.exists("./settings/custom_trajectory.json"):
+        with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
+
     threading.Thread(target=listen_for_logs).start()
     threading.Thread(target=start_map).start()
-    threading.Thread(target=start_control).start()
+    # threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -216,5 +305,5 @@ if __name__ == '__main__':
     s.connect(("10.255.255.255", 1))
     IP = s.getsockname()[0]
     print(f'将手机和电脑保持同一局域网，关闭AP隔离保护，手机浏览器打开{IP}:5173')
-    with DisableFlaskLogging():
-        socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
+    # with DisableFlaskLogging():
+    socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)

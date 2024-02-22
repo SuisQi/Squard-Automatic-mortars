@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 from scipy.special import comb
 
@@ -27,7 +29,7 @@ def filter_points(points):
     return np.array(filtered_points)
 
 
-def generate_bezier_points(start_point, end_point, control_points, num_points=5):
+def generate_bezier_points(start_point, end_point, control_points, num_points):
     """
     生成任意次贝塞尔曲线上的点，以模拟过头然后修正的移动轨迹，并确保点为整数。
 
@@ -47,8 +49,48 @@ def generate_bezier_points(start_point, end_point, control_points, num_points=5)
         bezier_point = 0
         for i, point in enumerate([start_point] + control_points + [end_point]):
             # 计算二项式系数 * 控制点权重
-            bezier_point += comb(n+1, i) * (1-t)**(n+1-i) * t**i * point
+            bezier_point += comb(n + 1, i) * (1 - t) ** (n + 1 - i) * t ** i * point
         bezier_points.append(bezier_point)
     # 四舍五入并转换为整数
     bezier_points_rounded = np.round(bezier_points).astype(int)
-    return filter_points(bezier_points_rounded)
+    # return filter_points(bezier_points_rounded)
+    return bezier_points_rounded
+
+
+def calculate_nonuniform_x_coords(y_coords):
+    """
+    根据给定的纵坐标非均匀地计算横坐标，并确保横坐标单调递增，同时将横坐标值精确到小数点后两位。
+
+    参数:
+    y_coords (list): 纵坐标的列表。
+
+    返回:
+    list: 非均匀分配且精确到小数点后两位的横坐标列表。
+    """
+    # 确保纵坐标是一个Numpy数组
+    y_coords_array = np.array(y_coords)
+
+    # 计算纵坐标相对于最小值的差异
+    y_diffs_relative = y_coords_array - y_coords_array.min()
+
+    # 将这些差异归一化，以便它们的总和为1
+    y_diffs_normalized = y_diffs_relative / np.sum(y_diffs_relative)
+
+    # 计算非均匀的横坐标间隔
+    x_coords_intervals = np.cumsum(y_diffs_normalized)
+
+    # 生成横坐标，起始点为0
+    x_coords = np.insert(x_coords_intervals, 0, 0)
+
+    # 将横坐标精确到小数点后两位
+    x_coords_rounded = np.round(x_coords, 2)
+
+    # 由于归一化过程可能导致最后一个值小于1，需要手动设置最后一个横坐标为1
+    x_coords_rounded[-1] = 1.0
+
+    return x_coords_rounded[1:].tolist()
+
+def get_settings():
+    with open("./settings/custom_trajectory.json", "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data['settings']
