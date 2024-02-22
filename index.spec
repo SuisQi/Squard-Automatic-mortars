@@ -13,7 +13,8 @@ a = Analysis(
     ("./v16.9.1","./v16.9.1"),
     ("./templates/control/dist","./templates/control/dist"),
     ("./templates/map/public","./templates/map/public"),
-    ("./resolution_case.json",".")
+    ("./resolution_case.json","."),
+    ("./settings/default_trajectory.json","./settings/default_trajectory.json")
     ],
     hiddenimports=['engineio.async_drivers.threading','torch','pytorch'],
     hookspath=[],

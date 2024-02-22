@@ -27,7 +27,7 @@ const fires = ref([])
 const mortarRounds = ref(3)
 const dialogFires = ref(false)
 const dialogSetting = ref(false)
-const dialogFeature = ref(true)
+const dialogFeature = ref(false)
 const mail_trajectories = ref([])
 const settings = ref({
   "beforeFire": [0.5,1],
