@@ -63,6 +63,7 @@ onMounted(() => {
   drawCurve()
 })
 const validateInput = (index) => {
+  inputs.value[index]=Number(inputs.value[index])
   // 确保输入为正数，这里简化处理，实际项目中可能需要更严格的验证
   if (inputs.value[index] < 0) {
     inputs.value[index] = 0;
@@ -74,6 +75,7 @@ const blurInput = (index) => {
 
   if (!inputs.value[index])
     inputs.value[index] = 0;
+  inputs.value[index]=Number(inputs.value[index])
   drawCurve()
 }
 const validateNumInput = () => {
