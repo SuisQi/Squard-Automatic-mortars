@@ -11,7 +11,7 @@ import ddddocr
 import numpy as np
 import pyautogui
 
-
+from utils.redis_connect import redis_cli
 from utils.utils import generate_bezier_points, get_settings
 
 pyautogui.FAILSAFE = False
@@ -377,9 +377,8 @@ class Squard():
         # 第一个控制点向目标方向推进，第二个控制点过头一些，然后终点回归
         # control_points = [int(gap * (1 / 4)), int(gap * (6 / 5)), int(gap * 9 / 10),
         #                   int(gap * 12 / 11)]  # 控制点列表，可以调整以改变曲线形状
-        with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
-            trajectory = json.load(f)
-        mail_trajectory = random.choice(trajectory['trajectory']['mail'])
+
+        mail_trajectory = random.choice(json.loads(redis_cli.get("squad:trajectory:custom"))['mail'])
         control_points = list(map(lambda f: int(gap * f), mail_trajectory['points']))
         bezier_points = generate_bezier_points(start_point, end_point,
                                                control_points,
@@ -394,7 +393,7 @@ class Squard():
             gap = bezier_points[i] - bezier_points[i - 1]
             if abs(gap) > 35:
                 press_key('w' if gap > 0 else 's', calculate_press_ws_time(abs(gap)))
-                time.sleep(0.1)
+                time.sleep(random.uniform(0.1, 0.3))
             elif abs(gap) <= 35:
                 self._mouse_move_mail(gap)
                 time.sleep(random.uniform(0.1, 0.3))
@@ -495,4 +494,4 @@ class Squard():
 
                 time.sleep(0.1)
         except Exception as e:
-            print(e)
+            print(traceback.format_exc())
