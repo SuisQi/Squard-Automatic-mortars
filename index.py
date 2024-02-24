@@ -22,6 +22,7 @@ from API.R import R
 from flask_cors import CORS
 from flask import Flask, request, jsonify
 
+from utils.redis_connect import check_redis_service, redis_cli
 from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords, get_settings
 
 # 获取本机计算机名称
@@ -78,9 +79,6 @@ def listen_for_logs():
             socketio.emit('log_message', {'data': pubsub_msgs[0]})
             pubsub_msgs.pop(0)
         time.sleep(0.01)
-
-
-
 
 
 def listen_fire():
@@ -215,73 +213,114 @@ def get_bezier_points_api():
                                     num_points=data['num_points']).tolist()
     x_coords = calculate_nonuniform_x_coords(points)
     x_coords = list(map(lambda f: f * data['width'], x_coords))
-    with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
-        trajectory = json.load(f)
-    mail_trajector = list(filter(lambda e: e['name'] == data['name'], trajectory['trajectory']['mail']))
-    if mail_trajector:
-        mail_trajector = mail_trajector[0]
-        mail_trajector['points'] = data['points']
-        mail_trajector['num_points'] = data['num_points']
-    with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as f:
-        json.dump(trajectory, f)
+
+    # 从 Redis 获取 custom_trajectory
+    custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
+    if custom_trajectory_json:
+        trajectory = json.loads(custom_trajectory_json)
+        mail_trajectory = list(filter(lambda e: e['name'] == data['name'], trajectory['mail']))
+        if mail_trajectory:
+            mail_trajectory = mail_trajectory[0]
+            mail_trajectory['points'] = data['points']
+            mail_trajectory['num_points'] = data['num_points']
+            # 将更新后的数据写回 Redis
+            redis_cli.set('squad:trajectory:custom', json.dumps(trajectory))
+        else:
+            return R(404, message='Mail trajectory not found.')
+    else:
+        return R(500, message='Custom trajectory data not found in Redis.')
 
     return R(200, data=list(zip(x_coords, points)))
 
 
 @app.route("/list_mail_trajectories", methods=["GET"])
 def list_mail_trajectories():
-    global data
-    data = []
-    if not os.path.exists("./settings/custom_trajectory.json"):
-        with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
-            data = json.load(f)
+    # 尝试从 Redis 获取 custom_trajectory
+
+    custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
+
+    if custom_trajectory_json:
+        data = json.loads(custom_trajectory_json)
     else:
-        with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
-            data = json.load(f)
-    return R(200, data=data['trajectory']['mail'])
+        # 如果没有找到 custom_trajectory，尝试从 Redis 获取 default_trajectory
+        default_trajectory_json = redis_cli.get('squad:trajectory:default')
+        if default_trajectory_json:
+            data = json.loads(default_trajectory_json)
+        else:
+            return R(500, message='Trajectory data not found in Redis.')
+
+    return R(200, data=data['mail'])
 
 
 @app.route("/reset_mail_trajectory", methods=["POST"])
 def reset_mail_trajectory():
     data = request.get_json()
     name = data['name']
-    with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
-        custom_trajectory = json.load(f)
-    with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
-        default_trajectory = json.load(f)
-    c_t = list(filter(lambda f: f["name"] == name, custom_trajectory['trajectory']['mail']))[0]
-    d_t = list(filter(lambda f: f["name"] == name, default_trajectory['trajectory']['mail']))[0]
+
+    # 从 Redis 获取 custom_trajectory 和 default_trajectory
+    custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
+    default_trajectory_json = redis_cli.get('squad:trajectory:default')
+
+    custom_trajectory = json.loads(custom_trajectory_json) if custom_trajectory_json else None
+    default_trajectory = json.loads(default_trajectory_json) if default_trajectory_json else None
+
+    if not custom_trajectory or not default_trajectory:
+        return R(500, message='Trajectory data not found in Redis.')
+
+    c_t = list(filter(lambda f: f["name"] == name, custom_trajectory['mail']))[0]
+    d_t = list(filter(lambda f: f["name"] == name, default_trajectory['mail']))[0]
+
     if not d_t:
-        c_t['points'] = default_trajectory['trajectory']['mail']['points']
-        c_t['num_points'] = default_trajectory['trajectory']['mail']['num_points']
+        # 如果找不到默认轨迹，可能需要适当处理
+        return R(500, message='Default trajectory not found.')
     else:
         c_t['points'] = d_t['points']
         c_t['num_points'] = d_t['num_points']
-    with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as f:
-        json.dump(custom_trajectory, f)
+
+    # 将更新后的 custom_trajectory 存回 Redis
+    redis_cli.set('squad:trajectory:custom', json.dumps(custom_trajectory))
+
     return R(200, data=c_t)
 
 
 @app.route("/update_settings", methods=["POST"])
 def update_settings():
     data = request.get_json()
-    try:
-        with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
-            custom_trajectory = json.load(f)
-        custom_trajectory['settings'] = data
-        with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as e:
-            json.dump(custom_trajectory, e)
-    except Exception as e:
-        print(e)
+    redis_cli.set('squad:settings', json.dumps(data))
+
     return R(200)
 
 
 @app.route("/get_settings", methods=["GET"])
 def get_settings_():
-    with open("./settings/custom_trajectory.json", 'r', encoding='utf-8') as f:
-        custom_trajectory = json.load(f)
+    settings = json.loads(redis_cli.get('squad:settings'))
+    return R(200, settings)
 
-    return R(200, custom_trajectory['settings'])
+
+def init_settings():
+    '''
+    初始化各种设置
+
+    '''
+    redis_cli.set('squad:settings', json.dumps({
+        "beforeFire": [0.5, 1],
+        "afterFire": [0.5, 1],
+        "mail_gap": 1,
+        "orientation_gap": 0.1
+    }))
+    trajectory_default = {
+        "mail": [
+            {
+                "name": "方案一",
+                "points": [0.25, 1.2, 0.9, 1.09],
+                "num_points": 8
+            }
+        ]
+    }
+
+    redis_cli.set("squad:trajectory:default", json.dumps(trajectory_default))
+    if not redis_cli.exists("squad:trajectory:custom"):
+        redis_cli.set("squad:trajectory:custom", json.dumps(trajectory_default))
 
 
 if __name__ == '__main__':
@@ -289,11 +328,8 @@ if __name__ == '__main__':
     #     input()
     #     exit(0)
     display_squard()
-    if not os.path.exists("./settings/custom_trajectory.json"):
-        with open("./settings/default_trajectory.json", 'r', encoding='utf-8') as f:
-            data = json.load(f)
-        with open("./settings/custom_trajectory.json", 'w', encoding='utf-8') as f:
-            json.dump(data, f, indent=4)
+    init_settings()
+    check_redis_service()
 
     threading.Thread(target=listen_for_logs).start()
     threading.Thread(target=start_map).start()

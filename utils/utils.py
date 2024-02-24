@@ -3,6 +3,8 @@ import json
 import numpy as np
 from scipy.special import comb
 
+from utils.redis_connect import redis_cli
+
 
 def filter_points(points):
     """
@@ -90,7 +92,6 @@ def calculate_nonuniform_x_coords(y_coords):
 
     return x_coords_rounded[1:].tolist()
 
+
 def get_settings():
-    with open("./settings/custom_trajectory.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
-    return data['settings']
+    return json.loads(redis_cli.get("squad:settings"))
