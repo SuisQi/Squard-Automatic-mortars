@@ -328,8 +328,8 @@ if __name__ == '__main__':
     #     input()
     #     exit(0)
     display_squard()
-    init_settings()
     check_redis_service()
+    init_settings()
 
     threading.Thread(target=listen_for_logs).start()
     threading.Thread(target=start_map).start()
