@@ -10,3 +10,4 @@ __pycache__
 /templates/map/node_modules/
 /templates/map/.idea/
 /templates/control/.idea/
+/Redis-x64-5.0.14.1/dump.rdb
