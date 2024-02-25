@@ -16,7 +16,7 @@ from functools import wraps
 from flask_socketio import SocketIO
 
 from login import login, verify, display_squard
-from main import log, Squard, stop, STATE, pubsub_msgs
+from main import log, Squard, stop, pubsub_msgs
 from API.R import R
 
 from flask_cors import CORS
@@ -86,7 +86,7 @@ def listen_fire():
     squard = Squard()
     while True:
         try:
-            list_items = STATE['standard']
+            list_items = redis_cli.lrange('squad:fire_data:standard', 0, -1)
             # item = json.loads(list_items[0])
 
             if stop():
@@ -99,12 +99,12 @@ def listen_fire():
                 item = json.loads(item)
                 log(f"目标方位：{round(item['dir'], 1)}，密位{item['angle']}")
 
-                mortarRounds = int(STATE['control']['mortarRounds'])
+                mortarRounds = int(redis_cli.get("squad:fire_data:control:mortarRounds"))
 
                 squard.fire(mortarRounds, round(item['dir'], 1), item['angle'])
                 time.sleep(random.uniform(get_settings()['afterFire'][0], get_settings()['afterFire'][0]))
             log("停火")
-            STATE['control']['state'] = 0
+            redis_cli.set("squad:fire_data:control:state",0)
         except Exception as e:
             print(traceback.format_exc())
 
@@ -129,7 +129,8 @@ def check(f):
 def save():
     if request.is_json:
         data = request.get_json()
-        STATE['standard'].append(json.dumps(data))
+        # 将数据转换为JSON字符串并追加到Redis列表中
+        redis_cli.rpush('squad:fire_data:standard', json.dumps(data))
     return R(0)
 
 
@@ -138,15 +139,18 @@ def save():
 def update():
     if request.is_json:
         data = request.get_json()
-        list_items = STATE['standard']
-        count = 0
-        for item in list_items:
-            # 解析 JSON 字符串
+
+        # 获取列表长度
+        list_length = redis_cli.llen('squad:fire_data:standard')
+
+        # 遍历列表，寻找匹配的 entityId 并更新
+        for idx in range(list_length):
+            item = redis_cli.lindex('squad:fire_data:standard', idx)  # 获取当前索引的元素
             json_obj = json.loads(item)
             if json_obj['entityId'] == data['entityId']:
-                STATE['standard'][count] = json.dumps(data)
-            count += 1
-
+                # 替换找到的项
+                redis_cli.lset('squad:fire_data:standard', idx, json.dumps(data))
+                break  # 如果找到匹配的 entityId，更新后就退出循环
     return R(0)
 
 
@@ -154,22 +158,39 @@ def update():
 # @check
 def remove():
     data = request.get_json()
-    # 获取列表所有元素
-    list_items = STATE['standard']
-    for item in list_items:
-        # 解析 JSON 字符串
-        json_obj = json.loads(item)
+    # 从Redis获取列表所有元素
+    list_items = redis_cli.lrange('squad:fire_data:standard', 0, -1)
+
+    # 准备一个新的列表来保存不需要删除的元素
+    updated_list_items = []
+    found = False
+
+    # 遍历列表元素
+    for item_bytes in list_items:
+        item_str = item_bytes.decode('utf-8')  # Redis存储的数据为bytes，需要解码为字符串
+        json_obj = json.loads(item_str)
         # 检查是否符合删除条件
         if json_obj['entityId'] == data['entityId']:
-            # 删除这个元素
-            list_items.remove(item)
-    return R(0)
+            # 如果符合条件，则标记找到并继续循环，不将当前元素添加到更新列表中
+            found = True
+        else:
+            # 如果不符合删除条件，将元素添加到更新列表中
+            updated_list_items.append(item_str)
 
+    # 如果找到至少一个符合条件的元素，则更新Redis中的列表
+    if found:
+        # 首先删除原列表
+        redis_cli.delete('squad:fire_data:standard')
+        # 如果更新后的列表不为空，则将其元素重新添加到Redis列表中
+        if updated_list_items:
+            redis_cli.rpush('squad:fire_data:standard', *updated_list_items)
+
+    return R(0)
 
 @app.route("/remove_all")
 # @check
 def remove_all():
-    STATE['standard'] = []
+    redis_cli.delete('squad:fire_data:standard')
 
     return R(0)
 
@@ -180,27 +201,47 @@ def set_state():
     state = request.args.get('state')
     state = int(state)
     # state = 1 - state
-    STATE['control']['state'] = state
+
+    # 将状态保存到Redis
+    redis_cli.set('squad:fire_data:control:state', state)
+
+    # 使用SocketIO广播状态更新
     socketio.emit('state', {'data': state})
+
     return R(200, data=state)
 
 
 @app.route("/getState", methods=["GET"])
 def get_state():
-    state = STATE['control']['state']
+    # 从Redis获取状态信息
+    state = redis_cli.get('squad:fire_data:control:state')
+
+    # 确保从Redis获取的状态是字符串，如果需要，转换成整数
+    if state is not None:
+        state = int(state)
+    else:
+        # 如果Redis中没有找到状态信息，可能需要设置一个默认值
+        state = 0  # 或任何适当的默认值
+
     return R(200, data=state)
 
 
 @app.route("/listFires", methods=["GET"])
 def list_fires():
-    return R(200, data=STATE['standard'])
+    list_items = redis_cli.lrange('squad:fire_data:standard', 0, -1)
+
+    # Deserialize JSON strings to Python objects
+    data = [json.loads(item) for item in list_items]
+
+    return R(200, data=data)
 
 
 @app.route('/setMortarRounds', methods=["GET"])
 # @check
 def set_mortarRounds():
     mortarRounds = request.args.get('mortarRounds')
-    STATE['control']['mortarRounds'] = mortarRounds
+    # 将mortarRounds的值保存到Redis
+    redis_cli.set('squad:fire_data:control:mortarRounds', mortarRounds)
     return R(0)
 
 
@@ -322,6 +363,9 @@ def init_settings():
     if not redis_cli.exists("squad:trajectory:custom"):
         redis_cli.set("squad:trajectory:custom", json.dumps(trajectory_default))
 
+    # 设置默认开火轮数
+    redis_cli.set('squad:fire_data:control:mortarRounds', 3)
+    redis_cli.set("squad:fire_data:control:state",0)
 
 if __name__ == '__main__':
     # if not login():
@@ -341,5 +385,6 @@ if __name__ == '__main__':
     s.connect(("10.255.255.255", 1))
     IP = s.getsockname()[0]
     print(f'将手机和电脑保持同一局域网，关闭AP隔离保护，手机浏览器打开{IP}:5173')
+    print("如果你设置了自定义轨迹或者别的设置，在更新前请将该目录下的Redis-x64-5.0.14.1/dump.rdb备份，并在更新后进行替换")
     # with DisableFlaskLogging():
     socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)

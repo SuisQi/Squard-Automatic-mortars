@@ -19,13 +19,7 @@ from utils.calculate_press_time import calculate_press_ad_time, calculate_press_
 from utils.mouse.mouse_ghub import Mouse_ghub
 from utils.screen_shot import screen_shot
 
-STATE = {
-    "standard": [],
-    "control": {
-        "state": 1,
-        'mortarRounds': 3
-    }
-}
+
 
 pubsub_msgs = []  # 一个日志队列
 screen_size = pyautogui.size()
@@ -284,7 +278,7 @@ ocr = ddddocr.DdddOcr(show_ad=False, import_onnx_path="./squard.onnx", charsets_
 
 
 def stop():
-    state = STATE['control']['state']
+    state = redis_cli.get("squad:fire_data:control:state")
     state = int(state)
     if state == 1:
         return False

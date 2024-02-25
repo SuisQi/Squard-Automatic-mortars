@@ -62,7 +62,7 @@ const init = () => {
     isOn.value = parseInt(res.data.data) === 1
   })
   list_fires().then(res => {
-    fires.value = res.data.data.map((e) => JSON.parse(e))
+    fires.value = res.data.data
   })
   get_settings().then(res=>{
     settings.value=res.data.data
