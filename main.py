@@ -19,8 +19,6 @@ from utils.calculate_press_time import calculate_press_ad_time, calculate_press_
 from utils.mouse.mouse_ghub import Mouse_ghub
 from utils.screen_shot import screen_shot
 
-
-
 pubsub_msgs = []  # 一个日志队列
 screen_size = pyautogui.size()
 WIDTH = screen_size.width
@@ -306,12 +304,12 @@ class Squard():
             time.sleep(0.01)
             if i % 5 == 0:
                 count = count + 1
-                time.sleep(random.uniform(0.1, 0.3))
+                # time.sleep(random.uniform(0.1, 0.3))
             # self._mouse.move(12 * (1 if gap > 0 else -1), 27 if i % 5 == 0 else 0)
             self._mouse.move(12 * (1 if gap > 0 else -1), 0)
         # self._mouse_move_mail(count,move_orientation=True)
 
-    def _move_mail(self, target, deep=0):
+    def _amend_mail(self, target, deep=0):
 
         img = self._screen.capture(resolution_case['mail_t_x'], resolution_case['mail_t_y'],
                                    resolution_case['mail_b_x'], resolution_case['mail_b_y'])
@@ -329,7 +327,7 @@ class Squard():
                 self._mouse_move_mail(-3)
             if deep >= 4:
                 return None
-            return self._move_mail(target, deep + 1)
+            return self._amend_mail(target, deep + 1)
 
         gap = target - mail
         if gap >= get_settings()['mail_gap']:
@@ -337,7 +335,7 @@ class Squard():
                 return False
             self._mouse_move_mail(gap)
             time.sleep(0.1)
-            return self._move_mail(target, deep + 1)
+            return self._amend_mail(target, deep + 1)
         else:
             return True
 
@@ -391,19 +389,29 @@ class Squard():
             elif abs(gap) <= 35:
                 self._mouse_move_mail(gap)
                 time.sleep(random.uniform(0.1, 0.3))
-        #
 
-        # if abs(gap) <= 1:
-        #     return True
-        # if abs(gap) > 35:
-        #     press_key('w' if gap > 0 else 's', calculate_press_ws_time(abs(gap)))
-        #
-        #     return self._move_target_mail(target, deep)
-        # elif abs(gap) <= 35:
-        #     self._mouse_move_mail(gap)
-        #     time.sleep(0.1)
-        #     return self._move_target_mail(target, deep)
-        return self._move_mail(target)
+
+        return self._amend_mail(target)
+
+    def _amend_orientation(self, target, deep=0):
+        img = self._screen.capture(resolution_case['orientation_t_x'], resolution_case['orientation_t_y'],
+                                   resolution_case['orientation_b_x'], resolution_case['orientation_b_y'])
+        _, image_bytes = cv2.imencode('.png', img)
+        orientation = self._number_classify.classification(image_bytes.tobytes())
+        orientation = int(orientation) / 10
+        gap = shortest_angle_distance(orientation, target)
+        if round(abs(gap), 2) <= get_settings()['orientation_gap']:
+            return True
+        if deep >= 5:
+            return
+        if abs(gap) > 10:
+            seconds = calculate_press_ad_time(abs(gap))
+            press_key('d' if gap > 0 else 'a', seconds)
+            return self._amend_orientation(target, deep + 1)
+        else:
+            self._mouse_move_orientation(gap)
+            time.sleep(0.1)
+            return self._amend_orientation(target, deep + 1)
 
     def _move_target_orientation(self, target, deep=0):
         '''
@@ -433,22 +441,31 @@ class Squard():
             log(f"获取方位错误，重新获取")
             press_key('d', 0.01)
             return self._move_target_orientation(target)
-        # cv2.imwrite(f'{orientation}.png', img)
-        gap = shortest_angle_distance(orientation, target)
-        # log(f"误差{round(abs(gap), 2)}")
-        if round(abs(gap), 2) <= get_settings()['orientation_gap']:
-            return True
-        if deep >= 5:
-            return
-        if abs(gap) > 10:
-            seconds = calculate_press_ad_time(abs(gap))
-            press_key('d' if gap > 0 else 'a', seconds)
-            return self._move_target_orientation(target, deep + 1)
-        else:
-            self._mouse_move_orientation(gap)
-            time.sleep(0.1)
-            return self._move_target_orientation(target, deep + 1)
 
+        gap = shortest_angle_distance(orientation, target)
+        start_point = 0  # 起始水平位置
+        end_point = gap  # 终点水平位置
+
+        orientation_trajectory = random.choice(json.loads(redis_cli.get("squad:trajectory:custom"))['orientation'])
+
+        control_points = list(map(lambda f: int(gap * f), orientation_trajectory['points']))
+        bezier_points = generate_bezier_points(start_point, end_point,
+                                               control_points,
+                                               num_points=orientation_trajectory['num_points'] if
+                                               orientation_trajectory[
+                                                   'num_points'] >= 2 else 2)
+
+        for i in range(1, len(bezier_points)):
+            gap = bezier_points[i] - bezier_points[i - 1]
+            if abs(gap) > 10:
+                press_key('d' if gap > 0 else 'a', calculate_press_ad_time(abs(gap)))
+                time.sleep(random.uniform(0.1, 0.3))
+            elif abs(gap) <= 10:
+                self._mouse_move_orientation(gap)
+                time.sleep(random.uniform(0.1, 0.3))
+
+
+        return self._amend_orientation(target)
 
     def fire(self, count, dir, angle):
         '''
