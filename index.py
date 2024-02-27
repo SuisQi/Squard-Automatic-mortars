@@ -104,7 +104,7 @@ def listen_fire():
                 squard.fire(mortarRounds, round(item['dir'], 1), item['angle'])
                 time.sleep(random.uniform(get_settings()['afterFire'][0], get_settings()['afterFire'][0]))
             log("停火")
-            redis_cli.set("squad:fire_data:control:state",0)
+            redis_cli.set("squad:fire_data:control:state", 0)
         except Exception as e:
             print(traceback.format_exc())
 
@@ -187,6 +187,7 @@ def remove():
 
     return R(0)
 
+
 @app.route("/remove_all")
 # @check
 def remove_all():
@@ -248,7 +249,7 @@ def set_mortarRounds():
 @app.route("/get_bezier_points", methods=['POST'])
 def get_bezier_points_api():
     data = request.get_json()
-
+    t = request.args.get("type")
     points = generate_bezier_points(0, data['height'] / 2,
                                     list(map(lambda f: f * data['height'] * 0.5, data['points'])),
                                     num_points=data['num_points']).tolist()
@@ -258,14 +259,14 @@ def get_bezier_points_api():
     # 从 Redis 获取 custom_trajectory
     custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
     if custom_trajectory_json:
-        trajectory = json.loads(custom_trajectory_json)
-        mail_trajectory = list(filter(lambda e: e['name'] == data['name'], trajectory['mail']))
-        if mail_trajectory:
-            mail_trajectory = mail_trajectory[0]
-            mail_trajectory['points'] = data['points']
-            mail_trajectory['num_points'] = data['num_points']
+        trajectories = json.loads(custom_trajectory_json)
+        trajectory = list(filter(lambda e: e['name'] == data['name'], trajectories[t]))
+        if trajectory:
+            trajectory = trajectory[0]
+            trajectory['points'] = data['points']
+            trajectory['num_points'] = data['num_points']
             # 将更新后的数据写回 Redis
-            redis_cli.set('squad:trajectory:custom', json.dumps(trajectory))
+            redis_cli.set('squad:trajectory:custom', json.dumps(trajectories))
         else:
             return R(404, message='Mail trajectory not found.')
     else:
@@ -274,9 +275,10 @@ def get_bezier_points_api():
     return R(200, data=list(zip(x_coords, points)))
 
 
-@app.route("/list_mail_trajectories", methods=["GET"])
-def list_mail_trajectories():
+@app.route("/list_trajectories", methods=["GET"])
+def list_trajectories():
     # 尝试从 Redis 获取 custom_trajectory
+    t = request.args.get("type")
 
     custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
 
@@ -290,14 +292,14 @@ def list_mail_trajectories():
         else:
             return R(500, message='Trajectory data not found in Redis.')
 
-    return R(200, data=data['mail'])
+    return R(200, data=data[t])
 
 
-@app.route("/reset_mail_trajectory", methods=["POST"])
-def reset_mail_trajectory():
+@app.route("/reset_trajectory", methods=["POST"])
+def reset_trajectory():
     data = request.get_json()
     name = data['name']
-
+    t = request.args.get("type")
     # 从 Redis 获取 custom_trajectory 和 default_trajectory
     custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
     default_trajectory_json = redis_cli.get('squad:trajectory:default')
@@ -308,8 +310,8 @@ def reset_mail_trajectory():
     if not custom_trajectory or not default_trajectory:
         return R(500, message='Trajectory data not found in Redis.')
 
-    c_t = list(filter(lambda f: f["name"] == name, custom_trajectory['mail']))[0]
-    d_t = list(filter(lambda f: f["name"] == name, default_trajectory['mail']))[0]
+    c_t = list(filter(lambda f: f["name"] == name, custom_trajectory[t]))[0]
+    d_t = list(filter(lambda f: f["name"] == name, default_trajectory[t]))[0]
 
     if not d_t:
         # 如果找不到默认轨迹，可能需要适当处理
@@ -356,6 +358,13 @@ def init_settings():
                 "points": [0.25, 1.2, 0.9, 1.09],
                 "num_points": 8
             }
+        ],
+        "orientation": [
+            {
+                "name": "方案一",
+                "points": [0.25, 1.2, 0.9, 1.09],
+                "num_points": 8
+            }
         ]
     }
 
@@ -365,7 +374,8 @@ def init_settings():
 
     # 设置默认开火轮数
     redis_cli.set('squad:fire_data:control:mortarRounds', 3)
-    redis_cli.set("squad:fire_data:control:state",0)
+    redis_cli.set("squad:fire_data:control:state", 0)
+
 
 if __name__ == '__main__':
     # if not login():

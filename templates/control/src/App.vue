@@ -5,7 +5,7 @@ import {
   get_settings,
   getState,
   list_fires,
-  list_mail_trajectories,
+  list_trajectories,
   setMortarRounds,
   setState,
   update_settings
@@ -27,8 +27,10 @@ const fires = ref([])
 const mortarRounds = ref(3)
 const dialogFires = ref(false)
 const dialogSetting = ref(false)
+const dialogOrigentationSetting = ref(false)
 const dialogFeature = ref(false)
 const mail_trajectories = ref([])
+const origentation_trajectories = ref([])
 const settings = ref({
   "beforeFire": [0.5,1],
   "afterFire": [0.5,1],
@@ -51,9 +53,13 @@ onMounted(() => {
       container.scrollTop = container.scrollHeight
     })
   });
-  list_mail_trajectories().then(res=>{
+  list_trajectories("mail").then(res=>{
     mail_trajectories.value=res.data.data
   })
+  list_trajectories("orientation").then(res=>{
+    origentation_trajectories.value=res.data.data
+  })
+
   setInterval(init, 500)
 })
 const init = () => {
@@ -117,7 +123,9 @@ const onMortarRoundsChange = (event) => {
 
             <el-button class="w-full" @click="()=>dialogFires=true" type="danger">查看火力点</el-button>
             <div></div>
-            <el-button class="w-full"  @click="()=>dialogSetting=true" type="info">编辑轨迹点</el-button>
+            <el-button class="w-full"  @click="()=>dialogSetting=true" type="info">编辑密位轨迹点</el-button>
+            <div></div>
+            <el-button class="w-full"  @click="()=>dialogOrigentationSetting=true" type="info">编辑方位轨迹点</el-button>
             <div class="w-full grid grid-cols-[100px_auto] gap-2">
               <div class="min-w-[100px]">开火前停顿(s)</div>
               <el-slider class="w-full" v-model="settings.beforeFire" :step="0.1"  range show-stops :max="2" @change="changeSettings"/>
@@ -166,11 +174,20 @@ const onMortarRoundsChange = (event) => {
         </el-dialog>
         <el-dialog
             v-model="dialogSetting"
-            title="设置"
+            title="密位轨迹设置"
             :width="viewportWidth"
         >
-          <div class="w-full flex flex-col items-center">
-            <BezierCurve v-for="(item,index) in mail_trajectories" :width="viewportWidth*0.9" :height="200" :points="item.points" :name="item.name" :num_points="item.num_points"></BezierCurve>
+          <div class="w-full flex flex-col items-center"  >
+            <BezierCurve v-for="(item,index) in mail_trajectories"  type="mail" :width="viewportWidth*0.9" :height="200" :points="item.points" :name="item.name" :num_points="item.num_points"></BezierCurve>
+          </div>
+        </el-dialog>
+        <el-dialog
+            v-model="dialogOrigentationSetting"
+            title="方位轨迹设置"
+            :width="viewportWidth"
+        >
+          <div class="w-full flex flex-col items-center" >
+            <BezierCurve v-for="(item,index) in origentation_trajectories" type="orientation" :width="viewportWidth*0.9" :height="200" :points="item.points" :name="item.name" :num_points="item.num_points"></BezierCurve>
           </div>
         </el-dialog>
         <div

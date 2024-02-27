@@ -1,7 +1,7 @@
 <script setup lang="js">
 import * as d3 from 'd3';
 import {onMounted, ref} from "vue";
-import {get_bezier_points, reset_mail_trajectory} from "@/api";
+import {get_bezier_points, reset_trajectory} from "@/api";
 import {
   Plus,
   Delete,
@@ -11,7 +11,7 @@ import {
   Star,
 } from '@element-plus/icons-vue'
 
-const props = defineProps(['width', 'height', 'points', 'name', "num_points"])
+const props = defineProps(['width', 'height', 'points', 'name', "num_points","type"])
 
 const d3Container = ref(null)
 const inputs = ref([])
@@ -23,7 +23,7 @@ const drawCurve = () => {
 
   // 绘制曲线
   // let points = inputs.value.map(f => props.height * f * 0.5).map(f => parseInt(f))
-  get_bezier_points({
+  get_bezier_points(props.type,{
     "name": props.name,
     "width": props.width,
     "height": props.height,
@@ -110,7 +110,7 @@ const addInput = (index) => {
   drawCurve()
 }
 const refresh_t = () => {
-  reset_mail_trajectory({
+  reset_trajectory(props.type,{
     name: props.name
   }).then(res => {
     inputs.value = res.data.data.points
