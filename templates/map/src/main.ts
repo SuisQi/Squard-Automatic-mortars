@@ -13,6 +13,7 @@ import {enableMapSet} from "immer";
 import {addWeapon} from "./world/actions";
 import {UIStateActionType} from "./ui/types";
 import {remove, remove_all} from "./api/standard";
+import {makeIconTool} from "./ui/iconTool";
 
 M.glMatrix.setMatrixArrayType(Array)
 enableMapSet()
@@ -55,10 +56,13 @@ to be optimized:
 const $tooltip = document.getElementById('tooltip')!;
 const $leftPanel = document.getElementById('leftPanel')!;
 const $rightPanel = document.getElementById('rightPanel')!;
+const $iconTool = document.getElementById('iconTool')!;
 const h = React.createElement
 remove_all().then(r => {
 
 })
+console.log(store)
 ReactDOM.render(makeLeftPanel(store), $leftPanel)
 ReactDOM.render(makeTooltip(store), $tooltip)
+ReactDOM.render(makeIconTool(store), $iconTool)
 

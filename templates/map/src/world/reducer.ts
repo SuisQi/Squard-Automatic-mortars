@@ -17,6 +17,9 @@ import {EntityComponent} from "./components/entity";
 import {SetAction} from "./components/types";
 import {EntityActionType, EntityId, World} from './types';
 import {remove_all} from "../api/standard";
+import {IconActionType} from "./actions";
+import {newTransform} from "./components/transform";
+import {newIcon} from "./components/icon";
 
 
 const newWorld = (): World => ({
@@ -39,6 +42,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
   }
   switch(action.type){
     case EntityActionType.add:
+
       return produce(state, (proxy: World) => {
         const newId = proxy.nextId;
         proxy.nextId = proxy.nextId + 1;
@@ -48,6 +52,30 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
         }) as any;
         console.log(action)
         proxy.components = setComponentsFromActionMut(proxy.components, newId, setAction);
+      })
+    case IconActionType.add:
+      return produce(state,(proxy:World)=>{
+        const newId = proxy.nextId;
+        proxy.nextId = proxy.nextId + 1;
+        proxy.components.transform.set(newId,newTransform(action.payload.location))
+        let icon = newIcon({src: action.payload.src, entityId: newId,image:new Image()})
+        icon.image.src=icon.src
+        proxy.components.icon.set(newId,icon)
+
+
+
+      })
+    case IconActionType.remove:
+      return produce(state,(proxy:World)=>{
+        proxy.components.icon.delete(action.payload)
+        proxy.components.transform.delete(action.payload)
+      })
+    case IconActionType.remove_all:
+      return produce(state,(proxy:World)=>{
+        proxy.components.icon.forEach(f=>{
+          proxy.components.transform.delete(f.entityId)
+        })
+        proxy.components.icon.clear()
       })
     case EntityActionType.selectAdd:
       return produce(state,(proxy:World)=>{
@@ -94,6 +122,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
             removeComponentsMut(proxy.components, v)
           })
         });
+
     default:
       return produce(state, (proxy: World) => {
         proxy.components = componentsReducer(proxy.components, action);

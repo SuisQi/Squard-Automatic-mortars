@@ -2,10 +2,14 @@
   "name": "squadstrat",
   "version": "1.0.0",
   "description": "",
+  "private": true,
   "scripts": {
     "server": "live-server --port=8000 ./public",
-    "dev": "webpack --watch --env NODE_ENV=production --config prod.config.js",
-    "build": "webpack --env NODE_ENV=production --config prod.config.js"
+    "dev": "webpack-dev-server  --env NODE_ENV=development ",
+    "start": "webpack server",
+    "css": "npx tailwindcss -i ./public/t_i.css -o ./public/t_o.css --watch",
+    "build": "webpack --watch --env NODE_ENV=production --config prod.config.js",
+    "build-dev": "webpack --watch --env NODE_ENV=development --config dev.config.js"
   },
   "repository": {
     "type": "git",
@@ -38,11 +42,11 @@
     "@types/react-dom": "16.9.8",
     "@types/react-redux": "7.1.9",
     "live-server": "1.2.1",
-    "tailwindcss": "^3.3.6",
+    "tailwindcss": "^3.4.1",
     "ts-loader": "^8.0.17",
     "typescript": "^4.5.2",
-    "webpack": "^5.76.0",
-    "webpack-cli": "^4.5.0",
+    "webpack-cli": "^5.1.4",
+    "webpack-dev-server": "^5.0.2",
     "webpack-merge": "^5.7.3"
   }
 }

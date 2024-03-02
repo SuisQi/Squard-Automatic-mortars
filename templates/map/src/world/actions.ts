@@ -3,7 +3,7 @@ import {WeaponType} from "./components/weapon";
 import {
     EntityAction,
     EntityActionType,
-    EntityId,
+    EntityId, HasLocation,
     SerializableComponents,
     Target,
     TransformAction,
@@ -11,6 +11,7 @@ import {
     WeaponAction,
     WeaponActionType
 } from "./types";
+import {IconComponent} from "./components/icon";
 
 
 export const setAllEntities = (components: SerializableComponents): EntityAction => ({
@@ -102,3 +103,14 @@ export const addCamera = (location: vec3): EntityAction => ({
   type: EntityActionType.add,
   payload: {location, entityType: "Camera"}
 })
+
+export enum IconActionType{
+    add="ICON_ADD",
+    remove="ICON_REMOVE",
+    remove_all="ICON_REMOVE_ALL"
+}
+export type IconAction={
+    type:IconActionType.add,payload:HasLocation&IconComponent
+}|{
+    type:IconActionType.remove,payload:EntityId
+}|{type:IconActionType.remove_all}

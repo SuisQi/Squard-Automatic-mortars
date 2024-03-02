@@ -3,7 +3,18 @@ import { $map_name, $canvas} from './elements';
 import { dispatch, Store0 } from './store';
 import { newUserSettingsWriteAction as writeUserSettings} from './ui/actions';
 import { drawAll } from './render/canvas';
-import { mouseMove, mouseScroll, mouseDown, mouseUp, doubleClick, click, handleTouchMove, handleNewTouch, handleTouchEnd } from './ui/ui';
+import {
+  mouseMove,
+  mouseScroll,
+  mouseDown,
+  mouseUp,
+  doubleClick,
+  click,
+  handleTouchMove,
+  handleNewTouch,
+  handleTouchEnd,
+  rightClick
+} from './ui/ui';
 
 
 function startup() {
@@ -38,7 +49,7 @@ export const setupEventsAndInit = (store: Store0, perfRef:{t0: any}) => {
   }
   const state = store.getState()
   hook(
-    $map_name, "onchange", 
+    $map_name, "onchange",
     (event: any) => {
       dispatch(store, writeUserSettings("mapId", (<HTMLSelectElement>event.target).value));
     }
@@ -55,4 +66,5 @@ export const setupEventsAndInit = (store: Store0, perfRef:{t0: any}) => {
   hook($canvas, "touchend", handleTouchEnd(store), {passive: false})
   hook($canvas, "touchcancel", handleTouchEnd(store), {passive: false})
   hook($canvas, "touchmove", handleTouchMove(store), {passive: false})
+  hook($canvas,"contextmenu",rightClick(store))
 }

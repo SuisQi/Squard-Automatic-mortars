@@ -1,6 +1,7 @@
 import {vec3, mat4} from 'gl-matrix';
 import {EntityComponent, EntityType} from './components/entity';
 import {WeaponComponent, WeaponType} from './components/weapon';
+import {IconComponent} from "./components/icon";
 
 export type HasEntityId = { entityId: EntityId }
 export type HasTransform = { transform: Transform }
@@ -47,6 +48,8 @@ export type Component =
     HasTransform
     | WeaponComponent
     | EntityComponent
+    | IconComponent
+
 
 export enum WeaponActionType {
     setActive = "WEAPON_SET_ACTIVE",
@@ -70,6 +73,7 @@ export type Components = {
     transform: Map<EntityId, HasTransform>;
     weapon: Map<EntityId, WeaponComponent>;
     entity: Map<EntityId, EntityComponent>;
+    icon: Map<EntityId, Icon>;
 }
 export type ComponentKey = keyof Components
 export type ComponentKeySet = Set<ComponentKey>
@@ -82,6 +86,7 @@ export type World = {
 
 export type Target = EntityComponent & HasTransform &Selected
 export type Weapon = EntityComponent & WeaponComponent & HasTransform
+export type Icon = IconComponent &HasTransform
 
 
 export type SerializableComponents = { [k in ComponentKey]: Array<[EntityId, Component]> };

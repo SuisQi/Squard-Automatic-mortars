@@ -1,5 +1,5 @@
 import { $canvas, $contourmap} from "../elements";
-import { HasTransform, Target, Transform, Weapon, World } from "../world/types";
+import { HasTransform, Target, Transform, Weapon, World,Icon } from "../world/types";
 import { Texture } from "./types";
 import { Store0 } from '../store';
 import { applyTransform } from '../world/transformations';
@@ -20,6 +20,8 @@ import { Contourmap } from "../contourmap/types";
 import { getComponent, getEntitiesByType, getEntity } from "../world/world";
 import { EntityComponent } from "../world/components/entity";
 import { WeaponComponent } from "../world/components/weapon";
+import produce from "immer";
+import {drawIcons} from "./icon";
 //import { $contourmap } from "../main";
 
 export const drawLine: (ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number) => void =
@@ -122,6 +124,7 @@ const drawBackground: (ctx: CanvasRenderingContext2D) => void =
 
 const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number, settings: UserSettings) => void =
   (ctx, minimap, zoom, settings) => {
+
     ctx.save()
     applyTransform(ctx, minimap.transform)
     drawTexture(ctx, minimap.transform, minimap.texture);
@@ -193,9 +196,17 @@ export const drawAll = (store: Store0) => {
     const ctx = setupCanvas($canvas)
     const zoom = getZoom(state.camera);
     const targets = getEntitiesByType<Target>(state.world, "Target");
-    const weapons = getEntitiesByType<Weapon>(state.world, "Weapon")
+    const weapons = getEntitiesByType<Weapon>(state.world, "Weapon");
+    const icons = Array.from(state.world.components.icon.values()).map(f=>{
+        return {
+            ...f,
+            transform:state.world.components.transform.get(f.entityId)
+        }
+    })
+
     ctx.save();
     drawBackground(ctx)
+
     applyTransform(ctx, state.camera.transform)
     drawMinimap(ctx, state.minimap, zoom, state.userSettings);
     drawContourmap(ctx, state.contourmap, state.userSettings);
@@ -203,6 +214,7 @@ export const drawAll = (store: Store0) => {
     drawWeapons(ctx, state.userSettings, state.camera, weapons);
     drawTargets(ctx, state.camera, state.userSettings, state.heightmap, weapons, targets);
     drawPlacementHelpers(ctx, state.camera, state.userSettings, state.uiState, state.world, state.minimap);
+    drawIcons(ctx,state.camera, icons)
     /*
     if (state.userSettings.weaponPlacementHelper && state.uiState.mouseDown){ //  && state.uiState.dragEntityId.type === "Weapon"
       const activeWeaponTransform = getActiveWeapon(state.world, state.uiState)?.transform;
@@ -246,7 +258,7 @@ export const outlineText: (
     ctx.strokeStyle = strokeStyle;
 
     ctx.textBaseline = baseline;
-      debugger;
+
     ctx.strokeText(text, 0, 0);
     ctx.fillText(text, 0, 0);
     ctx.restore();

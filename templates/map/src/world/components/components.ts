@@ -2,17 +2,29 @@ import produce from "immer";
 import { combineReducers } from "redux";
 import { actionMessage } from "../../replication_ws/actions";
 import { StoreAction } from "../../store";
-import {ComponentKey, Component, Components, EntityId, HasTransform, EntityActionType, EntityAction, SerializableComponents } from "../types";
+import {
+  ComponentKey,
+  Component,
+  Components,
+  EntityId,
+  HasTransform,
+  EntityActionType,
+  EntityAction,
+  SerializableComponents,
+  Icon
+} from "../types";
 import { EntityComponent, entityReducer, newEntity } from "./entity";
 import { newTransform, transformReducer, tryNewTransform } from "./transform";
 import { SetAction } from "./types";
 import { tryNewWeaponComponent, WeaponComponent, weaponReducer } from "./weapon";
+import {IconComponent, iconReducer} from "./icon";
 
 
 export const newComponents = (): Components => ({
   transform: new Map<EntityId, HasTransform>(),
   weapon: new Map<EntityId, WeaponComponent>(),
   entity: new Map<EntityId, EntityComponent>(),
+  icon:new Map<EntityId,Icon>()
 })
 
 
@@ -22,6 +34,8 @@ const tryComponentConstructor = (components: Components, type: ComponentKey, act
     case "transform": return tryNewTransform(action);
     case "weapon": return tryNewWeaponComponent(components, action);
     case "entity": return newEntity(action);
+    default:
+      return null;
   }
 }
 // queries
@@ -89,6 +103,7 @@ export const componentsReducer: (state: Components, action: StoreAction) => Comp
     transform: transformReducer,
     weapon: weaponReducer,
     entity: entityReducer,
+    icon:   iconReducer
   }) as any
 
 export const serializableComponents = (components: Components): {[k in ComponentKey]: Array<[EntityId, Component]>} => {

@@ -9,7 +9,12 @@ export enum UserActionType{
 export enum UserSettingsActionType {
     write = "USER_SETTINGS_WRITE"
 }
+
+export enum IconToolActionType{
+    write = "ICON_SET"
+}
 export type UserSettingsAction = WriteAction<UserSettingsActionType.write, UserSettings, keyof UserSettings>;
+export type IconToolAction = WriteAction<IconToolActionType.write, ICONToolState, keyof ICONToolState>;
 export type UserSettings = {
     mapId: string;
     mapGrid: boolean;
@@ -18,7 +23,7 @@ export type UserSettings = {
     weaponType: WeaponType;
     weaponPlacementHelper: boolean;
     weaponPlacementLabel: boolean;
-   
+
     fontSize: number;
     targetSpread: boolean;
     targetSplash: boolean;
@@ -39,11 +44,11 @@ export enum UIStateActionType {
   updateTouch = "UI_STATE_UPDATE_TOUCH",
   removeTouch = "UI_STATE_REMOVE_TOUCH",
 }
-export type UIStateAction = 
+export type UIStateAction =
     WriteAction<UIStateActionType.write, UIState, keyof UIState>
   | {type: UIStateActionType.updateTouch, payload: TouchInfo}
   | {type: UIStateActionType.removeTouch, payload: any}
-  
+
 export type UIState = {
   dragEntityId: Maybe<EntityId>;
   dragStartPosition: vec3;
@@ -51,6 +56,14 @@ export type UIState = {
   mouseDown: boolean;
   touches: Map<any, TouchInfo>;
   weaponCreationMode: boolean;
+}
+
+export type ICONToolState = {
+    display:boolean,
+    x:number,
+    y:number,
+    c_name:string,
+    location:vec3
 }
 
 export type TouchInfo = {

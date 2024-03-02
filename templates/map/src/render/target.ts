@@ -3,7 +3,7 @@ import { applyTransform, getTranslation, newTranslation, world2heightmap } from 
 import { canvasScaleTransform, drawLine, drawSpreadEllipse, outlineText } from "./canvas";
 import { mat4, vec3 } from "gl-matrix";
 import { Heightmap } from "../heightmap/types";
-import { Target, Transform, Weapon } from "../world/types";
+import {Icon, Target, Transform, Weapon} from "../world/types";
 import { Maybe } from "../common/types";
 import { getHeight } from "../heightmap/heightmap";
 import { calcSpreadHigh, distDir, getMortarFiringSolution, solveProjectileFlightHighArc, getS5FiringSolution, FiringSolution, getHellCannonFiringSolution, getBM21FiringSolution, angle2groundDistance} from "../world/projectilePhysics";
@@ -169,7 +169,7 @@ const drawTargetGridMortar = (ctx: any, lineWidthFactor: number, weaponTransform
   const arcRadii = [-10, -5, 0, 5, 10, 15].map(
     x => angle2groundDistance((mil5 + x)/US_MIL, firingSolution.startHeightOffset, MORTAR_VELOCITY, GRAVITY)
   );
-  console.log( "mil5", mil5, "ar", arcRadii)
+  // console.log( "mil5", mil5, "ar", arcRadii)
   const [ra, r0, r1, r2, r3, rb] = arcRadii;
   [-2, -1, 0, 1, 2, 3].forEach(
     gridOffset => drawMortarGridLine(ctx, 0, 0, ra, rb, gridDir + gridOffset)
@@ -179,6 +179,7 @@ const drawTargetGridMortar = (ctx: any, lineWidthFactor: number, weaponTransform
   )
   ctx.restore()
 }
+
 
 const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target) => {
   const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0] // uniform scaling
