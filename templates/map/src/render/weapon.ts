@@ -23,12 +23,14 @@ const drawMaxRangeCircle = (ctx: CanvasRenderingContext2D, weaponType: WeaponTyp
   ctx.stroke();
 }
 
+
+
 export const drawWeapons = (ctx: CanvasRenderingContext2D, userSettings: UserSettings, camera:Camera,  weapons: Array<Weapon>): void => {
   const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
   canonicalEntitySort(weapons);
   const drawWeapon = (ctx: any, weapon: Weapon, weaponIndex: number) => {
     ctx.save()
-    const canvasTransform = canvasScaleTransform(camera) 
+    const canvasTransform = canvasScaleTransform(camera)
     const scale = mat4.getScaling(vec3.create(), canvasTransform)[0]
     applyTransform(ctx, weapon.transform)
     if (weapon.isActive){
@@ -46,7 +48,7 @@ export const drawWeapons = (ctx: CanvasRenderingContext2D, userSettings: UserSet
         ctx.restore();
       }
     }
-    
+
     applyTransform(ctx, canvasTransform)
     ctx.beginPath();
     ctx.lineWidth = 3

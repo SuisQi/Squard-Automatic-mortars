@@ -1,27 +1,26 @@
 import {dispatch, Store0} from '../store';
-import {newMousePosition, setMouseDown, setDragEntity, setDragStartPosition, updateTouch, removeTouch} from './actions';
+import {newMousePosition, removeTouch, setDragEntity, setDragStartPosition, setMouseDown, updateTouch} from './actions';
 import {changeZoom, moveCamera} from '../camera/actions';
 import {vec3} from 'gl-matrix';
 import {canvas2world, canvas2worldScale, event2canvas, getTranslation} from '../world/transformations';
-import {getClosestEntity, getEntitiesByType} from '../world/world';
-import {TouchInfo} from './types';
+import {getClosestEntity, getClosestIcon, getEntitiesByType} from '../world/world';
+import {IconToolActionType, TouchInfo} from './types';
 import {
     addSelected,
     addTarget,
     addWeapon,
-    moveEntityBy,
-    moveEntityTo, removeSelect,
+    IconActionType,
+    moveEntityTo,
+    removeSelect,
     removeTarget,
     toggleWeaponActive
 } from '../world/actions';
 import {$canvas, $contourmap} from '../elements';
 import {getZoom} from '../camera/camera';
-import {EntityActionType, EntityId, Target, Weapon} from '../world/types';
-import {EntityComponent, EntityType} from '../world/components/entity';
+import {EntityId, Target, Weapon} from '../world/types';
 import {getMortarFiringSolution} from "../world/projectilePhysics";
 import {US_MIL} from "../world/constants";
 import {remove, save, update} from "../api/standard";
-import State from "sucrase/dist/types/parser/tokenizer/state";
 import {getHeight} from "../heightmap/heightmap";
 
 
@@ -75,6 +74,8 @@ const zoom = (store: Store0, targetElement: any, zoomLocation: vec3, desiredZoom
 }
 
 export const mouseScroll = (store: Store0) => (e: WheelEvent) => {
+    dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: false }});
+    dispatch(store,{type:IconToolActionType.write,payload:{key: "c_name", value: "" }});
     const camera = store.getState().camera;
     const currentZoom = getZoom(store.getState().camera)
     let delta = currentZoom < 0.01 ? 0.001 : currentZoom < 0.02 ? 0.002 : 0.005;
@@ -114,20 +115,25 @@ const getSolution = (store: Store0, target: Target) => {
     }
 }
 export const click = (store: Store0) => (e: any) => {
+    // 如果点击的不是图标工具栏，则关闭工具栏
+    dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: false }});
+    dispatch(store,{type:IconToolActionType.write,payload:{key: "c_name", value: "" }});
+
+
+    const state = store.getState();
+    const worldLoc = canvas2world(state.camera, event2canvas(e))
+    const radius = canvas2worldScale(state.camera, [25, 0, 0])[0]
+    const candidates = getClosestEntity(state.world, worldLoc, radius)
+    const iconRadius = canvas2worldScale(state.camera, [15, 0, 0])[0]
+    const removeIcons = getClosestIcon(state.world,worldLoc,iconRadius)
 
     if (e.shiftKey) {
-        const state = store.getState();
-        const worldLoc = canvas2world(state.camera, event2canvas(e))
-        const radius = canvas2worldScale(state.camera, [25, 0, 0])[0]
-        const candidates = getClosestEntity(state.world, worldLoc, radius)
+
         if (candidates.length > 0 && candidates[0].entityType === "Weapon") {
             dispatch(store, toggleWeaponActive(candidates[0].entityId));
         }
     } else if (e.ctrlKey || store.getState().userSettings.deleteMode) {
-        const state = store.getState();
-        const worldLoc = canvas2world(state.camera, event2canvas(e))
-        const radius = canvas2worldScale(state.camera, [25, 0, 0])[0]
-        const candidates = getClosestEntity(state.world, worldLoc, radius)
+
 
         if (candidates.length > 0) {
 
@@ -138,11 +144,11 @@ export const click = (store: Store0) => (e: any) => {
                 dispatch(store, removeTarget(candidates[0].entityId));
             })
         }
+        if(removeIcons.length>0){
+            dispatch(store,{type:IconActionType.remove,payload:removeIcons[0].entityId})
+        }
     } else if (e.altKey) {
-        const state = store.getState();
-        const worldLoc = canvas2world(state.camera, event2canvas(e))
-        const radius = canvas2worldScale(state.camera, [25, 0, 0])[0]
-        const candidates = getClosestEntity(state.world, worldLoc, radius)
+
 
 
         if (candidates.length > 0) {
@@ -181,6 +187,25 @@ export const click = (store: Store0) => (e: any) => {
 
 }
 
+export const rightClick = (store:Store0)=>(event:any)=>{
+
+    if (event.button === 2) {
+        const eventLocation = canvas2world(store.getState().camera, event2canvas(event))
+        event.preventDefault(); // 阻止默认右键菜单行为
+        console.log('Right clicked!');
+        // 获取鼠标右键单击时相对于屏幕左上角的距离
+        const xPos = event.clientX;
+        const yPos = event.clientY;
+
+        console.log(xPos,yPos)
+
+        dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: true }});
+        dispatch(store,{type:IconToolActionType.write,payload:{key: "x", value: xPos+15 }});
+        dispatch(store,{type:IconToolActionType.write,payload:{key: "y", value: yPos-15 }});
+        dispatch(store,{type:IconToolActionType.write,payload:{key: "location", value: eventLocation }});
+        // 这里可以添加你想要执行的逻辑
+    }
+}
 export const doubleClick = (store: Store0) => (e: any) => {
     const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
     if (e.altKey)

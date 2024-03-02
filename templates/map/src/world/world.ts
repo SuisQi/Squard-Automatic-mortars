@@ -5,7 +5,21 @@ import { Store0 } from "../store";
 import { UIState, UserSettings } from "../ui/types";
 import { getFilteredEntityIds } from "./components/components";
 import { EntityComponent, EntityType } from "./components/entity";
-import { Component, ComponentKey, Components, EntityId, HasEntityId, HasLocation, HasTransform, Weapon, World, Target } from "./types";
+import {
+  Component,
+  ComponentKey,
+  Components,
+  EntityId,
+  HasEntityId,
+  HasLocation,
+  HasTransform,
+  Weapon,
+  World,
+  Target,
+  Icon
+} from "./types";
+import {world} from "./reducer";
+import {IconComponent} from "./components/icon";
 
 /*
 export const getEntitiesWithin = (world: World, worldLoc: vec3, radius: number): Array<HasEntityId & HasTransform> => {
@@ -33,7 +47,28 @@ export const getClosestEntity = (world: World, worldLoc: vec3, radius: number): 
     })
   return out;
 }
+export const getClosestIcon = (world: World, worldLoc: vec3, radius: number):Array<Icon>=>{
+  let minDist = radius;
+  const icons = Array.from(world.components.icon.values()).map(f=>{
+    return {
+      ...f,
+      transform:world.components.transform.get(f.entityId)
+    }
+  })
+  let out:Array<IconComponent&HasTransform> = [];
+  icons.forEach(icon=>{
+    // @ts-ignore
+    const entityLoc = mat4.getTranslation(vec3.create(), icon.transform.transform);
+    const curDist = vec3.distance(worldLoc, entityLoc)
+    if (curDist < minDist){
+      minDist = curDist;
+      // @ts-ignore
+      out.push(icon)
+    }
+  })
+  return out
 
+}
 export const getEntity = <E>(world: World, entityId: EntityId): E | null =>  {
   // ^ this needs better type inference / a low maintenance type hack at some point
   // consider https://stackoverflow.com/questions/53662208/types-from-both-keys-and-values-of-object-in-typescript

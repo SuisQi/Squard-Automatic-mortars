@@ -12,34 +12,34 @@ export const moveTo = (newLocation: vec3) => (transform: mat4) => {
   return moveBy(offset)(transform);
 }
 
-export const moveBy = (offset: vec3) => (tMat: mat4): mat4 => 
+export const moveBy = (offset: vec3) => (tMat: mat4): mat4 =>
   mat4.translate(mat4.create(), tMat, offset)
 
 export const emptyTransform: () => Transform = () => mat4.create();
-export const newTranslation: (x: number, y:number, z: number) => mat4 
+export const newTranslation: (x: number, y:number, z: number) => mat4
   = (x, y, z) => mat4.fromTranslation(mat4.create(), vec3.fromValues(x, y, z));
-export const getTranslation: (transform: mat4) => vec3 
+export const getTranslation: (transform: mat4) => vec3
   = (transform) => mat4.getTranslation(vec3.create(), transform);
 
 export const applyTransform = (ctx:CanvasRenderingContext2D, transform: Transform) => {
   //const rotation = mat4.getRotation(quat.create(), transform)
   /*[
      0,  4,  -, 12,
-     1,  5,  -, 13, 
+     1,  5,  -, 13,
      -,  -,  -,  -,
      3,  7,  -, 15   // this row is implied in canvas api
-  ]*/ 
+  ]*/
   const canvasTransform: [number, number, number, number, number, number] = [0, 1, 4, 5, 12, 13].map(i => transform[i]) as any;
   ctx.transform(...canvasTransform)
 }
 
-export const applyInverseTransform: (ctx:CanvasRenderingContext2D, transform:Transform) => void = 
+export const applyInverseTransform: (ctx:CanvasRenderingContext2D, transform:Transform) => void =
   (ctx, transform) => {
     applyTransform(ctx, mat4.invert(mat4.create(), transform))
   }
 
 
-export const event2canvas: (event: MouseEvent | WheelEvent | {target: any, clientX: number, clientY: number}) => vec3 
+export const event2canvas: (event: MouseEvent | WheelEvent | {target: any, clientX: number, clientY: number}) => vec3
 = (event) => {
   const rc = (event.target as HTMLCanvasElement)!.getBoundingClientRect();
   const canvas_x = event.clientX - rc.left;
@@ -47,24 +47,24 @@ export const event2canvas: (event: MouseEvent | WheelEvent | {target: any, clien
   return vec3.fromValues(canvas_x, canvas_y, 0)
 }
 
-export const canvas2world: (camera: Camera, location: vec3) => vec3 
+export const canvas2world: (camera: Camera, location: vec3) => vec3
 = (camera, location) => {
   const inverted = mat4.invert(mat4.create(), camera.transform);
   return vec3.transformMat4(vec3.create(), location, inverted)
 }
 
-export const world2canvas: (camera: Camera, location: vec3) => vec3 
+export const world2canvas: (camera: Camera, location: vec3) => vec3
 = (camera, location) => {
   return vec3.transformMat4(vec3.create(), location, camera.transform)
 }
 
-export const canvas2worldScale: (camera: Camera, vec: vec3) => vec3 
+export const canvas2worldScale: (camera: Camera, vec: vec3) => vec3
 = (camera, vec) => {
   const scale = mat4.getScaling(vec3.create(), camera.transform)
   return vec3.divide(scale, vec, scale)
 }
 
-export const world2heightmap: (heightmap: Heightmap, location: vec3) => vec3 
+export const world2heightmap: (heightmap: Heightmap, location: vec3) => vec3
 = (heightmap, location) => {
   let out = vec3.create();
   const mult = mat4.mul(mat4.create(), heightmap.transform, heightmap.texture.transform)
@@ -73,7 +73,7 @@ export const world2heightmap: (heightmap: Heightmap, location: vec3) => vec3
   return out;
 }
 
-export const world2keypadStrings: (minimap: Minimap, location: vec3) => Array<string> 
+export const world2keypadStrings: (minimap: Minimap, location: vec3) => Array<string>
 = (minimap, location) => {
   const kp = world2keypad(minimap, location);
   if (kp[0] < 0 || kp[0]  > 23 || kp[1]  < 0){
@@ -84,7 +84,7 @@ export const world2keypadStrings: (minimap: Minimap, location: vec3) => Array<st
 
 export const standardFormatKeypad = (keypad: Array<string>): string => `${keypad[0]}-${keypad[1]}-${keypad[2]}`
 
-export const world2keypad: (minimap: Minimap, location: vec3) => Array<number> 
+export const world2keypad: (minimap: Minimap, location: vec3) => Array<number>
 = (minimap, location) => {
   const topleft = mat4.getTranslation(vec3.create(), minimap.transform);
   const x = location[0] - topleft[0];

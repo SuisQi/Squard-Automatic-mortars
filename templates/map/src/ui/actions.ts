@@ -1,41 +1,50 @@
-import { UIStateActionType, UIStateAction, UserSettingsActionType, UserSettingsAction, UserSettings, UIState } from './types';
+import {
+    UIStateActionType,
+    UIStateAction,
+    UserSettingsActionType,
+    UserSettingsAction,
+    UserSettings,
+    UIState,
+    ICONToolState, IconToolActionType
+} from './types';
 import { WriteAction } from '../common/types';
 import { vec3 } from 'gl-matrix';
 import { saveUserSettings } from './persistence';
 import { $contourmap } from '../elements';
 import { maps } from '../common/mapData';
 import { EntityId } from '../world/types';
+import {dispatch} from "../store";
 
-export const newUserSettingsWriteAction: <K extends keyof UserSettings>(k: K, v: UserSettings[K]) => (dispatch:any, getState:any) => Promise<any> = 
+export const newUserSettingsWriteAction: <K extends keyof UserSettings>(k: K, v: UserSettings[K]) => (dispatch:any, getState:any) => Promise<any> =
   (k, v) => (dispatch, getState) => {
     dispatch(({type: UserSettingsActionType.write, payload: {key: k, value: v }}));
     return new Promise((resolve, reject) => {
-      //console.log("saving settings: ", getState().userSettings.toJS()); 
-      saveUserSettings(getState().userSettings); 
+      //console.log("saving settings: ", getState().userSettings.toJS());
+      saveUserSettings(getState().userSettings);
       resolve(null)
     });
   }
 
-export const newUIStateWriteAction = <K extends keyof UIState>(k: K, v: UIState[K]): WriteAction<UIStateActionType.write, UIState, keyof UIState> => 
+export const newUIStateWriteAction = <K extends keyof UIState>(k: K, v: UIState[K]): WriteAction<UIStateActionType.write, UIState, keyof UIState> =>
   ({type: UIStateActionType.write, payload: {key: k, value: v }});
 
-  
-export const newMousePosition: (x: number, y: number) => UIStateAction = 
+
+export const newMousePosition: (x: number, y: number) => UIStateAction =
   (x, y) => ({type: UIStateActionType.write, payload: {key: "mousePosition", value: vec3.fromValues(x, y, 0)}})
 
-export const setMouseDown: (isDown: boolean) => (dispatch: any, getState: any) => void = 
+export const setMouseDown: (isDown: boolean) => (dispatch: any, getState: any) => void =
   (isDown) => (dispatch, getState) => {
     const state = getState();
     dispatch(({type: UIStateActionType.write, payload: {key: "mouseDown", value: isDown}}))
   }
 
-export const setDragEntity = (entityId: EntityId): UIStateAction => 
+export const setDragEntity = (entityId: EntityId): UIStateAction =>
   ({type: UIStateActionType.write, payload: {key: "dragEntityId", value: entityId}})
 
-export const setDragStartPosition = (position: vec3): UIStateAction => 
+export const setDragStartPosition = (position: vec3): UIStateAction =>
   ({type: UIStateActionType.write, payload: {key: "dragStartPosition", value: position}})
 
-export const settingsToActions: (settings: Partial<UserSettings>) => Array<UIStateAction> = 
+export const settingsToActions: (settings: Partial<UserSettings>) => Array<UIStateAction> =
   settings => {
 
     return Object.entries(settings).map(kv => ({type: UserSettingsActionType.write, payload: {key: kv[0], value: kv[1]}})) as any; // typescript best language

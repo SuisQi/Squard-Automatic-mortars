@@ -1,9 +1,9 @@
 import { mat4, vec3 } from "gl-matrix";
 import { HasTransform } from "../world/types";
 export class SVGBuffer implements HasTransform{
-  /* 
-  Drawing large vector graphics on every update is too slow. 
-  Instead we're drawing onto a hidden canvas at the desired resolution and 
+  /*
+  Drawing large vector graphics on every update is too slow.
+  Instead we're drawing onto a hidden canvas at the desired resolution and
   copying slices onto main canvas to keep panning fast
   */
   canvas: any;
@@ -47,10 +47,10 @@ export class SVGBuffer implements HasTransform{
   set_zoom(zoom: number){
     // necessity TBD
 
-    //console.log("old res", this.resolution_scale)
-    //this.resolution_scale = zoom * 50;
-    //console.log("new res", this.resolution_scale)
-    //this.transform = mat4.scale(mat4.create(), mat4.create(), vec3.fromValues(1/this.resolution_scale, 1/this.resolution_scale, 1/this.resolution_scale));
-    //this.draw()
+    // console.log("old res", this.resolution_scale)
+    this.resolution_scale = zoom * 50;
+    // console.log("new res", this.resolution_scale)
+    this.transform = mat4.scale(mat4.create(), mat4.create(), vec3.fromValues(1/this.resolution_scale, 1/this.resolution_scale, 1/this.resolution_scale));
+    this.draw()
   }
 }

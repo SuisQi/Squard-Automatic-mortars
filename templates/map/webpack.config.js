@@ -10,16 +10,12 @@ module.exports = env => {
         'process.env.mode': JSON.stringify(env.NODE_ENV || 'production')
       })
     ],
-    // devtool: 'inline-source-map',
     devServer: {
-      contentBase: path.join(__dirname, 'public'),
-      filename: "app.js",
+      // contentBase: path.join(__dirname, 'public'),
+      // filename: "app.js",
       compress: true,
       port: 8000,
-      client: {
-        progress: true,
-      },
-
+      static:"./dist"
     },
     module: {
       rules: [

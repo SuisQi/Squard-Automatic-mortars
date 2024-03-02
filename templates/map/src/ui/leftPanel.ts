@@ -4,7 +4,13 @@ import { changeMap, newUIStateWriteAction as writeUIState, newUserSettingsWriteA
 import { toggleButton, unstyledToggleButton } from '../common/toggleButton';
 import { Dropdown } from "../common/dropdown";
 import { UIState, UserSettings } from "./types";
-import { pickActiveWeapon, removeAllTargets, setWeaponActive, setWeaponHeightOverGround as setWeaponHeightOverGroundMeters } from "../world/actions";
+import {
+  IconActionType,
+  pickActiveWeapon,
+  removeAllTargets,
+  setWeaponActive,
+  setWeaponHeightOverGround as setWeaponHeightOverGroundMeters
+} from "../world/actions";
 import { EntityId, Weapon, World } from "../world/types";
 import { canonicalEntitySort, getEntitiesByType } from "../world/world";
 import { WeaponType } from "../world/components/weapon";
@@ -420,7 +426,10 @@ const mapDispatchToProps = (dispatch: any) => ({
 
   onChangeFontSize: (e: any) => dispatch(writeUserSettings("fontSize", parseInt(e.target.value))),
   onChangeWeaponHeightOverGround: (entityId: EntityId) => (e: any) => dispatch(setWeaponHeightOverGroundMeters(entityId, parseInt(e.target.value))), //dispatch(writeUserSettings("extraWeaponHeight", parseInt(e.target.value))),
-  onClickRemoveAllTargets: (e: any) =>  dispatch(removeAllTargets()),
+  onClickRemoveAllTargets: (e: any) => {
+    dispatch(removeAllTargets())
+    dispatch({type:IconActionType.remove_all})
+  },
   onChangeDeleteMode: (e: any) => dispatch(writeUserSettings("deleteMode", e.target.value)),
   onChangeExtraButtons: (e: any) => dispatch(writeUserSettings("extraButtonsAlwaysShown", e.target.value)),
   onChangeWeaponCreationMode: (e: any) => dispatch(writeUIState("weaponCreationMode", e.target.value)),
