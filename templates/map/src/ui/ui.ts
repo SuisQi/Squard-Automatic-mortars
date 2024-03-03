@@ -84,6 +84,8 @@ export const mouseScroll = (store: Store0) => (e: WheelEvent) => {
 }
 
 export const mouseDown = (store: Store0) => (e: MouseEvent) => {
+    if(store.getState().iconToolState.display)
+        return
     const dragEntity = getDragEntityId(store)(e)
     const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
     dispatch(store, setDragStartPosition(eventLocation))
