@@ -8,7 +8,7 @@
     "dev": "webpack-dev-server  --env NODE_ENV=development ",
     "start": "webpack server",
     "css": "npx tailwindcss -i ./public/t_i.css -o ./public/t_o.css --watch",
-    "build": "webpack --watch --env NODE_ENV=production --config prod.config.js",
+    "build": "webpack --env NODE_ENV=production --config prod.config.js",
     "build-dev": "webpack --watch --env NODE_ENV=development --config dev.config.js"
   },
   "repository": {
