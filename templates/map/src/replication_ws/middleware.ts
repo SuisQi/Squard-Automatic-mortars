@@ -28,6 +28,7 @@ const handler = (store: Store0, action: StoreAction) => {
 
   switch(action.type){
     case SAT.create:
+      // debugger
       resetTaintlog();
       if($connection) $connection.terminate();
       $connection = Connection.create(dispatch, action.payload.serverAddress, action.payload.serializableState);
@@ -125,8 +126,8 @@ const resetTaintlog = () => {
 const taint = (conn: Connection, entityId: EntityId, getState: () => StoreState, dispatch: Function) => {
   if (!taintlog.tainted) {
     taintlog.tainted = true;
-    taintlog.timer = setTimeout(() => { 
-      taintlog.clearF(conn, getState, dispatch); 
+    taintlog.timer = setTimeout(() => {
+      taintlog.clearF(conn, getState, dispatch);
       taintlog.tainted = false;
     }, taintlog.updateTime);
   }

@@ -1,6 +1,16 @@
-import time
+# 引入websockets库
+import asyncio
+import websockets
 
-from mouse.mouse import right_click, left_click
+# 定义处理WebSocket请求的函数
+async def echo(websocket, path):
+    async for message in websocket:
+        print(message)
 
-time.sleep(2)
-left_click()
+# 启动WebSocket服务器
+async def main():
+    async with websockets.serve(echo, "0.0.0.0", 1234):
+        await asyncio.Future()  # 运行直到被取消
+
+# 运行服务器
+asyncio.run(main())

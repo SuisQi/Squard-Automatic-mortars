@@ -89,13 +89,13 @@ export const sessionComponent: (props:any) => any
         userList({editingUserName, setEditingUserName, ...props})
 
       ]) : null,
-      /*
-      div({className: "white"}, "hello"),
-      div({className: "green"}, "hello"),
-      div({className: "yellow"}, "hello"),
-      div({className: "red"}, "hello"),
-      div({className: "blue"}, "hello"),
-      */
+
+      // div({className: "white"}, "hello"),
+      // div({className: "green"}, "hello"),
+      // div({className: "yellow"}, "hello"),
+      // div({className: "red"}, "hello"),
+      // div({className: "blue"}, "hello"),
+
   ])
 }
 

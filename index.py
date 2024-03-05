@@ -385,10 +385,10 @@ if __name__ == '__main__':
     check_redis_service()
     init_settings()
 
-    threading.Thread(target=listen_for_logs).start()
-    threading.Thread(target=start_map).start()
-    threading.Thread(target=start_control).start()
-    threading.Thread(target=listen_fire).start()
+    # threading.Thread(target=listen_for_logs).start()
+    # threading.Thread(target=start_map).start()
+    # threading.Thread(target=start_control).start()
+    # threading.Thread(target=listen_fire).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址
