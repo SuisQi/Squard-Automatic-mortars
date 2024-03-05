@@ -43,7 +43,7 @@ export const sessionReducer: Reducer<Session| null, SessionAction> = (state, act
 }
 
 const cleanupSession = (s: ReplicationState) => {
-  
+
 }
 
 const setConnectionState = (state: ReplicationState, newValue: ConnectionState) => {
@@ -67,6 +67,6 @@ const updateUserName = (state: Session, userId: User["id"], newName: string) => 
     let maybeUser = draft.users.get(userId);
     if (maybeUser){
       maybeUser.name = newName;
-    } 
+    }
   })
 }

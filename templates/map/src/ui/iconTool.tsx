@@ -37,8 +37,8 @@ const iconTool: (props:{iconTool: ICONToolState} &  any) => any
                         <div onMouseEnter={() => {
 
                             props.onChangeIcon(f.name)
-                        }} key={f.name}
-                             onMouseDown={()=>{
+                        }}  key={f.name}
+                             onMouseUp={()=>{
                                  props.onAddIcon({
                                      location:props.iconTool.location,
                                      src:f.src
@@ -61,12 +61,15 @@ const iconTool: (props:{iconTool: ICONToolState} &  any) => any
                                     backgroundSize: "100% 100%"
                                 }
                                 return (
-                                    <div className="flex flex-row p-2 hover:bg-black/70 items-center h-[30px]" onMouseDown={()=>{
+                                    <div className="flex flex-row p-2 hover:bg-black/70 items-center h-[30px]" onMouseUp={()=>{
                                         props.onAddIcon({
                                             location:props.iconTool.location,
                                             src:f.src
                                         })
-                                    }} key={f.name}>
+                                    }}
+
+
+                                         key={f.name}>
                                         <div className="w-[60px] flex flex-row justify-center items-center ">
                                             <img src={f.src}></img>
                                         </div>
@@ -90,7 +93,8 @@ const mapDispatchToProps = (dispatch: any) => ({
         dispatch({type:IconToolActionType.write,payload:{key: "display", value: false }});
         dispatch({type:IconToolActionType.write,payload:{key: "c_name", value: "" }});
 
-    }
+    },
+
 })
 
 const connectedIconTool = connect(

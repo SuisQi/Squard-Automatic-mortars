@@ -55,6 +55,8 @@ const dragOrPan = (store: Store0, event: any) => {
 
 export const mouseMove = (store: Store0) => (e: MouseEvent) => {
 
+    if(store.getState().iconToolState.display)
+        return
     if ((e.buttons & 1) === 1) {
         dragOrPan(store, e)
     }
