@@ -134,5 +134,6 @@ async def echo(websocket, path):
 
 # 启动WebSocket服务器
 async def web_server():
+    print("websocket启动")
     async with websockets.serve(echo, "0.0.0.0", 1234):
         await asyncio.Future()  # 运行直到被取消
