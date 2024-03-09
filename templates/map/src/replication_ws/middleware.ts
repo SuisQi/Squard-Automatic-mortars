@@ -11,7 +11,7 @@ import {EntityActionType, EntityId, HasTransform, TransformActionType} from "../
 import {MinimapActionType} from "../minimap/types";
 import {UserSettingsActionType} from "../ui/types";
 import {Store0, StoreAction, StoreState} from "../store";
-import {IconActionType, moveEntityTo, setAllEntities} from "../world/actions";
+import {DirDataActionType, IconActionType, moveEntityTo, setAllEntities} from "../world/actions";
 import {mat4, vec3} from "gl-matrix";
 import {getComponent} from "../world/world";
 import {Connection} from "./connection";
@@ -76,9 +76,11 @@ const handler = (store: Store0, action: StoreAction) => {
       return null
     case IconActionType.remove_all:
     case EntityActionType.removeAllTargets:
-    // case EntityActionType.selectAdd:
-    // case EntityActionType.selectUpdate:
-    // case EntityActionType.selectRemove:
+    case EntityActionType.selectAdd:
+    case EntityActionType.selectUpdate:
+    case EntityActionType.selectRemove:
+    case DirDataActionType.add:
+    case DirDataActionType.update:
     case EntityActionType.remove:
       if (!store.getState().session){
         return null;

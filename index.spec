@@ -23,6 +23,9 @@ a = Analysis(
     excludes=['torch', 'torchvision', 'torchaudio'],
     noarchive=False,
 )
+
+# 移除包含 .git 的数据条目
+a.datas = [data for data in a.datas if not data[0].endswith('.git') and '.git/' not in data[0]]
 pyz = PYZ(a.pure)
 
 exe = EXE(

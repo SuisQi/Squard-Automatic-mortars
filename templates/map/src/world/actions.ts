@@ -1,6 +1,7 @@
 import {vec3} from "gl-matrix";
 import {WeaponType} from "./components/weapon";
 import {
+    DirData,
     EntityAction,
     EntityActionType,
     EntityId, HasLocation,
@@ -12,6 +13,7 @@ import {
     WeaponActionType
 } from "./types";
 import {IconComponent} from "./components/icon";
+import {DirDataComponent} from "./components/dirData";
 
 
 export const setAllEntities = (components: SerializableComponents): EntityAction => ({
@@ -104,6 +106,15 @@ export const addCamera = (location: vec3): EntityAction => ({
   payload: {location, entityType: "Camera"}
 })
 
+export const addDirData=(dirdata:DirData):DirDataAction=>({
+    type:DirDataActionType.add,
+    payload:dirdata
+})
+
+export const updateDirData=(dirdata:DirData):DirDataAction=>({
+    type:DirDataActionType.update,
+    payload:dirdata
+})
 export enum IconActionType{
     add="ICON_ADD",
     remove="ICON_REMOVE",
@@ -114,3 +125,12 @@ export type IconAction={
 }|{
     type:IconActionType.remove,payload:EntityId
 }|{type:IconActionType.remove_all}
+
+export enum DirDataActionType {
+    add="DIRDATA_ADD",
+    remove="DIRDATA_REMOVE",
+    update = "DIRDATA_UPDATE"
+}
+export type DirDataAction={type:DirDataActionType.add,payload:DirDataComponent}
+|{type:DirDataActionType.remove,payload:EntityId}
+|{type:DirDataActionType.update,payload:DirDataComponent}

@@ -16,8 +16,8 @@ import {
 import {EntityComponent} from "./components/entity";
 import {SetAction} from "./components/types";
 import {EntityActionType, EntityId, World} from './types';
-import {remove, remove_all} from "../api/standard";
-import {IconActionType} from "./actions";
+import {remove, remove_all, save, update} from "../api/standard";
+import {DirDataActionType, IconActionType} from "./actions";
 import {newTransform} from "./components/transform";
 import {newIcon} from "./components/icon";
 
@@ -32,25 +32,26 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
     this reducer intercepts entity actions which require modification of across components,
     passing on the rest to a bundle of component-specific reducers
   */
-  
+
 
   if (state === undefined){
     return newWorld();
   }
 
   switch(action.type){
-    case EntityActionType.add:
-
-      return produce(state, (proxy: World) => {
-        const newId = proxy.nextId;
-        proxy.nextId = proxy.nextId + 1;
-        let setAction: SetAction = produce(action, (action: any) => {
-          action.type = EntityActionType.set;
-          action.payload["entityId"] = newId;
-        }) as any;
-        console.log(action)
-        proxy.components = setComponentsFromActionMut(proxy.components, newId, setAction);
+    case DirDataActionType.add:
+      return produce(state,(proxy:World)=>{
+        save(action.payload)
+        proxy.components.dirData.set(action.payload.entityId,action.payload)
       })
+    case DirDataActionType.update:
+      return produce(state,(proxy:World)=>{
+        update(action.payload)
+        proxy.components.dirData.set(action.payload.entityId,action.payload)
+      })
+
+
+    // icon
     case IconActionType.add:
       return produce(state,(proxy:World)=>{
         const newId = proxy.nextId;
@@ -63,9 +64,11 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
 
       })
     case IconActionType.remove:
+
       return produce(state,(proxy:World)=>{
         proxy.components.icon.delete(action.payload)
         proxy.components.transform.delete(action.payload)
+
       })
     case IconActionType.remove_all:
       return produce(state,(proxy:World)=>{
@@ -74,6 +77,19 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
         })
         proxy.components.icon.clear()
       })
+    case EntityActionType.add:
+
+      return produce(state, (proxy: World) => {
+        const newId = proxy.nextId;
+        proxy.nextId = proxy.nextId + 1;
+        let setAction: SetAction = produce(action, (action: any) => {
+          action.type = EntityActionType.set;
+          action.payload["entityId"] = newId;
+        }) as any;
+        console.log(action)
+        proxy.components = setComponentsFromActionMut(proxy.components, newId, setAction);
+      })
+
     case EntityActionType.selectAdd:
 
       return produce(state,(proxy:World)=>{
@@ -85,13 +101,15 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
 
       })
     case EntityActionType.selectRemove:
-      remove({
-        entityId: action.payload.entityId,
-      })
+
       return produce(state,(proxy:World)=>{
         proxy.components.entity.forEach((f,key)=>{
+          remove({
+            entityId: action.payload.entityId,
+          })
           if (f.entityId === action.payload.entityId) {
             f.selected=false
+            proxy.components.dirData.delete(f.entityId)
           }
         })
       })
@@ -110,7 +128,11 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
     case EntityActionType.remove:
 
       return produce(state, (proxy: World) => {
+        remove({
+          entityId: action.payload.entityId,
+        })
         proxy.components = removeComponents(proxy.components, action.payload.entityId);
+        proxy.components.dirData.delete(action.payload.entityId)
       })
     // for more cases, should generalize selection via entityId to some (serializable) filter function
     case EntityActionType.removeAllTargets:
