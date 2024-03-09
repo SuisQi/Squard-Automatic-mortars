@@ -58,8 +58,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
         const newId = proxy.nextId;
         proxy.nextId = proxy.nextId + 1;
         proxy.components.transform.set(newId,newTransform(action.payload.location))
-        let icon = newIcon({src: action.payload.src, entityId: newId,image:new Image()})
-        icon.image.src=icon.src
+        let icon = newIcon({src: action.payload.src, entityId: newId})
         proxy.components.icon.set(newId,icon)
 
 

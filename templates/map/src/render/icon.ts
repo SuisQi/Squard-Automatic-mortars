@@ -4,9 +4,11 @@ import {Camera} from "../camera/types";
 import {canvasScaleTransform} from "./canvas";
 import {$contourmap} from "../elements";
 import {mat4, vec3} from "gl-matrix";
+import {ImageState} from "../ui/types";
 
 
-export const drawIcons=(ctx: CanvasRenderingContext2D,camera:Camera,  icons: Array<any>)=>{
+
+export const drawIcons=(ctx: CanvasRenderingContext2D,camera:Camera,  icons: Array<any>,images:ImageState)=>{
     // let image=new Image()
     // image.onload=()=>{
     //     ctx.drawImage(image,500,500)
@@ -17,14 +19,15 @@ export const drawIcons=(ctx: CanvasRenderingContext2D,camera:Camera,  icons: Arr
 
 
 
+        let image = images.get(icon.src)
 
-        let image = icon.image
 
-        if(image.complete)
+        if(image?.complete)
         {
             d()
         }else {
-            image.onload=d
+            // @ts-ignore
+            image?.onload=d
         }
         function d() {
             ctx.save()
@@ -42,11 +45,12 @@ export const drawIcons=(ctx: CanvasRenderingContext2D,camera:Camera,  icons: Arr
             inverse_scale[5]=Math.max(inverse_scale[5],0.3)
 
             applyTransform(ctx,inverse_scale )
+            // @ts-ignore
             ctx.translate(-(image.width/2)*inverse_scale[0],-(image.height/2)*inverse_scale[0])
             // console.log(icon.transform.transform)
+            // @ts-ignore
             ctx.drawImage(image,0,0)
             ctx.restore()
         }
-
     })
 }

@@ -214,7 +214,7 @@ export const drawAll = (store: Store0) => {
     drawWeapons(ctx, state.userSettings, state.camera, weapons);
     drawTargets(ctx, state.camera, state.userSettings, state.heightmap, weapons, targets);
     drawPlacementHelpers(ctx, state.camera, state.userSettings, state.uiState, state.world, state.minimap);
-    drawIcons(ctx,state.camera, icons)
+    drawIcons(ctx,state.camera, icons,state.images)
     /*
     if (state.userSettings.weaponPlacementHelper && state.uiState.mouseDown){ //  && state.uiState.dragEntityId.type === "Weapon"
       const activeWeaponTransform = getActiveWeapon(state.world, state.uiState)?.transform;
