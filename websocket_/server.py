@@ -12,7 +12,6 @@ from websocket_.public import global_connections, decode_redis_hash, extract_odd
 
 connected = {}
 additional_servers = {}  # 用于存储额外的WebSocket服务器实例
-userId = redis_cli.hget("squad:session", "userId").decode("utf-8")  # 自己的userId
 
 
 # 定义一个函数来检查是否存在以特定模式匹配的键
@@ -137,6 +136,3 @@ async def echo(websocket, path):
 async def web_server():
     async with websockets.serve(echo, "0.0.0.0", 1234):
         await asyncio.Future()  # 运行直到被取消
-
-
-
