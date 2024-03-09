@@ -1,7 +1,7 @@
-import { StoreAction } from "../store";
-import { SerializableComponents } from "../world/types";
-import { WorkerInput, WorkerOutput } from "./connection";
-import {ReplicationActionType as RAT, SessionActionType as SAT, ReplicationMessage, ReplicationMessageType} from "./types";
+import {StoreAction} from "../store";
+import {SerializableComponents} from "../world/types";
+import {WorkerInput, WorkerOutput} from "./connection";
+import {ReplicationActionType as RAT, ReplicationMessage, ReplicationMessageType} from "./types";
 import * as WS from "./websocketPrimitives";
 
 //console.log("webworker running")
@@ -70,7 +70,7 @@ const join = (serverAddress: string, sessionId: string): WebSocket => {
 }
 
 const startPingTimer = (ws: WebSocket) => {
-  pingTimer = setInterval(() => { 
+  pingTimer = setInterval(() => {
       WS.sendPing(ws);
   }, 1000);
 }
@@ -84,13 +84,20 @@ const terminate = (ws: WebSocket) => {
     WS.leaveSession(ws)
     ws.close();
   } catch(error){
+    console.log(error)
     // nothing to do here.
   }
 }
 
 // Websocket behavior
 const onMessage = (ev: MessageEvent) => {
+
   let message: ReplicationMessage = JSON.parse(ev.data);
+  if(message.command==ReplicationMessageType.error){
+    dispatch({type: RAT.receiveMessage, payload: {message,sessionId:""}});
+  }
+
+
   if (message.command == ReplicationMessageType.joined){
     sessionId = message.payload.sessionId;
     sendToMain({event: "SESSION_ID", payload: message.payload});
@@ -105,6 +112,6 @@ const onClose = (ev: CloseEvent) => {
 }
 const onError = (ev: Event) => {
   if (ws) terminate(ws);
-  sendToMain({event: "ERROR"})
+  sendToMain({event: "ERROR",payload:{msg:""}})
 }
 

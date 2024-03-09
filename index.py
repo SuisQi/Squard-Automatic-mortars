@@ -1,6 +1,5 @@
 # -*- coding : utf-8-*-SocketIO
-
-
+import asyncio
 import json
 import os
 import random
@@ -24,6 +23,7 @@ from flask import Flask, request, jsonify
 
 from utils.redis_connect import check_redis_service, redis_cli
 from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords, get_settings
+from websocket_.server import web_server
 
 # 获取本机计算机名称
 hostname = socket.gethostname()
@@ -72,7 +72,9 @@ def start_control():
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
-
+def start_socket_server():
+    # 运行websocket服务器
+    asyncio.run(web_server())
 def listen_for_logs():
     while True:
         if pubsub_msgs:
@@ -389,6 +391,7 @@ if __name__ == '__main__':
     threading.Thread(target=start_map).start()
     threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
+    threading.Thread(target=start_socket_server).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址

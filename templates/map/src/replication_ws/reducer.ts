@@ -1,6 +1,17 @@
 import produce from 'immer';
-import { Reducer } from 'redux';
-import { newSession, newReplicationState, ReplicationActionType as RAT, ReplicationState, Session, SessionActionType as SAT, ReplicationAction, SessionAction, User, ConnectionState } from './types';
+import {Reducer} from 'redux';
+import {
+  ConnectionState,
+  newReplicationState,
+  ReplicationAction,
+  ReplicationActionType as RAT,
+  ReplicationState,
+  Session,
+  SessionAction,
+  SessionActionType as SAT,
+  SessionActionType,
+  User
+} from './types';
 
 
 // "replication" is an implementation detail here
@@ -35,8 +46,10 @@ export const sessionReducer: Reducer<Session| null, SessionAction> = (state, act
       return state ? addUser(state, action.payload.user) : state;
     case SAT.userNameChanged:
       return state ? updateUserName(state, action.payload.userId, action.payload.newName) : state;
-      case SAT.removeUser:
-        return state ? removeUser(state, action.payload.userId) : state;
+    case SAT.removeUser:
+      return state ? removeUser(state, action.payload.userId) : state;
+    case SessionActionType.leave:
+      return null
     default:
       return state;
   }

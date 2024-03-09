@@ -161,12 +161,7 @@ export const click = (store: Store0) => (e: any) => {
             let target = targets.filter(t => t.entityId === candidates[0].entityId)[0]
             let {solution, angleValue} = getSolution(store, target)
             if (target.selected) {
-                remove({
-                    entityId: target.entityId,
-                }).then(res => {
-                    dispatch(store, removeSelect(target.entityId))
-
-                })
+                dispatch(store, removeSelect(target.entityId))
             } else {
 
                 save({

@@ -1,5 +1,6 @@
 import { SerializableComponents } from "../world/types";
 import {ReplicationActionType as RAT, SessionActionType as SAT, newUser, ReplicationMessage, User, ReplicationMessageType} from "./types"
+import {notification} from "antd";
 
 
 export class Connection {
@@ -7,7 +8,7 @@ export class Connection {
   wsClosed: boolean = false;
   dispatch: Function;
   worker: Worker;
-  
+
   constructor(dispatch: Function, serverAddress: string) {
     this.dispatch = dispatch;
     this.worker = new Worker(new URL('./connectionWorker.ts', import.meta.url));
@@ -28,6 +29,7 @@ export class Connection {
 
   // connection events
   private onWorkerMessage(message: WorkerOutput){
+
     switch (message.event){
       case "DISPATCH":
         this.dispatch(message.payload.action);
@@ -75,7 +77,7 @@ export class Connection {
 }
 
 
-export type WorkerInput  
+export type WorkerInput
   = {func: "CREATE", payload: {serverAddress: string, serializableState: SerializableComponents}}
   | {func: "JOIN", payload: {serverAddress: string, sessionId: string}}
   | {func: "CHANGE_NAME", payload: {newName: string}}
@@ -84,6 +86,6 @@ export type WorkerInput
 
 export type WorkerOutput
   = {event: "CLOSE"}
-  | {event: "ERROR"}
+  | {event: "ERROR",payload:{msg:string}}
   | {event: "SESSION_ID", payload: {sessionId: string}}
   | {event: "DISPATCH", payload: {action: any}}
