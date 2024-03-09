@@ -7,12 +7,13 @@ import {
     UIState,
     TouchInfo,
     UIStateAction,
-    ICONToolState, IconToolAction,
+    ICONToolState, IconToolAction, ImageState, ImageStateAction,
 } from './types';
 import { basicReducer, newSingleActionReducer, immerUpdateTransition } from '../common/reducer';
 import { vec3 } from 'gl-matrix';
 import { Reducer } from 'redux';
 import produce from 'immer';
+import {icons} from "../common/iconDdata";
 
 const defaultUserSettings = (): UserSettings => ({
     mapId: "albasrah",
@@ -76,4 +77,28 @@ const defaultIconToolState=():ICONToolState=>({
     location:vec3.fromValues(0,0,0)
 })
 
+const defaultImageState = ():ImageState=>{
+    const iconMap = new Map<string, HTMLImageElement>();
+
+    icons.right.forEach(category => {
+        let img = new Image()
+        img.src=category.src
+        iconMap.set(category.src, img);
+        category.list?.forEach(icon => {
+            let img = new Image()
+            img.src=icon.src
+            iconMap.set(icon.src, img);
+        });
+    });
+
+    return iconMap
+}
 export const iconToolState:Reducer<ICONToolState,IconToolAction> = newSingleActionReducer(IS.write,defaultIconToolState,immerUpdateTransition) as any;
+export const ImageReducer:Reducer<ImageState,ImageStateAction>= (state,action)=>{
+
+    if(!state){
+        return defaultImageState()
+    }
+    return state
+
+}

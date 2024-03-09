@@ -58,6 +58,9 @@ export type UIState = {
   weaponCreationMode: boolean;
 }
 
+export type ImageState=Map<string,HTMLImageElement>
+
+export type ImageStateAction = {type:never}
 export type ICONToolState = {
     display:boolean,
     x:number,

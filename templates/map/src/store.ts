@@ -1,6 +1,6 @@
 import { combineReducers, Store, createStore, applyMiddleware, compose, CombinedState, StateFromReducersMapObject } from 'redux';
 import {UserSettingsAction, UIStateAction, IconToolAction} from './ui/types';
-import {userSettings, uiState, iconToolState} from './ui/reducer';
+import {userSettings, uiState, iconToolState, ImageReducer} from './ui/reducer';
 import { MinimapAction } from './minimap/types';
 import { minimap } from './minimap/reducer';
 import { ContourmapAction } from './contourmap/types';
@@ -32,6 +32,7 @@ const reducerObject = {
   //replication: replicationReducer,
   session: sessionReducer,
   heightmap,
+    images:ImageReducer
 }
 //type StoreAction = ActionFromReducersMapObject<typeof reducerObject>
 export type StoreAction

@@ -7,13 +7,11 @@ import {SVGBuffer} from "../../common/svgBuffer";
 export type IconComponent={
     entityId:EntityId,
     src:string,
-    image:HTMLImageElement
 }
 
 export const newIcon=(action:IconComponent):Icon=><IconComponent & HasTransform>({
     entityId: action.entityId,
     src: action.src,
-    image:action.image
 
 })
 type State = Map<EntityId, IconComponent>;
