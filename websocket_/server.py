@@ -114,6 +114,7 @@ async def echo(websocket, path):
                 await w.close()
             # 使用生成器函数删除所有以"squad:12345"为前缀的键
             check_key_exists(f"squad:{room_session_id}*", True)
+            del global_connections[room_session_id]
         else:
             global_connections[room_session_id] = [x for x in global_connections[room_session_id] if x != websocket]
             session = json.loads(redis_cli.get(f"squad:{room_session_id}:session"))
@@ -127,7 +128,7 @@ async def echo(websocket, path):
                     }
 
                 }))
-            del global_connections[room_session_id]
+
     except Exception as e:
         print(traceback.format_exc())
 
@@ -137,3 +138,7 @@ async def web_server():
     print("websocket启动")
     async with websockets.serve(echo, "0.0.0.0", 1234):
         await asyncio.Future()  # 运行直到被取消
+
+
+if __name__ == '__main__':
+    asyncio.run(web_server())
