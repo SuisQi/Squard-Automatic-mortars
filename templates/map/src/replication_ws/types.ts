@@ -33,13 +33,14 @@ export enum ReplicationActionType {
 };
 
 // primarily requests
-export type ReplicationAction 
+export type ReplicationAction
   = {type: ReplicationActionType.creatingSession, payload: {sessionId: string}}
   | {type: ReplicationActionType.connectionReady, payload: {sessionId: string}}
   | {type: ReplicationActionType.connectionClosed, payload: {sessionId: string}}
   | {type: ReplicationActionType.connectionError, payload: {sessionId: string}}
   | {type: ReplicationActionType.receiveMessage, payload: {message: ReplicationMessage, sessionId: string}}
   | {type: ReplicationActionType.noop, payload: {}}
+    | {type: ReplicationMessageType.error, payload: {msg:string }}
 
 
 export enum SessionActionType {
@@ -55,7 +56,7 @@ export enum SessionActionType {
   sendMessage = "REPLICATION_SEND_MESSAGE",
 };
 
-export type SessionAction 
+export type SessionAction
   = {type: SessionActionType.create, payload: {serverAddress: string, serializableState:  {[k in ComponentKey]: Array<[EntityId, Component]>}}} //}
   | {type: SessionActionType.started, payload: {sessionId: string, userId: string, users: Array<User>}}
   | {type: SessionActionType.ended, payload: {sessionId: Session["sessionId"]}}
@@ -78,17 +79,18 @@ export const newUser = (id: string, name: string) => ({
 })
 
 // this has different naming than redux messages to retain some sanity while inspecting logs
-export type ReplicationMessage = 
+export type ReplicationMessage =
     {command: ReplicationMessageType.action, payload: any}
   // | {command: ReplicationMessageType.created, payload: SessionPayload}
   | {command: ReplicationMessageType.joined, payload: SessionPayload}
   | {command: ReplicationMessageType.userJoined, payload: User}
   | {command: ReplicationMessageType.userLeft, payload: {userId: User["id"]}}
   | {command: ReplicationMessageType.userChangedName, payload: {userId: User["id"], name:string }}
+  | {command: ReplicationMessageType.error, payload: {msg:string }}
 
 export type SessionPayload = {
-  sessionId: string, 
-  userId: string, 
+  sessionId: string,
+  userId: string,
   users: Array<User>,
   state: SerializableComponents
 }
@@ -100,6 +102,7 @@ export enum ReplicationMessageType {
   userJoined = "USER_JOINED",
   userLeft = "USER_LEFT",
   userChangedName = "USER_CHANGED_NAME",
+  error="ERROR"
 }
 
 export enum ClientRequestType {

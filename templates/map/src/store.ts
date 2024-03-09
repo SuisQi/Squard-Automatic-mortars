@@ -50,6 +50,7 @@ export type StoreAction
   | TransformAction
   | WeaponAction
 
+
 export type ThunkResult<R> = ThunkAction<R, any, undefined, StoreAction>;
 export type StoreState = CombinedState<StateFromReducersMapObject<typeof reducerObject>>;
 export type Store0 = Store<StoreState, StoreAction>

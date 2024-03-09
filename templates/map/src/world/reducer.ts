@@ -16,7 +16,7 @@ import {
 import {EntityComponent} from "./components/entity";
 import {SetAction} from "./components/types";
 import {EntityActionType, EntityId, World} from './types';
-import {remove_all} from "../api/standard";
+import {remove, remove_all} from "../api/standard";
 import {IconActionType} from "./actions";
 import {newTransform} from "./components/transform";
 import {newIcon} from "./components/icon";
@@ -32,14 +32,12 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
     this reducer intercepts entity actions which require modification of across components,
     passing on the rest to a bundle of component-specific reducers
   */
-
+  
 
   if (state === undefined){
     return newWorld();
   }
-  if (action.type===EntityActionType.add){
-    console.log(action)
-  }
+
   switch(action.type){
     case EntityActionType.add:
 
@@ -77,6 +75,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
         proxy.components.icon.clear()
       })
     case EntityActionType.selectAdd:
+
       return produce(state,(proxy:World)=>{
         proxy.components.entity.forEach(f=>{
           if (f.entityId === action.payload.entityId) {
@@ -86,6 +85,9 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
 
       })
     case EntityActionType.selectRemove:
+      remove({
+        entityId: action.payload.entityId,
+      })
       return produce(state,(proxy:World)=>{
         proxy.components.entity.forEach((f,key)=>{
           if (f.entityId === action.payload.entityId) {
