@@ -6,6 +6,7 @@ import {canvas2world, canvas2worldScale, event2canvas, getTranslation} from '../
 import {getClosestEntity, getClosestIcon, getEntitiesByType} from '../world/world';
 import {IconToolActionType, TouchInfo} from './types';
 import {
+    addDirData,
     addSelected,
     addTarget,
     addWeapon,
@@ -13,7 +14,7 @@ import {
     moveEntityTo,
     removeSelect,
     removeTarget,
-    toggleWeaponActive
+    toggleWeaponActive, updateDirData
 } from '../world/actions';
 import {$canvas, $contourmap} from '../elements';
 import {getZoom} from '../camera/camera';
@@ -37,19 +38,7 @@ const dragOrPan = (store: Store0, event: any) => {
         dispatch(store, setDragStartPosition(eventLocation))
         //dispatch(store, moveEntityBy(dragEntityId, offset))
         dispatch(store, moveEntityTo(dragEntityId, eventLocation))
-        state.world.components.entity.forEach(f => {
-            if (f.entityId === dragEntityId && f.selected) {
 
-
-                let target = getEntitiesByType<Target>(state.world, "Target").filter(e => e.entityId === f.entityId)[0];
-                let {solution, angleValue} = getSolution(store, target)
-                update({
-                    entityId: target.entityId,
-                    dir: solution.dir,
-                    angle: angleValue >> 0
-                })
-            }
-        })
     }
 }
 
@@ -96,6 +85,22 @@ export const mouseDown = (store: Store0) => (e: MouseEvent) => {
 }
 
 export const mouseUp = (store: Store0) => (e: any) => {
+
+    const state = store.getState();
+    const dragEntityId = state.uiState.dragEntityId;
+    state.world.components.entity.forEach(f => {
+        if (f.entityId === dragEntityId && f.selected) {
+
+
+            let target = getEntitiesByType<Target>(state.world, "Target").filter(e => e.entityId === f.entityId)[0];
+            let {solution, angleValue} = getSolution(store, target)
+            dispatch(store,updateDirData({
+                entityId: target.entityId,
+                dir: solution.dir,
+                angle: angleValue >> 0
+            }))
+        }
+    })
     dispatch(store, setMouseDown(false))
 }
 
@@ -142,11 +147,7 @@ export const click = (store: Store0) => (e: any) => {
         if (candidates.length > 0) {
 
 
-            remove({
-                entityId: candidates[0].entityId,
-            }).then(res => {
-                dispatch(store, removeTarget(candidates[0].entityId));
-            })
+            dispatch(store, removeTarget(candidates[0].entityId));
         }
         if(removeIcons.length>0){
             dispatch(store,{type:IconActionType.remove,payload:removeIcons[0].entityId})
@@ -163,14 +164,12 @@ export const click = (store: Store0) => (e: any) => {
             if (target.selected) {
                 dispatch(store, removeSelect(target.entityId))
             } else {
-
-                save({
+                dispatch(store,addDirData({
                     entityId: target.entityId,
                     dir: solution.dir,
                     angle: angleValue >> 0
-                }).then(res => {
-                    dispatch(store, addSelected(target))
-                })
+                }))
+                dispatch(store, addSelected(target))
             }
 
             // if(hasSelected){

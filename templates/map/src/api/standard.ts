@@ -28,6 +28,7 @@ export const save = (data: any) => {
 export const remove = (data: any) => {
     return axios.post(baseURL + "remove", data)
 }
+
 export const update = (data: any) => {
     return axios.post(baseURL + "update", data)
 }

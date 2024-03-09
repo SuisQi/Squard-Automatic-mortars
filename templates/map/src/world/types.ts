@@ -2,6 +2,7 @@ import {vec3, mat4} from 'gl-matrix';
 import {EntityComponent, EntityType} from './components/entity';
 import {WeaponComponent, WeaponType} from './components/weapon';
 import {IconComponent} from "./components/icon";
+import {DirDataComponent} from "./components/dirData";
 
 export type HasEntityId = { entityId: EntityId }
 export type HasTransform = { transform: Transform }
@@ -35,6 +36,7 @@ export type EntityAction =
     | { type: EntityActionType.selectUpdate, payload: EntityComponent }
 
 
+
 export enum TransformActionType {
     moveTo = "TRANSFORM_MOVE_TO",
     moveBy = "TRANSFORM_MOVE_BY"
@@ -49,6 +51,7 @@ export type Component =
     | WeaponComponent
     | EntityComponent
     | IconComponent
+    |  DirDataComponent
 
 
 export enum WeaponActionType {
@@ -74,6 +77,7 @@ export type Components = {
     weapon: Map<EntityId, WeaponComponent>;
     entity: Map<EntityId, EntityComponent>;
     icon: Map<EntityId, Icon>;
+    dirData:Map<EntityId,DirData>
 }
 export type ComponentKey = keyof Components
 export type ComponentKeySet = Set<ComponentKey>
@@ -87,6 +91,6 @@ export type World = {
 export type Target = EntityComponent & HasTransform &Selected
 export type Weapon = EntityComponent & WeaponComponent & HasTransform
 export type Icon = IconComponent &HasTransform
-
+export type DirData = DirDataComponent
 
 export type SerializableComponents = { [k in ComponentKey]: Array<[EntityId, Component]> };

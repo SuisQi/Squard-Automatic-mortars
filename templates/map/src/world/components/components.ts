@@ -11,20 +11,23 @@ import {
   EntityActionType,
   EntityAction,
   SerializableComponents,
-  Icon
+  Icon, DirData
 } from "../types";
 import { EntityComponent, entityReducer, newEntity } from "./entity";
 import { newTransform, transformReducer, tryNewTransform } from "./transform";
 import { SetAction } from "./types";
 import { tryNewWeaponComponent, WeaponComponent, weaponReducer } from "./weapon";
 import {IconComponent, iconReducer} from "./icon";
+import {dirDataReducer} from "./dirData";
+import {update} from "../../api/standard";
 
 
 export const newComponents = (): Components => ({
   transform: new Map<EntityId, HasTransform>(),
   weapon: new Map<EntityId, WeaponComponent>(),
   entity: new Map<EntityId, EntityComponent>(),
-  icon:new Map<EntityId,Icon>()
+  icon:new Map<EntityId,Icon>(),
+  dirData:new Map<EntityId, DirData>()
 })
 
 
@@ -103,7 +106,8 @@ export const componentsReducer: (state: Components, action: StoreAction) => Comp
     transform: transformReducer,
     weapon: weaponReducer,
     entity: entityReducer,
-    icon:   iconReducer
+    icon:   iconReducer,
+    dirData:dirDataReducer
   }) as any
 
 export const serializableComponents = (components: Components): {[k in ComponentKey]: Array<[EntityId, Component]>} => {
@@ -127,6 +131,9 @@ export const insertComponentsBulkMut = (components: Components, newComponents: S
     newComponents[componentKey].forEach((kv_pair) => {
       let [entityId, value] = kv_pair;
       components[componentKey].set(entityId, value as any);
+      if(componentKey=="dirData"){
+        update(value)
+      }
     })
   });
   return components;
