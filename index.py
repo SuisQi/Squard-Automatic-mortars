@@ -72,9 +72,12 @@ def start_control():
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
+
 def start_socket_server():
     # 运行websocket服务器
     asyncio.run(web_server())
+
+
 def listen_for_logs():
     while True:
         if pubsub_msgs:
@@ -88,7 +91,10 @@ def listen_fire():
     squard = Squard()
     while True:
         try:
-            list_items = redis_cli.lrange('squad:fire_data:standard', 0, -1)
+            if redis_cli.exists('squad:fire_data:standard'):
+                list_items = list(redis_cli.hvals('squad:fire_data:standard'))
+            else:
+                list_items = []
             # item = json.loads(list_items[0])
 
             if stop():
@@ -132,7 +138,7 @@ def save():
     if request.is_json:
         data = request.get_json()
         # 将数据转换为JSON字符串并追加到Redis列表中
-        redis_cli.rpush('squad:fire_data:standard', json.dumps(data))
+        redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(data))
     return R(0)
 
 
@@ -141,18 +147,8 @@ def save():
 def update():
     if request.is_json:
         data = request.get_json()
+        redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(data))
 
-        # 获取列表长度
-        list_length = redis_cli.llen('squad:fire_data:standard')
-
-        # 遍历列表，寻找匹配的 entityId 并更新
-        for idx in range(list_length):
-            item = redis_cli.lindex('squad:fire_data:standard', idx)  # 获取当前索引的元素
-            json_obj = json.loads(item)
-            if json_obj['entityId'] == data['entityId']:
-                # 替换找到的项
-                redis_cli.lset('squad:fire_data:standard', idx, json.dumps(data))
-                break  # 如果找到匹配的 entityId，更新后就退出循环
     return R(0)
 
 
@@ -160,32 +156,7 @@ def update():
 # @check
 def remove():
     data = request.get_json()
-    # 从Redis获取列表所有元素
-    list_items = redis_cli.lrange('squad:fire_data:standard', 0, -1)
-
-    # 准备一个新的列表来保存不需要删除的元素
-    updated_list_items = []
-    found = False
-
-    # 遍历列表元素
-    for item_bytes in list_items:
-        item_str = item_bytes.decode('utf-8')  # Redis存储的数据为bytes，需要解码为字符串
-        json_obj = json.loads(item_str)
-        # 检查是否符合删除条件
-        if json_obj['entityId'] == data['entityId']:
-            # 如果符合条件，则标记找到并继续循环，不将当前元素添加到更新列表中
-            found = True
-        else:
-            # 如果不符合删除条件，将元素添加到更新列表中
-            updated_list_items.append(item_str)
-
-    # 如果找到至少一个符合条件的元素，则更新Redis中的列表
-    if found:
-        # 首先删除原列表
-        redis_cli.delete('squad:fire_data:standard')
-        # 如果更新后的列表不为空，则将其元素重新添加到Redis列表中
-        if updated_list_items:
-            redis_cli.rpush('squad:fire_data:standard', *updated_list_items)
+    redis_cli.hdel('squad:fire_data:standard', data['entityId'])
 
     return R(0)
 
@@ -231,12 +202,13 @@ def get_state():
 
 @app.route("/listFires", methods=["GET"])
 def list_fires():
-    list_items = redis_cli.lrange('squad:fire_data:standard', 0, -1)
+    if redis_cli.exists('squad:fire_data:standard'):
+        list_items = list(redis_cli.hvals('squad:fire_data:standard'))
 
-    # Deserialize JSON strings to Python objects
-    data = [json.loads(item) for item in list_items]
-
-    return R(200, data=data)
+        # Deserialize JSON strings to Python objects
+        data = [json.loads(item) for item in list_items]
+        return R(200, data=data)
+    return R(200, data=[])
 
 
 @app.route('/setMortarRounds', methods=["GET"])
@@ -387,11 +359,11 @@ if __name__ == '__main__':
     check_redis_service()
     init_settings()
 
-    threading.Thread(target=listen_for_logs).start()
-    threading.Thread(target=start_map).start()
+    # threading.Thread(target=listen_for_logs).start()
+    # threading.Thread(target=start_map).start()
     threading.Thread(target=start_control).start()
-    threading.Thread(target=listen_fire).start()
-    threading.Thread(target=start_socket_server).start()
+    # threading.Thread(target=listen_fire).start()
+    # threading.Thread(target=start_socket_server).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址
