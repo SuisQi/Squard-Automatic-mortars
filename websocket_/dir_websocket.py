@@ -38,7 +38,6 @@ async def echo(websocket, path):
 
 
 async def dir_web_server():
-    print("websocket启动")
     async with websockets.serve(echo, "0.0.0.0", 1235):
         await asyncio.Future()  # 运行直到被取消
 
