@@ -31,7 +31,7 @@ def check_key_exists(match_pattern, del_flag=False):
     return False
 
 
-def update_components(sessionId, message):
+def update_components(sessionId, message,control):
     components = json.loads(redis_cli.get(f"squad:{sessionId}:world:components").decode())
     # room = json.loads(redis_cli.get(f"squad:{sessionId}:session").decode())
     components_dict = {}
@@ -47,8 +47,10 @@ def update_components(sessionId, message):
         payload = None
     if message['payload']['type'] == "DIRDATA_ADD":
         components_dict['dirData'][payload['entityId']] = payload
+        control.add_fire_point(payload['entityId'])
     elif message['payload']['type'] == "DIRDATA_REMOVE":
         del components_dict['dirData'][payload['entityId']]
+        control.remove_fire_point(payload['entityId'])
     elif message['payload']['type'] == "TRANSFORM_MOVE_TO":
         components_dict['transform'][payload['entityId']]['transform'][12] = payload['location'][0]
         components_dict['transform'][payload['entityId']]['transform'][13] = payload['location'][1]
@@ -189,7 +191,7 @@ async def echo(websocket, path):
                     }
                 }))
             elif message['command'] == "ACTION":
-                update_components(room_session_id, message)
+                update_components(room_session_id, message,control)
                 print(message)
                 for w in global_connections[room_session_id]:
                     if w == websocket:
