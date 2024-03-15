@@ -4,14 +4,14 @@ import {DirDataAction} from "../actions";
 
 export type DirDataComponent=  {
     entityId:EntityId,
-    dir: number,
-    angle: number
+
+    userIds?:Array<string>
 }
 
 export const newDirData=(action:DirDataComponent):DirData=><DirDataComponent>({
     entityId:action.entityId,
-    angle:action.angle,
-    dir:action.dir
+
+    userIds:action.userIds
 })
 
 export const dirDataReducer = (state:State,action:DirDataAction)=>{

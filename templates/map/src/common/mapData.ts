@@ -1,3 +1,11 @@
+import {StoreState} from "../store";
+import {Target, Weapon} from "../world/types";
+import {getEntitiesByType} from "../world/world";
+import {getTranslation} from "../world/transformations";
+import {getHeight} from "../heightmap/heightmap";
+import {getMortarFiringSolution} from "../world/projectilePhysics";
+import {US_MIL} from "../world/constants";
+
 export const maps = {
   //default scale 100, default rotation 0
   "albasrah": {
@@ -406,4 +414,23 @@ export const maps = {
         "mapTextureCorner1": {"loc_x": 230000,"loc_y": 255000},
         "compression": {"z_translate": 0 }
     },
+}
+export const getSolution = (state: StoreState, target: any) => {
+
+    const userSettings = state.userSettings
+
+    const weapon = getEntitiesByType<Weapon>(state.world, "Weapon").filter((w: Weapon) => w.isActive)[0]
+
+    const weaponTranslation = getTranslation(weapon.transform)
+    const weaponHeight = getHeight(state.heightmap, weaponTranslation)
+    weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
+    const targetTranslation = getTranslation(target.transform);
+    const targetHeight = getHeight(state.heightmap, targetTranslation)
+    targetTranslation[2] = targetHeight;
+    const solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
+    const angleValue = userSettings.weaponType === "technicalMortar" ? solution.angle / Math.PI * 180 : solution.angle * US_MIL;
+    return {
+        solution,
+        angleValue
+    }
 }

@@ -16,11 +16,11 @@ a = Analysis(
     ("./resolution_case.json","."),
     ("./Redis-x64-5.0.14.1","./Redis-x64-5.0.14.1")
     ],
-    hiddenimports=['engineio.async_drivers.threading','torch','pytorch'],
+    hiddenimports=['engineio.async_drivers.threading','torch','pytorch','tkinter'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
-    excludes=['torch', 'torchvision', 'torchaudio'],
+    excludes=['torch', 'torchvision', 'torchaudio','tkinter'],
     noarchive=False,
 )
 

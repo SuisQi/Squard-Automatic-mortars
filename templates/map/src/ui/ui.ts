@@ -1,4 +1,4 @@
-import {dispatch, Store0} from '../store';
+import {dispatch, Store0, StoreState} from '../store';
 import {newMousePosition, removeTouch, setDragEntity, setDragStartPosition, setMouseDown, updateTouch} from './actions';
 import {changeZoom, moveCamera} from '../camera/actions';
 import {vec3} from 'gl-matrix';
@@ -11,7 +11,7 @@ import {
     addTarget,
     addWeapon,
     IconActionType,
-    moveEntityTo,
+    moveEntityTo, removeDirData,
     removeSelect,
     removeTarget,
     toggleWeaponActive, updateDirData
@@ -23,6 +23,7 @@ import {getMortarFiringSolution} from "../world/projectilePhysics";
 import {US_MIL} from "../world/constants";
 import {remove, save, update} from "../api/standard";
 import {getHeight} from "../heightmap/heightmap";
+import {getSolution} from "../common/mapData";
 
 
 const dragOrPan = (store: Store0, event: any) => {
@@ -93,36 +94,17 @@ export const mouseUp = (store: Store0) => (e: any) => {
 
 
             let target = getEntitiesByType<Target>(state.world, "Target").filter(e => e.entityId === f.entityId)[0];
-            let {solution, angleValue} = getSolution(store, target)
+
             dispatch(store,updateDirData({
                 entityId: target.entityId,
-                dir: solution.dir,
-                angle: angleValue >> 0
+
             }))
         }
     })
     dispatch(store, setMouseDown(false))
 }
 
-const getSolution = (store: Store0, target: Target) => {
-    const state = store.getState();
-    const userSettings = state.userSettings
 
-    const weapon = getEntitiesByType<Weapon>(state.world, "Weapon").filter((w: Weapon) => w.isActive)[0]
-
-    const weaponTranslation = getTranslation(weapon.transform)
-    const weaponHeight = getHeight(state.heightmap, weaponTranslation)
-    weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
-    const targetTranslation = getTranslation(target.transform);
-    const targetHeight = getHeight(state.heightmap, targetTranslation)
-    targetTranslation[2] = targetHeight;
-    const solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
-    const angleValue = userSettings.weaponType === "technicalMortar" ? solution.angle / Math.PI * 180 : solution.angle * US_MIL;
-    return {
-        solution,
-        angleValue
-    }
-}
 export const click = (store: Store0) => (e: any) => {
     // 如果点击的不是图标工具栏，则关闭工具栏
     dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: false }});
@@ -160,16 +142,29 @@ export const click = (store: Store0) => (e: any) => {
             console.log(state.world)
             const targets = getEntitiesByType<Target>(state.world, "Target");
             let target = targets.filter(t => t.entityId === candidates[0].entityId)[0]
-            let {solution, angleValue} = getSolution(store, target)
-            if (target.selected) {
-                dispatch(store, removeSelect(target.entityId))
+            let userIds:string[] = state.world.components.dirData.has(target.entityId)?state.world.components.dirData.get(target.entityId)?.userIds??[]:[]
+            if (state.world.components.dirData.has(target.entityId)) {
+                if(userIds.includes(state.session?.userId??"0")){
+                    dispatch(store,removeDirData({
+                        entityId: target.entityId,
+                        userIds:userIds.filter(f=>f!==state.session?.userId??"0")
+                    }))
+                }
+                else {
+                    dispatch(store,addDirData({
+                        entityId: target.entityId,
+
+                        userIds:[...userIds,state.session?.userId??"0"]
+                    }))
+                }
+                // dispatch(store, removeSelect(target.entityId))
             } else {
                 dispatch(store,addDirData({
                     entityId: target.entityId,
-                    dir: solution.dir,
-                    angle: angleValue >> 0
+
+                    userIds:[state.session?.userId??"0"]
                 }))
-                dispatch(store, addSelected(target))
+                // dispatch(store, addSelected(target))
             }
 
             // if(hasSelected){
@@ -208,10 +203,11 @@ export const doubleClick = (store: Store0) => (e: any) => {
     const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
     if (e.altKey)
         return
+    let nextId = store.getState().world.nextId
     if (store.getState().uiState.weaponCreationMode || e.shiftKey) {
-        dispatch(store, addWeapon(eventLocation, "standardMortar"));
+        dispatch(store, addWeapon(eventLocation, "standardMortar",nextId));
     } else {
-        dispatch(store, addTarget(eventLocation));
+        dispatch(store, addTarget(eventLocation,nextId));
     }
 }
 
@@ -292,6 +288,7 @@ export const handleTouchMove = (store: Store0) => (ev: any) => {
     })
 }
 
+// @ts-ignore
 export const handleTouchEnd = (store: Store0) => (ev: any) => {
     const range = Array(ev.changedTouches.length).fill(0).map((x, y) => x + y)
     range.forEach(k => store.dispatch(removeTouch(ev.changedTouches[k].identifier)));

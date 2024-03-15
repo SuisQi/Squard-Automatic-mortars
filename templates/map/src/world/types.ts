@@ -26,7 +26,7 @@ export enum EntityActionType {
 }
 
 export type EntityAction =
-    { type: EntityActionType.add, payload: HasLocation & { entityType: EntityType } }
+    { type: EntityActionType.add, payload: HasLocation & { entityType: EntityType }&{entityId:EntityId} }
     | { type: EntityActionType.set, payload: HasLocation & { entityType: EntityType, entityId: EntityId } }
     | { type: EntityActionType.setAll, payload: { components: SerializableComponents } }
     | { type: EntityActionType.remove, payload: HasEntityId }

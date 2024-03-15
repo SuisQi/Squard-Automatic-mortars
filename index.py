@@ -12,17 +12,19 @@ import logging
 import traceback
 from functools import wraps
 
+import requests
 from flask_socketio import SocketIO
 
-from login import login, verify, display_squard
+from API.apis import mortar_blueprint
+from login import verify, display_squard
 from main import log, Squard, stop, pubsub_msgs
-from API.R import R
 
 from flask_cors import CORS
-from flask import Flask, request, jsonify
+from flask import Flask, jsonify
 
 from utils.redis_connect import check_redis_service, redis_cli
-from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords, get_settings
+from utils.utils import get_settings
+from websocket_.dir_websocket import start_dir_server
 from websocket_.server import web_server
 
 # 获取本机计算机名称
@@ -30,6 +32,7 @@ hostname = socket.gethostname()
 # 获取本机ip
 ip = socket.gethostbyname(hostname)
 app = Flask(__name__)
+app.register_blueprint(mortar_blueprint)
 socketio = SocketIO(app, cors_allowed_origins='*')
 CORS(app)
 
@@ -86,34 +89,87 @@ def listen_for_logs():
         time.sleep(0.01)
 
 
+def fire(target, squard):
+    log(f"目标方位：{round(target['dir'], 1)}，密位{target['angle']}")
+
+    mortarRounds = int(redis_cli.get("squad:fire_data:control:mortarRounds"))
+
+    squard.fire(mortarRounds, round(target['dir'], 1), target['angle'])
+    time.sleep(random.uniform(get_settings()['afterFire'][0], get_settings()['afterFire'][0]))
+
+
+def get_fire_points(userId):
+    if redis_cli.exists('squad:fire_data:standard'):
+        list_items = list(redis_cli.hvals('squad:fire_data:standard'))
+        list_items = list(map(lambda f: json.loads(f), list_items))
+
+    else:
+        list_items = []
+    return list_items
+
+
 def listen_fire():
     log("启动成功")
     squard = Squard()
     while True:
         try:
-            if redis_cli.exists('squad:fire_data:standard'):
-                list_items = list(redis_cli.hvals('squad:fire_data:standard'))
-            else:
-                list_items = []
+            userId = redis_cli.get("squad:session:userId").decode()
+            synergy = redis_cli.get("squad:fire_data:control:synergy").decode()
+            synergy = synergy == "1"
+            list_items = get_fire_points(userId)
             # item = json.loads(list_items[0])
 
             if stop():
                 time.sleep(0.5)
                 continue
 
+            # 协同开火
+            if synergy:
+                count = 0
+                standard = None
+                ip = redis_cli.get("squad:session:ip").decode()
+                while count < len(get_fire_points(userId)):
+                    if stop():
+                        break
+                    while count < len(get_fire_points(userId)) and not standard:
+
+                        if stop():
+                            break
+                        sessionId = redis_cli.get("squad:session:sessionId").decode()
+
+                        res = requests.get(f"http://{ip}:8081/get_target?sessionId={sessionId}&userId={userId}").json()
+                        if res['success'] != 0:
+                            count = len(get_fire_points(userId))
+                            break
+                        targetId = res['data']['targetId']
+                        standard = json.loads(redis_cli.hget("squad:fire_data:standard", targetId).decode())
+
+                        if standard['angle'] == 0:
+                            requests.get(
+                                f"http://{ip}:8081/get_target?sessionId={sessionId}&userId={userId}&targetId={targetId}")
+                            log(f"ID为{targetId}火力点不在射程内")
+                            count = count + 1
+                    if standard:
+                        fire(standard, squard)
+                        standard = None
+                        count = count + 1
+
+                log("停火")
+                # 检查是否所有火力点已经打完
+                sessionId = redis_cli.get("squad:session:sessionId").decode()
+                requests.get(f"http://{ip}:8081/check_fires?sessionId={sessionId}")
+                redis_cli.set("squad:fire_data:control:state", 0)
+                continue
+
+            list_items = list(filter(lambda f: userId in f['userIds'], list_items))
             for item in list_items:
                 if stop():
                     break
-                item = json.loads(item)
-                log(f"目标方位：{round(item['dir'], 1)}，密位{item['angle']}")
-
-                mortarRounds = int(redis_cli.get("squad:fire_data:control:mortarRounds"))
-
-                squard.fire(mortarRounds, round(item['dir'], 1), item['angle'])
-                time.sleep(random.uniform(get_settings()['afterFire'][0], get_settings()['afterFire'][0]))
+                fire(item, squard)
             log("停火")
             redis_cli.set("squad:fire_data:control:state", 0)
         except Exception as e:
+            log(traceback.format_exc())
             print(traceback.format_exc())
 
 
@@ -132,193 +188,12 @@ def check(f):
     return wrapper
 
 
-@app.route('/save', methods=['POST'])
-# @check
-def save():
-    if request.is_json:
-        data = request.get_json()
-        # 将数据转换为JSON字符串并追加到Redis列表中
-        redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(data))
-    return R(0)
-
-
-@app.route('/update', methods=['POST'])
-# @check
-def update():
-    if request.is_json:
-        data = request.get_json()
-        redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(data))
-
-    return R(0)
-
-
-@app.route('/remove', methods=['POST'])
-# @check
-def remove():
-    data = request.get_json()
-    redis_cli.hdel('squad:fire_data:standard', data['entityId'])
-
-    return R(0)
-
-
-@app.route("/remove_all")
-# @check
-def remove_all():
-    redis_cli.delete('squad:fire_data:standard')
-
-    return R(0)
-
-
-@app.route("/setState", methods=["GET"])
-# @check
-def set_state():
-    state = request.args.get('state')
-    state = int(state)
-    # state = 1 - state
-
-    # 将状态保存到Redis
-    redis_cli.set('squad:fire_data:control:state', state)
-
-    # 使用SocketIO广播状态更新
-    socketio.emit('state', {'data': state})
-
-    return R(200, data=state)
-
-
-@app.route("/getState", methods=["GET"])
-def get_state():
-    # 从Redis获取状态信息
-    state = redis_cli.get('squad:fire_data:control:state')
-
-    # 确保从Redis获取的状态是字符串，如果需要，转换成整数
-    if state is not None:
-        state = int(state)
-    else:
-        # 如果Redis中没有找到状态信息，可能需要设置一个默认值
-        state = 0  # 或任何适当的默认值
-
-    return R(200, data=state)
-
-
-@app.route("/listFires", methods=["GET"])
-def list_fires():
-    if redis_cli.exists('squad:fire_data:standard'):
-        list_items = list(redis_cli.hvals('squad:fire_data:standard'))
-
-        # Deserialize JSON strings to Python objects
-        data = [json.loads(item) for item in list_items]
-        return R(200, data=data)
-    return R(200, data=[])
-
-
-@app.route('/setMortarRounds', methods=["GET"])
-# @check
-def set_mortarRounds():
-    mortarRounds = request.args.get('mortarRounds')
-    # 将mortarRounds的值保存到Redis
-    redis_cli.set('squad:fire_data:control:mortarRounds', mortarRounds)
-    return R(0)
-
-
-@app.route("/get_bezier_points", methods=['POST'])
-def get_bezier_points_api():
-    data = request.get_json()
-    t = request.args.get("type")
-    points = generate_bezier_points(0, data['height'] / 2,
-                                    list(map(lambda f: f * data['height'] * 0.5, data['points'])),
-                                    num_points=data['num_points']).tolist()
-    x_coords = calculate_nonuniform_x_coords(points)
-    x_coords = list(map(lambda f: f * data['width'], x_coords))
-
-    # 从 Redis 获取 custom_trajectory
-    custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
-    if custom_trajectory_json:
-        trajectories = json.loads(custom_trajectory_json)
-        trajectory = list(filter(lambda e: e['name'] == data['name'], trajectories[t]))
-        if trajectory:
-            trajectory = trajectory[0]
-            trajectory['points'] = data['points']
-            trajectory['num_points'] = data['num_points']
-            # 将更新后的数据写回 Redis
-            redis_cli.set('squad:trajectory:custom', json.dumps(trajectories))
-        else:
-            return R(404, message='Mail trajectory not found.')
-    else:
-        return R(500, message='Custom trajectory data not found in Redis.')
-
-    return R(200, data=list(zip(x_coords, points)))
-
-
-@app.route("/list_trajectories", methods=["GET"])
-def list_trajectories():
-    # 尝试从 Redis 获取 custom_trajectory
-    t = request.args.get("type")
-
-    custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
-
-    if custom_trajectory_json:
-        data = json.loads(custom_trajectory_json)
-    else:
-        # 如果没有找到 custom_trajectory，尝试从 Redis 获取 default_trajectory
-        default_trajectory_json = redis_cli.get('squad:trajectory:default')
-        if default_trajectory_json:
-            data = json.loads(default_trajectory_json)
-        else:
-            return R(500, message='Trajectory data not found in Redis.')
-
-    return R(200, data=data[t])
-
-
-@app.route("/reset_trajectory", methods=["POST"])
-def reset_trajectory():
-    data = request.get_json()
-    name = data['name']
-    t = request.args.get("type")
-    # 从 Redis 获取 custom_trajectory 和 default_trajectory
-    custom_trajectory_json = redis_cli.get('squad:trajectory:custom')
-    default_trajectory_json = redis_cli.get('squad:trajectory:default')
-
-    custom_trajectory = json.loads(custom_trajectory_json) if custom_trajectory_json else None
-    default_trajectory = json.loads(default_trajectory_json) if default_trajectory_json else None
-
-    if not custom_trajectory or not default_trajectory:
-        return R(500, message='Trajectory data not found in Redis.')
-
-    c_t = list(filter(lambda f: f["name"] == name, custom_trajectory[t]))[0]
-    d_t = list(filter(lambda f: f["name"] == name, default_trajectory[t]))[0]
-
-    if not d_t:
-        # 如果找不到默认轨迹，可能需要适当处理
-        return R(500, message='Default trajectory not found.')
-    else:
-        c_t['points'] = d_t['points']
-        c_t['num_points'] = d_t['num_points']
-
-    # 将更新后的 custom_trajectory 存回 Redis
-    redis_cli.set('squad:trajectory:custom', json.dumps(custom_trajectory))
-
-    return R(200, data=c_t)
-
-
-@app.route("/update_settings", methods=["POST"])
-def update_settings():
-    data = request.get_json()
-    redis_cli.set('squad:settings', json.dumps(data))
-
-    return R(200)
-
-
-@app.route("/get_settings", methods=["GET"])
-def get_settings_():
-    settings = json.loads(redis_cli.get('squad:settings'))
-    return R(200, settings)
-
-
 def init_settings():
     '''
     初始化各种设置
 
     '''
+    redis_cli.set("squad:session:userId", "0")
     redis_cli.set('squad:settings', json.dumps({
         "beforeFire": [0.5, 1],
         "afterFire": [0.5, 1],
@@ -348,7 +223,10 @@ def init_settings():
 
     # 设置默认开火轮数
     redis_cli.set('squad:fire_data:control:mortarRounds', 3)
+    # 设置默认开火状态
     redis_cli.set("squad:fire_data:control:state", 0)
+    # 设置是否协同开火
+    redis_cli.set("squad:fire_data:control:synergy", 0)
 
 
 if __name__ == '__main__':
@@ -363,12 +241,15 @@ if __name__ == '__main__':
     threading.Thread(target=start_map).start()
     threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
-    threading.Thread(target=start_socket_server).start()
+    # threading.Thread(target=start_socket_server).start()
+    # 一直从计算器网页端获取方位密位
+    threading.Thread(target=start_dir_server).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址
     s.connect(("10.255.255.255", 1))
     IP = s.getsockname()[0]
+    print("请保持只有一个计算器打开，如果打开了多个，就关闭其他的然后刷新")
     print(f'将手机和电脑保持同一局域网，关闭AP隔离保护，手机浏览器打开{IP}:5173')
     print("如果你设置了自定义轨迹或者别的设置，在更新前请将该目录下的Redis-x64-5.0.14.1/dump.rdb备份，并在更新后进行替换")
     # with DisableFlaskLogging():

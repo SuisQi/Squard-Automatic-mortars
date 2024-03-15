@@ -3,6 +3,7 @@ import {SerializableComponents} from "../world/types";
 import {WorkerInput, WorkerOutput} from "./connection";
 import {ReplicationActionType as RAT, ReplicationMessage, ReplicationMessageType} from "./types";
 import * as WS from "./websocketPrimitives";
+import {set_server_ip} from "../api/standard";
 
 //console.log("webworker running")
 
@@ -18,9 +19,11 @@ onmessage = (e: {data: WorkerInput}) => {
   switch (message.func){
     case "CREATE":
       ws = create(message.payload.serverAddress, message.payload.serializableState);
+      set_server_ip(message.payload.serverAddress)
       return null;
     case "JOIN":
       ws = join(message.payload.serverAddress, message.payload.sessionId);
+      set_server_ip(message.payload.serverAddress)
       return null;
     case "CHANGE_NAME":
       if(ws && sessionId) WS.changeName(ws, message.payload.newName);

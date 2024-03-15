@@ -20,6 +20,7 @@ import {remove, remove_all, save, update} from "../api/standard";
 import {DirDataActionType, IconActionType} from "./actions";
 import {newTransform} from "./components/transform";
 import {newIcon} from "./components/icon";
+import {DirDataComponent} from "./components/dirData";
 
 
 const newWorld = (): World => ({
@@ -46,11 +47,34 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
       })
     case DirDataActionType.update:
       return produce(state,(proxy:World)=>{
-        update(action.payload)
-        proxy.components.dirData.set(action.payload.entityId,action.payload)
+
+        let oldDirData:DirDataComponent = proxy.components.dirData.get(action.payload.entityId) as DirDataComponent;
+
+        update(oldDirData)
+        proxy.components.dirData.set(action.payload.entityId,oldDirData)
       })
+    case DirDataActionType.left:
+      return produce(state,(proxy:World)=>{
+        for (let value of proxy.components.dirData.values()) {
 
+          value.userIds=["0"]
+          update(value)
+        }
+      })
+    case DirDataActionType.remove:
+      return produce(state,(proxy:World)=>{
+        let oldDirData:DirDataComponent = proxy.components.dirData.get(action.payload.entityId) as DirDataComponent;
+        if(action.payload.userIds?.length===0){
+          remove({
+            entityId: action.payload.entityId,
+          })
+          proxy.components.dirData.delete(action.payload.entityId)
+        }else {
+          oldDirData.userIds=action.payload.userIds
+          update(oldDirData)
 
+        }
+      })
     // icon
     case IconActionType.add:
       return produce(state,(proxy:World)=>{
@@ -80,13 +104,12 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
     case EntityActionType.add:
 
       return produce(state, (proxy: World) => {
-        const newId = proxy.nextId;
-        proxy.nextId = proxy.nextId + 1;
+        const newId =action.payload.entityId;
+        proxy.nextId = newId + 1;
         let setAction: SetAction = produce(action, (action: any) => {
           action.type = EntityActionType.set;
           action.payload["entityId"] = newId;
         }) as any;
-        console.log(action)
         proxy.components = setComponentsFromActionMut(proxy.components, newId, setAction);
       })
 

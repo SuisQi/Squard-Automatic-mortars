@@ -1,6 +1,7 @@
 import { SerializableComponents } from "../world/types";
 import {ReplicationActionType as RAT, SessionActionType as SAT, newUser, ReplicationMessage, User, ReplicationMessageType} from "./types"
 import {notification} from "antd";
+import {DirDataActionType} from "../world/actions";
 
 
 export class Connection {
@@ -29,7 +30,6 @@ export class Connection {
 
   // connection events
   private onWorkerMessage(message: WorkerOutput){
-
     switch (message.event){
       case "DISPATCH":
         this.dispatch(message.payload.action);
@@ -39,6 +39,7 @@ export class Connection {
         return;
       case "CLOSE":
         this.dispatch({type: SAT.ended, payload: {sessionId: this.sessionId}})
+
         this.terminate();
         return null;
       case "ERROR":
@@ -60,6 +61,7 @@ export class Connection {
     this.wsClosed = true;
     this.sessionId = null;
     this.worker.terminate();
+    this.dispatch({type:DirDataActionType.left})
       // nothing to do here.
   }
   send(message: ReplicationMessage){

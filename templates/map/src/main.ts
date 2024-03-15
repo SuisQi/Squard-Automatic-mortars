@@ -27,7 +27,7 @@ const printState = (st: typeof store) => () => {
 }
 
 // Initializing world state
-store.dispatch(addWeapon([0, 0, 0], "standardMortar"))
+store.dispatch(addWeapon([0, 0, 0], "standardMortar",0))
 settingsToActions(loadUserSettings()).map(store.dispatch);
 store.dispatch(changeMap("kokan"))
 
@@ -58,10 +58,9 @@ const $leftPanel = document.getElementById('leftPanel')!;
 const $rightPanel = document.getElementById('rightPanel')!;
 const $iconTool = document.getElementById('iconTool')!;
 const h = React.createElement
-remove_all().then(r => {
 
-})
-console.log(store)
+
+
 ReactDOM.render(makeLeftPanel(store), $leftPanel)
 ReactDOM.render(makeTooltip(store), $tooltip)
 ReactDOM.render(makeIconTool(store), $iconTool)

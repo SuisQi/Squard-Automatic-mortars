@@ -17,6 +17,7 @@ import {getComponent} from "../world/world";
 import {Connection} from "./connection";
 import {notification} from "antd";
 import produce from "immer";
+import {remove_all} from "../api/standard";
 
 
 let $connection: Connection | null = null; // the alternative is creating an "app state" and having "resources"... If that becomes necessary, it will be added.
@@ -76,11 +77,12 @@ const handler = (store: Store0, action: StoreAction) => {
       return null
     case IconActionType.remove_all:
     case EntityActionType.removeAllTargets:
-    case EntityActionType.selectAdd:
-    case EntityActionType.selectUpdate:
-    case EntityActionType.selectRemove:
+    // case EntityActionType.selectAdd:
+    // case EntityActionType.selectUpdate:
+    // case EntityActionType.selectRemove:
     case DirDataActionType.add:
     case DirDataActionType.update:
+    case DirDataActionType.remove:
     case EntityActionType.remove:
       if (!store.getState().session){
         return null;
@@ -102,8 +104,11 @@ const handleServerMessage = (dispatch: Function, message: ReplicationMessage) =>
     case ReplicationMessageType.action:
       return message.payload
     case ReplicationMessageType.joined:
-      dispatch(setAllEntities(message.payload.state))
-      dispatch(sessionStarted(message.payload.sessionId, message.payload.userId,  message.payload.users));
+      remove_all().then(()=>{
+        dispatch(setAllEntities(message.payload.state))
+        dispatch(sessionStarted(message.payload.sessionId, message.payload.userId,  message.payload.users));
+      })
+
       return null
     case ReplicationMessageType.userJoined:
       dispatch(addUser(newUser(message.payload.id, message.payload.name)));

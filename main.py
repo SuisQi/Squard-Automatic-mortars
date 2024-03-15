@@ -56,7 +56,7 @@ resolution_case = get_resolution_case()
 def log(msg):
     # 获取当前时间
     now = datetime.now()
-    t = now.strftime("%Y-%m-%d %H:%M:%S.") + str(now.microsecond)[:3]
+    t = now.strftime("%H:%M:%S.") + str(now.microsecond)[:3]
     pubsub_msgs.append(f'{t}  :{msg}')
 
 
