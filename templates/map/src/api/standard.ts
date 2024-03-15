@@ -14,10 +14,10 @@ axios.interceptors.response.use(
     },
     error => {
         // 对响应错误做点什么
-        if (error.response.status === 401) {
-            // 处理未授权的情况
-            // 例如重定向到登录页面
-        }
+        // if (error.response.status === 401) {
+        //     // 处理未授权的情况
+        //     // 例如重定向到登录页面
+        // }
         return Promise.reject(error);
     }
 );
@@ -34,4 +34,13 @@ export const update = (data: any) => {
 }
 export const remove_all = () => {
     return axios.get(baseURL + "remove_all")
+}
+export const set_session_userId = (userId:string) => {
+    return axios.get(baseURL + "set_session_userId?userId="+userId)
+}
+export const set_sessionId = (sessionId:string) => {
+    return axios.get(baseURL + "set_sessionId?sessionId="+sessionId)
+}
+export const set_server_ip = (address:string) => {
+    return axios.get(baseURL + "set_server_ip?address="+address)
 }

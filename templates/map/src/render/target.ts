@@ -12,6 +12,9 @@ import { UserSettings } from "../ui/types";
 import { $s5map } from "../elements";
 import { TEXT_RED, TEXT_WHITE } from "./constants";
 import { canonicalEntitySort } from "../world/world";
+import {StoreState} from "../store";
+import {DirDataComponent} from "../world/components/dirData";
+import {User} from "../replication_ws/types";
 
 
 function drawMortarGridLine(ctx: CanvasRenderingContext2D, x0: number, y0: number, r0: number, r1: number, dir: number) {
@@ -40,16 +43,15 @@ const drawSimpleMortarSplash = (ctx: CanvasRenderingContext2D, lineWidthFactor: 
   ctx.stroke();
 }
 
-const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean=false) => {
+const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
 
   ctx.lineWidth = 1 * lineWidthFactor
-  if(selected) {
-    ctx.strokeStyle = '#ff004d';
-    ctx.fillStyle='rgba(231, 76, 60,0.5)'
-  }
-  else {
+
+
+  if(!selected) {
     ctx.strokeStyle = '#00f';
   }
+
   drawSpreadEllipse(
     ctx,
     firingSolution.weaponToTargetVec,
@@ -136,11 +138,15 @@ const drawTargetIcon = (ctx: CanvasRenderingContext2D, camera: Camera, targetTra
   ctx.restore()
 }
 
-export const drawTargets = (ctx: CanvasRenderingContext2D, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, targets: Array<Target>): void => {
+export const drawTargets = (ctx: CanvasRenderingContext2D, weapons: Array<Weapon>, targets: Array<Target>,state:StoreState,dirdatas:Map<number,DirDataComponent>,userId:User['id']): void => {
+
+  const camera =state.camera
+  const userSettings = state.userSettings
+  const heightmap = state.heightmap
   if (userSettings.weaponType === "standardMortar" || userSettings.weaponType === "technicalMortar"){
     targets.forEach((t: Target) => {
 
-      drawMortarTarget(ctx, camera, userSettings, heightmap, weapons, t)
+      drawMortarTarget(ctx, camera, userSettings, heightmap, weapons, t,dirdatas,userId)
     })
   } else if (userSettings.weaponType === "ub32"){
     targets.forEach((t: Target) => drawRocketPodTarget(ctx, camera, userSettings, heightmap, weapons, t))
@@ -181,7 +187,7 @@ const drawTargetGridMortar = (ctx: any, lineWidthFactor: number, weaponTransform
 }
 
 
-const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target) => {
+const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target,dirdatas:Map<number,DirDataComponent>,userId:User['id']) => {
   const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0] // uniform scaling
   canonicalEntitySort(weapons);
   const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
@@ -209,7 +215,14 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
     applyTransform(ctx, target.transform)
     if (userSettings.targetSpread /* && weapons.length < 2 */){
       //console.log("spread", hSpread, closeSpread, farSpread)
-      drawMortarSpread(ctx, solution, canvasSizeFactor, userSettings.targetSplash,target.selected);
+      if (dirdatas.get(target.entityId)?.userIds?.includes(userId)??false){
+        ctx.strokeStyle = '#ff004d';
+        ctx.fillStyle='rgba(231, 76, 60,0.5)'
+      }else if(!dirdatas.get(target.entityId)?.userIds?.includes(userId)??false){
+        ctx.strokeStyle = '#AAB7B8';
+        ctx.fillStyle='rgba(131, 145, 146,0.5)'
+      }
+      drawMortarSpread(ctx, solution, canvasSizeFactor, userSettings.targetSplash,dirdatas.has(target.entityId));
     } else if (userSettings.targetSplash){
       drawSimpleMortarSplash(ctx, canvasSizeFactor);
     }

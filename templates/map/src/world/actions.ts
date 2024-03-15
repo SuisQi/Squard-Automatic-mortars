@@ -54,10 +54,10 @@ export const addSelected: (entity: Target) => EntityAction =
 
 
 
-export const addTarget: (location: vec3) => EntityAction =
-  (location) => ({
+export const addTarget: (location: vec3,entityId:EntityId) => EntityAction =
+  (location,entityId) => ({
     type: EntityActionType.add,
-    payload: {location, entityType: "Target"}
+    payload: {location, entityType: "Target",entityId:entityId}
 })
 
 export const removeTarget: (entityId: EntityId) => EntityAction =
@@ -75,10 +75,10 @@ export const removeAllTargets: () => EntityAction =
     payload: {}
 })
 
-export const addWeapon: (location: vec3, weaponType: WeaponType) => EntityAction =
-  (location, weaponType) => ({
+export const addWeapon: (location: vec3, weaponType: WeaponType,entityId:EntityId) => EntityAction =
+  (location, weaponType,entityId) => ({
     type: EntityActionType.add,
-    payload: {location, entityType: "Weapon"}
+    payload: {location, entityType: "Weapon",entityId}
   })
 
 export const setWeaponActive = (entityId: EntityId, newState: boolean): WeaponAction  => ({
@@ -101,19 +101,27 @@ export const setWeaponHeightOverGround = (entityId: EntityId, newHeight: number)
   payload: {entityId, newHeight: newHeight * 100}
 })
 
-export const addCamera = (location: vec3): EntityAction => ({
+export const addCamera = (location: vec3,entityId:EntityId): EntityAction => ({
   type: EntityActionType.add,
-  payload: {location, entityType: "Camera"}
+  payload: {location, entityType: "Camera",entityId}
 })
 
 export const addDirData=(dirdata:DirData):DirDataAction=>({
     type:DirDataActionType.add,
     payload:dirdata
 })
-
+export const removeDirData=(dirdata:DirData):DirDataAction=>({
+    type:DirDataActionType.remove,
+    payload:dirdata
+})
 export const updateDirData=(dirdata:DirData):DirDataAction=>({
     type:DirDataActionType.update,
     payload:dirdata
+})
+
+export const leftDirData = ():DirDataAction=>({
+    type:DirDataActionType.left,
+    payload: {}
 })
 export enum IconActionType{
     add="ICON_ADD",
@@ -129,8 +137,10 @@ export type IconAction={
 export enum DirDataActionType {
     add="DIRDATA_ADD",
     remove="DIRDATA_REMOVE",
-    update = "DIRDATA_UPDATE"
+    update = "DIRDATA_UPDATE",
+    left = "DIRDATA_LEFT"
 }
 export type DirDataAction={type:DirDataActionType.add,payload:DirDataComponent}
-|{type:DirDataActionType.remove,payload:EntityId}
+|{type:DirDataActionType.remove,payload:DirDataComponent}
 |{type:DirDataActionType.update,payload:DirDataComponent}
+|{type:DirDataActionType.left,payload:{}}

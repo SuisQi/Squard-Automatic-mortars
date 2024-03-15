@@ -2,6 +2,8 @@ import json
 
 global_connections = {}  # 全局WebSocket连接字典
 
+mortar_control_pool = {}   #控制协同开火的对象池，key为sessionId,value为对象
+
 def decode_redis_hash(hash_data):
     """
     将从Redis hgetall命令返回的字节串哈希表解码为字符串哈希表。

@@ -3,11 +3,11 @@ import io from "socket.io-client";
 import {nextTick, onMounted, ref} from "vue";
 import {
   get_settings,
-  getState,
+  getControl,
   list_fires,
   list_trajectories,
   setMortarRounds,
-  setState,
+  setControl,
   update_settings
 } from "@/api";
 import {
@@ -21,10 +21,13 @@ import {
 import * as d3 from 'd3';
 import BezierCurve from "@/components/BezierCurve.vue";
 
-const isOn = ref(false)
+const isOn = ref(false) //开火控制
+const showOnlyMe = ref(true) //是否只显示自己的火力点
+const synergy = ref(false) //开火控制
 const logs = ref([])
 const fires = ref([])
 const mortarRounds = ref(3)
+const mortarRoundsSelectList = ref([])
 const dialogFires = ref(false)
 const dialogSetting = ref(false)
 const dialogOrigentationSetting = ref(false)
@@ -43,6 +46,16 @@ let viewportHeight = window.innerHeight;
 console.log(viewportWidth)
 onMounted(() => {
   init()
+  for (let i = 0; i < 9; i++) {
+    mortarRoundsSelectList.value.push({
+      value:i+1,
+      label:"每轮发射"+(i+1)+"炮"
+    })
+  }
+  mortarRoundsSelectList.value.push({
+    value:999,
+    label:"一直砸"
+  })
   const socket = io(`http://${window.location.hostname}:8080`);
   // const socket = io(`http://192.168.1.103:8080`);
   console.log(socket)
@@ -63,11 +76,17 @@ onMounted(() => {
   setInterval(init, 500)
 })
 const init = () => {
-  getState().then(res => {
+
+
+  getControl({type:"state"}).then(res => {
 
     isOn.value = parseInt(res.data.data) === 1
   })
-  list_fires().then(res => {
+  getControl({type:"synergy"}).then(res => {
+
+    synergy.value = parseInt(res.data.data) === 1
+  })
+  list_fires(showOnlyMe.value?1:0).then(res => {
     fires.value = res.data.data
   })
   get_settings().then(res=>{
@@ -81,14 +100,23 @@ const changeSettings=()=>{
   return true
 }
 const toggleSwitch = () => {
-  setState(!isOn.value).then(res => {
-    isOn.value = parseInt(res.data.data) === 1
+  setControl({
+    state:!isOn.value?1:0,
 
+  }).then(res => {
+    isOn.value = parseInt(res.data.data.state) === 1
+
+  })
+}
+const set_synergy=(synergy)=>{
+  setControl({
+
+    synergy:synergy?1:0
   })
 
 }
-const onMortarRoundsChange = (event) => {
-  setMortarRounds(event.target.value)
+const onMortarRoundsChange = (value) => {
+  setMortarRounds(value)
 }
 // https://cdn.discordapp.com/avatars/801691645392715787/1ba0e4f36742eafd92a086df0a1de7b1.webp?size=80
 // Reaper_17
@@ -97,31 +125,51 @@ const onMortarRoundsChange = (event) => {
 <template>
   <div class="w-full h-screen bg-gray-200 flex flex-grow items-center flex-1 ">
     <div
-        class="  basis-full  grid grid-cols-2 max-md:grid-cols-1  max-md:grid-rows-3 max-md:gap-0 gap-10 justify-items-center ">
+        class="  basis-full  grid grid-cols-2 max-md:grid-cols-1  max-md:grid-rows-3 max-md:gap-0 gap-10  ">
 
       <div class="flex flex-col items-center max-md:justify-start justify-center gap-3">
 
         <!-- 查看火力点的按钮 -->
 
-        <el-button @click="dialogFeature=true" type="warning" :icon="Briefcase">功能</el-button>
+
+        <div class="grid grid-cols-2 gap-1 justify-center">
+          <!-- 新增的迫击炮轮数控制块 -->
+          <el-select
+              v-model="mortarRounds"
+              placeholder="Select"
+              size="large"
+              @change="onMortarRoundsChange"
+          >
+
+            <el-option
+                v-for="item in mortarRoundsSelectList"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+            />
+
+          </el-select>
+          <el-button  @click="()=>dialogFires=true" type="danger">查看火力点</el-button>
+
+          <el-switch
+              v-model="synergy"
+              active-text="协同开火"
+              inactive-text="单独开火"
+              @change="set_synergy"
+          />
+          <el-button @click="dialogFeature=true" type="warning" :icon="Briefcase">功能</el-button>
+        </div>
         <el-dialog
           title="功能"
           :width="viewportWidth*0.9>600?600:viewportWidth*0.9"
           v-model="dialogFeature">
+
+
           <div class="w-full flex flex-col gap-4 justify-start items-start">
 
-            <!-- 新增的迫击炮轮数控制块 -->
-            <div class="w-full">
-              <div class="flex flex-row items-center">
-                <label for="mortar-rounds" class="text-gray-700 mr-2">每轮发射数:</label>
-                <select id="mortar-rounds" @change="onMortarRoundsChange" v-model="mortarRounds"
-                        class="bg-gray-700 text-white p-2 rounded">
-                  <option v-for="n in 10" :key="n" :value="n">{{ n }}</option>
-                </select>
-              </div>
-            </div>
 
-            <el-button class="w-full" @click="()=>dialogFires=true" type="danger">查看火力点</el-button>
+
+
             <div></div>
             <el-button class="w-full"  @click="()=>dialogSetting=true" type="info">编辑密位轨迹点</el-button>
             <div></div>
@@ -163,6 +211,11 @@ const onMortarRoundsChange = (event) => {
             title="火力点"
             width="300"
         >
+          <div class="flex flex-row ">
+            <div class="只显示自己"></div>
+            <el-switch v-model="showOnlyMe" active-text="只显示自己"
+                       inactive-text="整个房间"/>
+          </div>
           <el-table :data="fires" stripe style="width: 100%">
             <el-table-column prop="entityId" label="id" width="40"/>
             <el-table-column prop="dir" label="方位"/>
@@ -203,8 +256,8 @@ const onMortarRoundsChange = (event) => {
         <div class="log-container bg-gray-900 p-4 rounded-lg h-[600px] max-md:h-[300px] overflow-auto">
           <ul>
             <li v-for="(log, index) in logs" :key="index" class="text-sm mb-2">
-              <span class="text-green-400">{{ log.substring(0, 23) }}</span>
-              <span class="text-gray-300">{{ log.substring(23) }}</span>
+              <span class="text-green-400">{{ log.substring(0, 13) }}</span>
+              <span class="text-gray-300">{{ log.substring(13) }}</span>
             </li>
           </ul>
         </div>

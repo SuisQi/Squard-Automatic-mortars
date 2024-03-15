@@ -203,7 +203,7 @@ export const drawAll = (store: Store0) => {
             transform:state.world.components.transform.get(f.entityId)
         }
     })
-
+    const dirDatas = state.world.components.dirData
     ctx.save();
     drawBackground(ctx)
 
@@ -212,7 +212,7 @@ export const drawAll = (store: Store0) => {
     drawContourmap(ctx, state.contourmap, state.userSettings);
     // drawHeightmap(ctx, state.heightmap, state.userSettings);
     drawWeapons(ctx, state.userSettings, state.camera, weapons);
-    drawTargets(ctx, state.camera, state.userSettings, state.heightmap, weapons, targets);
+    drawTargets(ctx, weapons, targets,state,dirDatas,state.session?.userId??"0");
     drawPlacementHelpers(ctx, state.camera, state.userSettings, state.uiState, state.world, state.minimap);
     drawIcons(ctx,state.camera, icons,state.images)
     /*
