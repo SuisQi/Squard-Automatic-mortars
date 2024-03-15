@@ -1,6 +1,7 @@
 # 引入websockets库
 import asyncio
 import json
+import logging
 import threading
 import traceback
 
@@ -112,7 +113,7 @@ async def echo(websocket, path):
 
                 control = MortarFireControl(room_session_id)
                 mortar_control_pool[room_session_id] = control
-                print(message)
+                logging.info(message)
                 global_connections[room_session_id] = [websocket]
                 control.add_mortar(user_session_id)
                 state = message['payload']['state']
@@ -174,7 +175,7 @@ async def echo(websocket, path):
                 session['nextId'] = session['nextId'] + 1
                 redis_cli.set(f"squad:{room_session_id}:session", json.dumps(session))
                 for w in global_connections[room_session_id]:
-                    print(message)
+                    logging.info(message)
                     if w == websocket:
                         continue
                     await w.send(json.dumps({
@@ -192,7 +193,7 @@ async def echo(websocket, path):
                 }))
             elif message['command'] == "ACTION":
                 update_components(room_session_id, message,control)
-                print(message)
+                logging.info(message)
                 for w in global_connections[room_session_id]:
                     if w == websocket:
                         continue
@@ -224,12 +225,12 @@ async def echo(websocket, path):
             mortar_control_pool[room_session_id].remove_mortar(user_session_id)
 
     except Exception as e:
-        print(traceback.format_exc())
+        logging.info(traceback.format_exc())
 
 
 # 启动WebSocket服务器
 async def web_server():
-    print("websocket启动")
+    logging.info("websocket启动")
 
     async with websockets.serve(echo, "0.0.0.0", 1234):
         await asyncio.Future()  # 运行直到被取消
