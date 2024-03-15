@@ -70,10 +70,13 @@ export const setupEventsAndInit = (store: Store0, perfRef: { t0: any }) => {
     hook($canvas, "contextmenu", rightClick(store))
 
     const wsManager = new WebSocketManager("ws:/127.0.0.1:1235", {reconnectInterval: 500, autoReconnect: true}, store)
-    remove_all().then(r => {
-        set_session_userId("0")
-        wsManager.connect()
+    set_session_userId("0").then(()=>{
+        remove_all().then(r => {
+
+            wsManager.connect()
+        })
     })
+
 
 
 }
