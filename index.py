@@ -262,7 +262,7 @@ if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
-    # display_squard()
+    display_squard()
     check_redis_service()
     init_settings()
 
