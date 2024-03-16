@@ -83,8 +83,8 @@ def update_components(sessionId, message, control):
     elif message['payload']['type'] == "ENTITY_REMOVE_ALL_TARGETS":
         for entityId in components_dict['entity']:
             if components_dict['entity'][entityId]["entityType"] == "Target":
-                del components_dict['entity'][entityId]
-                del components_dict['transform'][entityId]
+                components_dict['entity'] = {k: v for l, v in components_dict['entity'].items() if k != entityId}
+                components_dict['transform'] = {k: v for l, v in components_dict['transform'].items() if k != entityId}
 
         components_dict['icon'] = {}
         components_dict['dirData'] = {}
