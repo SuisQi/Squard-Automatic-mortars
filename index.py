@@ -13,7 +13,9 @@ import traceback
 from functools import wraps
 
 import requests
+import websockets
 from flask_socketio import SocketIO
+from websockets.exceptions import ConnectionClosedOK
 
 from API.apis import mortar_blueprint
 from login import verify, display_squard
@@ -108,6 +110,63 @@ def get_fire_points(userId):
     return list_items
 
 
+async def fire_client(squard, userId, sessionId):
+    ip = redis_cli.get("squad:session:ip").decode()
+    uri = f"ws://{ip}:1234"  # 更改为你想连接的WebSocket服务器的URI
+    try:
+        async with websockets.connect(uri) as websocket:
+            async def check_stop():
+                while not stop():
+                    await asyncio.sleep(0.1)  # 每0.1秒检查一次
+                return 'stop'
+
+            while True:
+                if stop():
+                    break
+                await websocket.send(json.dumps({
+                    "command": "CONTROL",
+                    "payload": {
+                        "type": "GET",
+                        "user_id": userId,
+                        "session_id": sessionId
+                    }
+                }))
+                # 等待响应或停止条件
+                done, pending = await asyncio.wait(
+                    [websocket.recv(), check_stop()],
+                    return_when=asyncio.FIRST_COMPLETED)
+                # 处理完成的任务
+                for task in done:
+                    result = task.result()
+                    if result == 'stop':
+                        return  # 退出函数
+                    else:
+                        res = json.loads(result)
+                        targetId = res['targetId']
+                        if targetId:
+                            standard = json.loads(redis_cli.hget("squad:fire_data:standard", targetId).decode())
+                            # 如果不在范围内
+                            if standard['angle'] == 0:
+                                websocket.send(json.dumps({
+                                    "command": "CONTROL",
+                                    "payload": {
+                                        "type": "UNFIRE",
+                                        "user_id": userId,
+                                        "session_id": sessionId,
+                                        "targetId": targetId
+                                    }
+                                }))
+                                log(f"ID为{targetId}的火力点不在攻击范围")
+                                break
+                            #     开火
+                            fire(standard, squard)
+                # 取消尚未完成的任务
+                for task in pending:
+                    task.cancel()
+    except ConnectionClosedOK:
+        pass
+
+
 def listen_fire():
     log("启动成功")
     squard = Squard()
@@ -125,39 +184,9 @@ def listen_fire():
 
             # 协同开火
             if synergy:
-                count = 0
-                standard = None
-                ip = redis_cli.get("squad:session:ip").decode()
-                while count < len(get_fire_points(userId)):
-                    if stop():
-                        break
-                    while count < len(get_fire_points(userId)) and not standard:
-
-                        if stop():
-                            break
-                        sessionId = redis_cli.get("squad:session:sessionId").decode()
-
-                        res = requests.get(f"http://{ip}:8081/get_target?sessionId={sessionId}&userId={userId}").json()
-                        if res['success'] != 0:
-                            count = len(get_fire_points(userId))
-                            break
-                        targetId = res['data']['targetId']
-                        standard = json.loads(redis_cli.hget("squad:fire_data:standard", targetId).decode())
-
-                        if standard['angle'] == 0:
-                            requests.get(
-                                f"http://{ip}:8081/get_target?sessionId={sessionId}&userId={userId}&targetId={targetId}")
-                            log(f"ID为{targetId}火力点不在射程内")
-                            count = count + 1
-                    if standard:
-                        fire(standard, squard)
-                        standard = None
-                        count = count + 1
-
-                log("停火")
-                # 检查是否所有火力点已经打完
                 sessionId = redis_cli.get("squad:session:sessionId").decode()
-                requests.get(f"http://{ip}:8081/check_fires?sessionId={sessionId}")
+                asyncio.run(fire_client(squard, userId, sessionId))
+                log("停火")
                 redis_cli.set("squad:fire_data:control:state", 0)
                 continue
 
@@ -233,13 +262,13 @@ if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
-    display_squard()
+    # display_squard()
     check_redis_service()
     init_settings()
 
     threading.Thread(target=listen_for_logs).start()
-    threading.Thread(target=start_map).start()
-    threading.Thread(target=start_control).start()
+    # threading.Thread(target=start_map).start()
+    # threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
     # threading.Thread(target=start_socket_server).start()
     # 一直从计算器网页端获取方位密位
