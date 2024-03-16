@@ -7,11 +7,11 @@ import traceback
 
 import websockets
 
+from websocket_.fire_control_server import run_control_server
 from websocket_.mortarFireControl import MortarFireControl
 from utils.redis_connect import redis_cli
-from websocket_.fire_control_server import run_control_server
 from websocket_.public import global_connections, extract_odd_positions_from_timestamp, \
-    mortar_control_pool
+    mortar_control_pool, control_server_pool
 
 connected = {}
 additional_servers = {}  # 用于存储额外的WebSocket服务器实例
@@ -32,7 +32,7 @@ def check_key_exists(match_pattern, del_flag=False):
     return False
 
 
-def update_components(sessionId, message,control):
+def update_components(sessionId, message, control):
     components = json.loads(redis_cli.get(f"squad:{sessionId}:world:components").decode())
     # room = json.loads(redis_cli.get(f"squad:{sessionId}:session").decode())
     components_dict = {}
@@ -104,6 +104,7 @@ def update_components(sessionId, message,control):
 async def echo(websocket, path):
     room_session_id = ""
     user_session_id = ""
+    control_flag = False
     try:
         async for message in websocket:
             message = json.loads(message)
@@ -134,6 +135,7 @@ async def echo(websocket, path):
 
                 }
                 redis_cli.set(f"squad:{room_session_id}:session", json.dumps(session))
+                control_server_pool[room_session_id] = {}
                 await websocket.send(json.dumps({
                     "command": "JOINED",
                     "payload": {
@@ -192,37 +194,71 @@ async def echo(websocket, path):
                     }
                 }))
             elif message['command'] == "ACTION":
-                update_components(room_session_id, message,control)
+                control = mortar_control_pool[room_session_id]
+                update_components(room_session_id, message, control)
                 logging.info(message)
                 for w in global_connections[room_session_id]:
                     if w == websocket:
                         continue
                     await w.send(json.dumps(message))
+            elif message['command'] == "CONTROL":
+                control_flag = True
+                payload = message['payload']
+                user_session_id = payload['user_id']
+                room_session_id = payload['session_id']
+                control = mortar_control_pool[room_session_id]
+                if user_session_id not in control_server_pool[room_session_id]:
+                    control_server_pool[room_session_id][user_session_id] = 1  # 0表示停火，1表示正常
 
-        if user_session_id == room_session_id:
-            del mortar_control_pool[room_session_id]
-            for w in global_connections[room_session_id]:
-                await w.close()
-            # 使用生成器函数删除所有以"squad:12345"为前缀的键
-            check_key_exists(f"squad:{room_session_id}*", True)
-            del global_connections[room_session_id]
+                control_server = control_server_pool[room_session_id]
+                if control_server[user_session_id] == 0:
+                    del control_server[user_session_id]
+                    break
+                if payload['type'] == "GET":
+                    targetId = control.assign_fire_point(user_session_id)
+                    if control.check_and_notify_all_fp_assigned():
+                        # 全部迫击炮设置为停火
+                        for u in control_server:
+                            control_server[u] = 0
+                    if not targetId:
+                        del control_server[user_session_id]
+                    await websocket.send(json.dumps({
+                        "targetId": targetId
+                    }))
+                elif payload['type'] == "UNFIRE":
+                    targetId = payload['targetId']
+                    control.unmark_fire_point_as_unreachable(user_session_id, targetId)
+
+        if not control_flag:
+            # 如果是房主离开，就关闭房间
+            if user_session_id == room_session_id:
+                del mortar_control_pool[room_session_id]
+                for w in global_connections[room_session_id]:
+                    await w.close()
+                # 使用生成器函数删除所有以"squad:room_session_id"为前缀的键
+                check_key_exists(f"squad:{room_session_id}*", True)
+                del control_server_pool[room_session_id]
+                del global_connections[room_session_id]
+            else:
+
+                global_connections[room_session_id] = [x for x in global_connections[room_session_id] if x != websocket]
+                session = json.loads(redis_cli.get(f"squad:{room_session_id}:session"))
+                session['users'] = list(filter(lambda f: f['id'] != user_session_id, session['users']))
+                redis_cli.set(f"squad:{room_session_id}:session", json.dumps(session))
+                for w in global_connections[room_session_id]:
+                    if w == websocket:
+                        continue
+                    await w.send(json.dumps({
+                        "command": "USER_LEFT",
+                        "payload": {
+                            "userId": user_session_id
+                        }
+
+                    }))
+                mortar_control_pool[room_session_id].remove_mortar(user_session_id)
         else:
-
-            global_connections[room_session_id] = [x for x in global_connections[room_session_id] if x != websocket]
-            session = json.loads(redis_cli.get(f"squad:{room_session_id}:session"))
-            session['users'] = list(filter(lambda f: f['id'] != user_session_id, session['users']))
-            redis_cli.set(f"squad:{room_session_id}:session", json.dumps(session))
-            for w in global_connections[room_session_id]:
-                if w == websocket:
-                    continue
-                await w.send(json.dumps({
-                    "command": "USER_LEFT",
-                    "payload": {
-                        "userId": user_session_id
-                    }
-
-                }))
-            mortar_control_pool[room_session_id].remove_mortar(user_session_id)
+            if room_session_id in control_server_pool and user_session_id in control_server_pool[room_session_id]:
+                del control_server_pool[room_session_id][user_session_id]
 
     except Exception as e:
         logging.info(traceback.format_exc())
@@ -232,6 +268,7 @@ async def echo(websocket, path):
 async def web_server():
     logging.info("websocket启动")
 
+    threading.Thread(target=run_control_server).start()
     async with websockets.serve(echo, "0.0.0.0", 1234):
         await asyncio.Future()  # 运行直到被取消
 

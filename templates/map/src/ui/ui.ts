@@ -147,7 +147,7 @@ export const click = (store: Store0) => (e: any) => {
                 if(userIds.includes(state.session?.userId??"0")){
                     dispatch(store,removeDirData({
                         entityId: target.entityId,
-                        userIds:userIds.filter(f=>f!==state.session?.userId??"0")
+                        userIds:userIds.filter(f=>f!==(state.session?.userId??"0"))
                     }))
                 }
                 else {
