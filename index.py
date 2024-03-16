@@ -267,10 +267,9 @@ if __name__ == '__main__':
     init_settings()
 
     threading.Thread(target=listen_for_logs).start()
-    # threading.Thread(target=start_map).start()
-    # threading.Thread(target=start_control).start()
+    threading.Thread(target=start_map).start()
+    threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
-    # threading.Thread(target=start_socket_server).start()
     # 一直从计算器网页端获取方位密位
     threading.Thread(target=start_dir_server).start()
 
