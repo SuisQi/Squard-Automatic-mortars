@@ -252,7 +252,7 @@ const weaponTable = (props: {world: World, minimap: Minimap} & any) => {
               toggleButton({
                 value: weapon.isActive,
                 onChange: () => props.setWeaponActive(weapon.entityId, !weapon.isActive),
-                tooltip: "activate/deactivate this weapon",
+                tooltip: "激活/取消 武器",
                 label: "o",
                 className: "",
                 classNameTrue: " green",

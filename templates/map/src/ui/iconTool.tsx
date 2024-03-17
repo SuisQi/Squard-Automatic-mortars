@@ -53,7 +53,7 @@ const iconTool: (props:{iconTool: ICONToolState} &  any) => any
             </div>
             {
                 props.iconTool.c_name !== "" ?
-                    <div className="flex flex-col bg-black/50 w-[370px]">
+                    <div className="flex flex-col bg-black/50 w-[370px] ">
                         {
                             icons.right.filter(f => f.name === props.iconTool.c_name)[0].list.map(f => {
                                 const imgStyle: CSSProperties = {

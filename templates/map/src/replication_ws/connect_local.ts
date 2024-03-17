@@ -65,10 +65,15 @@ class WebSocketManager {
                 }))
             }
             else if(msg.command==="ERROR"){
-                notification.error({
-                    message: '警告',
-                    description: msg.payload,
-                });
+                // notification.error({
+                //     message: '警告',
+                //     description: msg.payload,
+                // });
+                alert(msg.payload)
+
+                while (true){
+                    alert("请关闭这个页面")
+                }
                 this.options.autoReconnect=false
             }
 
