@@ -85,10 +85,18 @@ def update_components(sessionId, message, control):
         }
 
     elif message['payload']['type'] == "ENTITY_REMOVE_ALL_TARGETS":
+        # 创建一个空列表，用来存储需要删除的键
+        keys_to_delete = []
+
+        # 遍历字典，找出需要删除的键
+
         for entityId in components_dict['entity']:
             if components_dict['entity'][entityId]["entityType"] == "Target":
-                components_dict['entity'] = {k: v for l, v in components_dict['entity'].items() if k != entityId}
-                components_dict['transform'] = {k: v for l, v in components_dict['transform'].items() if k != entityId}
+                keys_to_delete.append(entityId)
+        # 删除这些键
+        for entityId in keys_to_delete:
+            del components_dict['entity'][entityId]
+            del components_dict['transform'][entityId]
 
         components_dict['icon'] = {}
         components_dict['dirData'] = {}
