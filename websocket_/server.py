@@ -92,6 +92,7 @@ def update_components(sessionId, message, control):
 
         components_dict['icon'] = {}
         components_dict['dirData'] = {}
+        control.remove_all_fire_points()
     for k in components_dict:
         components_list[k] = []
 
