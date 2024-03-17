@@ -128,7 +128,7 @@ def list_fires():
         list_items = list(redis_cli.hvals('squad:fire_data:standard'))
         list_items = list(map(lambda f: json.loads(f), list_items))
         show_only_self = request.args.get("flag")
-        if show_only_self==1:
+        if show_only_self=="1":
             list_items = list(filter(lambda f: userId in f['userIds'], list_items))
         return R(0, data=list_items)
     return R(200, data=[])
