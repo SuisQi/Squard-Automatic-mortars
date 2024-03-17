@@ -34,9 +34,8 @@ export const sessionComponent: (props:any) => any
     const [serverAddress, setServerAddress] = useState(get_default_websocket_address());
     const [editingUserName, setEditingUserName] = useState(false);
     return h(React.Fragment, {}, [
-      div({className: "flexRow", style: {width: "100%"}}, [
+      div({className: "flex flex-row justify-between ", style: {width: "100%"}}, [
         div({style: {paddingTop: "3px"}}, ["Server(beta)"]),
-        div({className: "v10"}, []),
         div({
           className: "divButton",
           title: "reset server to default",
