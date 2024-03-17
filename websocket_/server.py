@@ -16,6 +16,9 @@ from websocket_.public import global_connections, extract_odd_positions_from_tim
 connected = {}
 additional_servers = {}  # 用于存储额外的WebSocket服务器实例
 
+print(logging.Logger.manager.loggerDict)
+logging.getLogger("asyncio").setLevel(logging.ERROR)
+
 
 # 定义一个函数来检查是否存在以特定模式匹配的键
 def check_key_exists(match_pattern, del_flag=False):
@@ -62,6 +65,7 @@ def update_components(sessionId, message, control):
             del components_dict['dirData'][payload['entityId']]
         if payload['entityId'] in components_dict['entity']:
             del components_dict['entity'][payload['entityId']]
+        control.remove_fire_point(payload['entityId'])
     elif message['payload']['type'] == "ENTITY_ADD":
 
         if payload['entityType'] == "Target":
