@@ -84,6 +84,7 @@ def update_components(sessionId, message, control):
             "transform": [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, payload['location'][0], payload['location'][1], 0, 1]
         }
 
+
     elif message['payload']['type'] == "ENTITY_REMOVE_ALL_TARGETS":
         # 创建一个空列表，用来存储需要删除的键
         keys_to_delete = []
@@ -221,23 +222,32 @@ async def echo(websocket, path):
                 room_session_id = payload['session_id']
                 control = mortar_control_pool[room_session_id]
                 if user_session_id not in control_server_pool[room_session_id]:
-                    control_server_pool[room_session_id][user_session_id] = 1  # 0表示停火，1表示正常
+                    control_server_pool[room_session_id][user_session_id] = {
+                        "state": 1,
+                        "ws": websocket
+                    }  # 0表示停火，1表示正常
 
                 control_server = control_server_pool[room_session_id]
-                if control_server[user_session_id] == 0:
+                if control_server[user_session_id]['state'] == 0:
                     del control_server[user_session_id]
                     break
                 if payload['type'] == "GET":
                     targetId = control.assign_fire_point(user_session_id)
+
+                    await websocket.send(json.dumps({
+                        "type": "INFO",
+                        "targetId": targetId
+                    }))
                     if control.check_and_notify_all_fp_assigned():
                         # 全部迫击炮设置为停火
                         for u in control_server:
-                            control_server[u] = 0
+                            control_server[u]['state'] = 0
+                            if "auto" in payload and not payload['auto']:
+                                await control_server[u]['ws'].send(json.dumps({
+                                    "type": "STOP"
+                                }))
                     if not targetId:
                         del control_server[user_session_id]
-                    await websocket.send(json.dumps({
-                        "targetId": targetId
-                    }))
                 elif payload['type'] == "UNFIRE":
                     targetId = payload['targetId']
                     control.unmark_fire_point_as_unreachable(user_session_id, targetId)
