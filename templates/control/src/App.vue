@@ -10,6 +10,7 @@ import {
   setControl,
   update_settings
 } from "@/api";
+import QrcodeVue from 'qrcode.vue';
 import {
   Briefcase,
   Delete,
@@ -41,8 +42,9 @@ const settings = ref({
   "orientation_gap": 0.1
 })
 
-let viewportWidth = window.innerWidth;
+let viewportWidth = ref(window.innerWidth);
 let viewportHeight = window.innerHeight;
+let host = ref(window.location.hostname)
 console.log(viewportWidth)
 onMounted(() => {
   init()
@@ -56,7 +58,7 @@ onMounted(() => {
     value:999,
     label:"一直砸"
   })
-  const socket = io(`http://${window.location.hostname}:8080`);
+  const socket = io(`http://${host.value}:8080`);
   // const socket = io(`http://192.168.1.103:8080`);
   console.log(socket)
   socket.on("log_message", (message) => {
@@ -76,7 +78,7 @@ onMounted(() => {
   setInterval(init, 500)
 })
 const init = () => {
-
+  viewportWidth.value = window.innerWidth;
 
   getControl({type:"state"}).then(res => {
 
@@ -124,7 +126,12 @@ const onMortarRoundsChange = (value) => {
 
 <template>
   <div class="w-full h-screen bg-gray-200 flex flex-grow items-center flex-1 ">
-    <div
+    <div class="w-full flex flex-col items-center gap-4" v-if="viewportWidth>480" >
+      <qrcode-vue :value="`http://${host}:5173`" :size="500"></qrcode-vue>
+      <div><span class="text-blue-600">保持手机和电脑在同一局域网且关闭防火墙</span> 使用微信或者浏览器扫描该二维码</div>
+      <div class="text-red-400">如果还扫不出就手机开热点电脑连接</div>
+    </div>
+    <div v-else
         class="  basis-full  grid grid-cols-2 max-md:grid-cols-1  max-md:grid-rows-3 max-md:gap-0 gap-10  ">
 
       <div class="flex flex-col items-center max-md:justify-start justify-center gap-3">
