@@ -21,7 +21,7 @@ axios.interceptors.response.use(
         return Promise.reject(error);
     }
 );
-const baseURL = "http://127.0.0.1:8080/"
+const baseURL = `http://${(typeof window!=="undefined")?window.location.hostname:self.location.hostname}:8080/`;
 export const save = (data: any) => {
     return axios.post(baseURL + "save", data)
 }

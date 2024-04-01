@@ -303,9 +303,9 @@ class Squard():
 
         for i in range(abs(gap)):
             time.sleep(0.01)
-            self._mouse.move((28 if i % 10 == 0 else 0) if not move_orientation else 0, 27 * (-1 if gap > 0 else 1))
+            self._mouse.move((28 if i % 10 == 0 else 0) if move_orientation else 0, 27 * (-1 if gap > 0 else 1))
 
-    def _mouse_move_orientation(self, gap):
+    def _mouse_move_orientation(self, gap, move_mail=False):
         count = 0
         for i in range(int(abs(gap) * 10)):
             time.sleep(0.01)
@@ -313,7 +313,7 @@ class Squard():
                 count = count + 1
                 # time.sleep(random.uniform(0.1, 0.3))
             # self._mouse.move(12 * (1 if gap > 0 else -1), 27 if i % 5 == 0 else 0)
-            self._mouse.move(12 * (1 if gap > 0 else -1), 0)
+            self._mouse.move(12 * (1 if gap > 0 else -1), 2 if move_mail else 0)
         # self._mouse_move_mail(count,move_orientation=True)
 
     def _amend_mail(self, target, deep=0):
@@ -383,8 +383,7 @@ class Squard():
                                                control_points,
                                                num_points=mail_trajectory['num_points'] if mail_trajectory[
                                                                                                'num_points'] >= 2 else 2)
-        print(control_points)
-        print(bezier_points)
+
         # if len(bezier_points) == 2:
         #     self._mouse_move_mail(gap)
         #     return True
@@ -416,7 +415,7 @@ class Squard():
             press_key('d' if gap > 0 else 'a', seconds)
             return self._amend_orientation(target, deep + 1)
         else:
-            self._mouse_move_orientation(gap)
+            self._mouse_move_orientation(gap,True)
             time.sleep(0.1)
             return self._amend_orientation(target, deep + 1)
 
@@ -470,7 +469,7 @@ class Squard():
                 press_key('d' if gap > 0 else 'a', calculate_press_ad_time(abs(gap)))
                 time.sleep(random.uniform(0.1, 0.3))
             elif abs(gap) <= 10:
-                self._mouse_move_orientation(gap)
+                self._mouse_move_orientation(gap,True)
                 time.sleep(random.uniform(0.1, 0.3))
 
 
@@ -485,8 +484,9 @@ class Squard():
         :return:
         '''
         try:
-            f2 = self._move_target_mail(angle)
             f1 = self._move_target_orientation(dir)
+            f2 = self._move_target_mail(angle)
+
 
             # if not f1 or not f2:
             #     log("跳过该点")
