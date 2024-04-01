@@ -83,14 +83,21 @@ def get_mil(img, saved=True, error_save=True):
     # 转换为灰度图
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # 应用二值化
-    _, binary = cv2.threshold(gray, 50, 255, cv2.THRESH_BINARY_INV)
+    _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
+    # 定义形态学操作的核
+    kernel = np.ones((1, 1), np.uint8)
+
+    # 应用闭运算（先膨胀后腐蚀）
+    morphology = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+    # 再次应用膨胀操作
+    dilated = cv2.dilate(morphology, kernel, iterations=1)
     # 步骤3：使用霍夫变换(HoughLinesP)检测线条并获取线条的端点
-    lines = cv2.HoughLinesP(binary, 1, np.pi / 180, threshold=20, minLineLength=5, maxLineGap=30)
+    lines = cv2.HoughLinesP(dilated, 1, np.pi / 180, threshold=30, minLineLength=10, maxLineGap=2)
     # Extract the line coordinates into a list of tuples
     line_coordinates = [tuple(line[0]) for line in lines] if lines is not None else []
 
     # Filter the line coordinates
-    filtered_line_coordinates = filter_lines_by_y1(line_coordinates, 5)
+    filtered_line_coordinates = filter_lines_by_y1(line_coordinates, 6)
 
     # 步骤4：基于线条长度过滤出粗线，并在图像上绘制
     thick_lines = []
@@ -101,10 +108,10 @@ def get_mil(img, saved=True, error_save=True):
             x2 = line[2] + resolution_case['mail_l_x1']
             y2 = line[3]
             length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-            if length > 20 and abs(y2 - y1) < 4:  # 假设粗线条长度大于20像素
-                thick_lines.append(line)
+            # if length > 20 and abs(y2 - y1) < 4:  # 假设粗线条长度大于20像素
+            thick_lines.append(line)
                 # 画线
-                cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
     if not thick_lines:
         return None
 
@@ -440,7 +447,9 @@ class Squard():
         if orientation > 360 or orientation < 0:
             log(f"获取方位错误，重新获取")
             press_key('d', 0.01)
-            return self._move_target_orientation(target)
+            if deep>=3:
+                return False
+            return self._move_target_orientation(target,deep+1)
 
         gap = shortest_angle_distance(orientation, target)
         start_point = 0  # 起始水平位置
