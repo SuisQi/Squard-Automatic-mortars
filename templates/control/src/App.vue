@@ -21,10 +21,11 @@ import {
 } from '@element-plus/icons-vue'
 import * as d3 from 'd3';
 import BezierCurve from "@/components/BezierCurve.vue";
-
+const qrShow=ref(true)  //显示二维码
 const isOn = ref(false) //开火控制
 const showOnlyMe = ref(true) //是否只显示自己的火力点
 const synergy = ref(false) //开火控制
+const autoFire=ref(true)  //自动开火
 const logs = ref([])
 const fires = ref([])
 const mortarRounds = ref(3)
@@ -88,6 +89,10 @@ const init = () => {
 
     synergy.value = parseInt(res.data.data) === 1
   })
+  getControl({type:"auto_fire"}).then(res => {
+
+    autoFire.value = parseInt(res.data.data) === 1
+  })
   list_fires(showOnlyMe.value?1:0).then(res => {
     fires.value = res.data.data
   })
@@ -117,6 +122,12 @@ const set_synergy=(synergy)=>{
   })
 
 }
+
+const set_auto_fire = (autoFire) => {
+  setControl({
+    auto_fire:autoFire?1:0
+  })
+}
 const onMortarRoundsChange = (value) => {
   setMortarRounds(value)
 }
@@ -125,14 +136,16 @@ const onMortarRoundsChange = (value) => {
 </script>
 
 <template>
-  <div class="w-full h-screen bg-gray-200 flex flex-grow items-center flex-1 ">
-    <div class="w-full flex flex-col items-center gap-4" v-if="viewportWidth>480" >
-      <qrcode-vue :value="`http://${host}:5173`" :size="500"></qrcode-vue>
-      <div><span class="text-blue-600">保持手机和电脑在同一局域网且关闭防火墙</span> 使用微信或者浏览器扫描该二维码</div>
-      <div class="text-red-400">如果还扫不出就手机开热点电脑连接</div>
-    </div>
-    <div v-else
-        class="  basis-full  grid grid-cols-2 max-md:grid-cols-1  max-md:grid-rows-3 max-md:gap-0 gap-10  ">
+  <div class="w-full h-screen bg-gray-200   flex flex-col justify-center max-sm:block">
+    <el-dialog v-if="viewportWidth>480" v-model="qrShow" >
+      <div class="w-full flex flex-col items-center gap-4"  >
+        <qrcode-vue :value="`http://${host}:5173`" :size="500"></qrcode-vue>
+        <div><span class="text-blue-600">保持手机和电脑在同一局域网且关闭防火墙</span> 使用微信或者浏览器扫描该二维码</div>
+        <div class="text-red-400">如果还扫不出就手机开热点电脑连接</div>
+      </div>
+    </el-dialog>
+    <div
+        class="  basis-full  grid grid-cols-2 max-md:grid-cols-1   max-md:gap-0 gap-10 mt-auto ">
 
       <div class="flex flex-col items-center max-md:justify-start justify-center gap-3">
 
@@ -164,7 +177,15 @@ const onMortarRoundsChange = (value) => {
               inactive-text="单独开火"
               @change="set_synergy"
           />
+          <el-switch
+              v-model="autoFire"
+              active-text="自动开火"
+              inactive-text="手动开火"
+              @change="set_auto_fire"
+
+          />
           <el-button @click="dialogFeature=true" type="warning" :icon="Briefcase">功能</el-button>
+
         </div>
         <el-dialog
           title="功能"
@@ -258,7 +279,7 @@ const onMortarRoundsChange = (value) => {
           <span class="text-white text-2xl">{{ isOn ? '停止' : '启动' }}</span>
         </div>
       </div>
-      <div class="p-4 w-full h-full max-md:row-span-2">
+      <div class="p-4 w-full h-full max-md:row-span-2 flex flex-col justify-center max-sm:block">
         <!--        <h2 class="text-2xl font-bold mb-4 ">日志消息</h2>-->
         <div class="log-container bg-gray-900 p-4 rounded-lg h-[600px] max-md:h-[300px] overflow-auto">
           <ul>

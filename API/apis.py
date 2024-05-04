@@ -98,12 +98,12 @@ def remove_all():
 def set_control():
     params = request.get_json()
     for k, v in params.items():
-        if k=="synergy" and redis_cli.get("squad:session:userId").decode()=="0":
+        if k == "synergy" and redis_cli.get("squad:session:userId").decode() == "0":
             params['synergy'] = 0
-            return R(500,data={"msg":"非联机模式不能协同开火"})
+            return R(500, data={"msg": "非联机模式不能协同开火"})
         redis_cli.set(f'squad:fire_data:control:{k}', v)
 
-    return R(200,data=params)
+    return R(200, data=params)
 
 
 @mortar_blueprint.route("/getControl", methods=["POST"])
@@ -113,10 +113,14 @@ def get_control():
     mortarRounds = redis_cli.get('squad:fire_data:control:mortarRounds').decode()
     state = redis_cli.get('squad:fire_data:control:state').decode()
     synergy = redis_cli.get('squad:fire_data:control:synergy').decode()
-    if "mortarRounds"==param['type']:
+    auto_fire = redis_cli.get('squad:fire_data:control:auto_fire').decode()
+    if "mortarRounds" == param['type']:
         return R(200, data=int(mortarRounds))
-    elif "state"==param['type']:
+    elif "state" == param['type']:
         return R(200, data=int(state))
+    elif "auto_fire" == param['type']:
+        return R(200, data=int(auto_fire))
+
     else:
         return R(200, data=int(synergy))
 
@@ -128,7 +132,7 @@ def list_fires():
         list_items = list(redis_cli.hvals('squad:fire_data:standard'))
         list_items = list(map(lambda f: json.loads(f), list_items))
         show_only_self = request.args.get("flag")
-        if show_only_self=="1":
+        if show_only_self == "1":
             list_items = list(filter(lambda f: userId in f['userIds'], list_items))
         return R(0, data=list_items)
     return R(200, data=[])

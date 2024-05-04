@@ -4,6 +4,9 @@ import os
 import configparser
 import uuid
 from datetime import datetime
+
+import colorama
+from colorama import Fore, Style
 from prettytable import PrettyTable
 
 import requests
@@ -43,6 +46,22 @@ def get_mac_address():
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
+def display_rule():
+    colorama.init(autoreset=True)
+
+    print(Fore.CYAN + Style.BRIGHT + "欢迎使用  半自动迫击炮计算器")
+    print(Fore.YELLOW + "使用前须知：\n")
+    print(Fore.WHITE + "1. 本项目仅供学习和研究使用，不得用于任何非法用途。")
+    # print("")
+    print("2. 开发者不承担因使用本项目引起的任何责任。\n")
+
+    agreement = input(Fore.GREEN + "如果您同意以上条款，请按'y'继续：")
+
+    if agreement.lower() == 'y':
+        os.system('cls' if os.name == 'nt' else 'clear')
+        # 在这里启动游戏脚本的功能
+    else:
+        exit(1)
 
 # 逐字显示SQUARD的函数
 def display_squard():

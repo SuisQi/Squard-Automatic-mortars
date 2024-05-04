@@ -16,7 +16,6 @@ from websocket_.public import global_connections, extract_odd_positions_from_tim
 connected = {}
 additional_servers = {}  # 用于存储额外的WebSocket服务器实例
 
-print(logging.Logger.manager.loggerDict)
 logging.getLogger("asyncio").setLevel(logging.ERROR)
 
 
