@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import pyautogui
 from scipy.special import comb
 
 from utils.redis_connect import redis_cli
@@ -95,3 +96,33 @@ def calculate_nonuniform_x_coords(y_coords):
 
 def get_settings():
     return json.loads(redis_cli.get("squad:settings"))
+
+
+screen_size = pyautogui.size()
+WIDTH = screen_size.width
+HEIGHT = screen_size.height
+
+
+def get_resolution_case():
+    try:
+        with open("./resolution_case.json", 'r') as f:
+            resolution_cases = json.load(f)
+    except FileNotFoundError:
+        print("未找到resolution_case.json文件。")
+        return False
+    except json.JSONDecodeError:
+        print("JSON解码错误。")
+        return False
+
+    res = list(filter(lambda f: f['name'] == f'{WIDTH}*{HEIGHT}', resolution_cases))
+    if not res:
+        print(f'{WIDTH}*{HEIGHT}分辨率未做适配')
+        return False
+
+    res = res[0]
+    # 确保使用正确的数据类型和访问方式
+    res['mail_b_x'] = res['mail_c_x']
+    res['mail_b_y'] = res['mail_c_y'] - res['mail_t_y'] + res['mail_c_y']
+
+    # 可能需要返回更新后的配置，以便外部使用
+    return res

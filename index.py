@@ -18,12 +18,13 @@ from flask_socketio import SocketIO
 from websockets.exceptions import ConnectionClosedOK
 
 from API.apis import mortar_blueprint
-from login import verify, display_squard
-from main import log, Squard, stop, pubsub_msgs
+from login import verify, display_squard, display_rule
+from main import log, Squard, pubsub_msgs, is_auto_fire, is_stop
 
 from flask_cors import CORS
 from flask import Flask, jsonify
 
+from show_info import root, topmost_mail, topmost_orientation
 from utils.redis_connect import check_redis_service, redis_cli
 from utils.utils import get_settings
 from websocket_.dir_websocket import start_dir_server
@@ -92,11 +93,19 @@ def listen_for_logs():
 
 
 def fire(target, squard):
-    log(f"目标方位：{round(target['dir'], 1)}，密位{target['angle']}")
-
+    log(f"目标方位:{round(target['dir'], 1)}，密位{target['angle']}")
+    topmost_mail['set_visibility'](True)
+    topmost_orientation['set_visibility'](True)
     mortarRounds = int(redis_cli.get("squad:fire_data:control:mortarRounds"))
+    d_t = squard.listen_verify_orientation(round(target['dir'], 1))
+    m_t = squard.listen_verify_mail(target['angle'])
+    if is_auto_fire():
+        squard.fire(mortarRounds, round(target['dir'], 1), target['angle'])
+    else:
+        d_t.join()
+        m_t.join()
+        time.sleep(5)
 
-    squard.fire(mortarRounds, round(target['dir'], 1), target['angle'])
     time.sleep(random.uniform(get_settings()['afterFire'][0], get_settings()['afterFire'][0]))
 
 
@@ -115,13 +124,13 @@ async def fire_client(squard, userId, sessionId):
     uri = f"ws://{ip}:1234"  # 更改为你想连接的WebSocket服务器的URI
     try:
         async with websockets.connect(uri) as websocket:
-            async def check_stop():
-                while not stop():
+            async def check_is_stop():
+                while not is_stop():
                     await asyncio.sleep(0.1)  # 每0.1秒检查一次
                 return 'stop'
 
             while True:
-                if stop():
+                if is_stop():
                     break
                 await websocket.send(json.dumps({
                     "command": "CONTROL",
@@ -133,7 +142,7 @@ async def fire_client(squard, userId, sessionId):
                 }))
                 # 等待响应或停止条件
                 done, pending = await asyncio.wait(
-                    [websocket.recv(), check_stop()],
+                    [websocket.recv(), check_is_stop()],
                     return_when=asyncio.FIRST_COMPLETED)
                 # 处理完成的任务
                 for task in done:
@@ -167,6 +176,25 @@ async def fire_client(squard, userId, sessionId):
         pass
 
 
+from pynput.mouse import Listener, Button
+
+
+def on_click(x, y, button, pressed):
+    if pressed:
+        if button == Button.middle:
+            state = redis_cli.get("squad:fire_data:control:state")
+            state = int(state)
+            if state==0:
+                redis_cli.set("squad:fire_data:control:state", 1)
+            else:
+                redis_cli.set("squad:fire_data:control:state", 0)
+
+
+def listener_click():
+    with Listener(on_click=on_click) as listener:
+        listener.join()
+
+
 def listen_fire():
     log("启动成功")
     squard = Squard()
@@ -178,9 +206,12 @@ def listen_fire():
             list_items = get_fire_points(userId)
             # item = json.loads(list_items[0])
 
-            if stop():
+            if is_stop():
+                topmost_mail['set_visibility'](False)
+                topmost_orientation['set_visibility'](False)
                 time.sleep(0.5)
                 continue
+
 
             # 协同开火
             if synergy:
@@ -192,7 +223,7 @@ def listen_fire():
 
             list_items = list(filter(lambda f: userId in f['userIds'], list_items))
             for item in list_items:
-                if stop():
+                if is_stop():
                     break
                 fire(item, squard)
             log("停火")
@@ -256,12 +287,19 @@ def init_settings():
     redis_cli.set("squad:fire_data:control:state", 0)
     # 设置是否协同开火
     redis_cli.set("squad:fire_data:control:synergy", 0)
+    # 设置是否自动开火
+    redis_cli.set("squad:fire_data:control:auto_fire", 1)
+
+
+def run_server():
+    socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
 
 
 if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
+    display_rule()
     display_squard()
     check_redis_service()
     init_settings()
@@ -272,6 +310,7 @@ if __name__ == '__main__':
     threading.Thread(target=listen_fire).start()
     # 一直从计算器网页端获取方位密位
     threading.Thread(target=start_dir_server).start()
+    threading.Thread(target=listener_click).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址
@@ -281,4 +320,5 @@ if __name__ == '__main__':
     print(f'将手机和电脑保持同一局域网，关闭AP隔离保护，手机浏览器打开{IP}:5173')
     print("如果你设置了自定义轨迹或者别的设置，在更新前请将该目录下的Redis-x64-5.0.14.1/dump.rdb备份，并在更新后进行替换")
     # with DisableFlaskLogging():
-    socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
+    threading.Thread(target=run_server).start()
+    root.mainloop()

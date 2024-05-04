@@ -2,6 +2,7 @@ import json
 import os
 import random
 import re
+import threading
 import time
 import traceback
 from datetime import datetime
@@ -11,8 +12,9 @@ import ddddocr
 import numpy as np
 import pyautogui
 
+from show_info import topmost_orientation, topmost_mail
 from utils.redis_connect import redis_cli
-from utils.utils import generate_bezier_points, get_settings
+from utils.utils import generate_bezier_points, get_settings, get_resolution_case
 
 pyautogui.FAILSAFE = False
 from utils.calculate_press_time import calculate_press_ad_time, calculate_press_ws_time
@@ -20,35 +22,6 @@ from utils.mouse.mouse_ghub import Mouse_ghub
 from utils.screen_shot import screen_shot
 
 pubsub_msgs = []  # 一个日志队列
-screen_size = pyautogui.size()
-WIDTH = screen_size.width
-HEIGHT = screen_size.height
-
-
-def get_resolution_case():
-    try:
-        with open("./resolution_case.json", 'r') as f:
-            resolution_cases = json.load(f)
-    except FileNotFoundError:
-        print("未找到resolution_case.json文件。")
-        return False
-    except json.JSONDecodeError:
-        print("JSON解码错误。")
-        return False
-
-    res = list(filter(lambda f: f['name'] == f'{WIDTH}*{HEIGHT}', resolution_cases))
-    if not res:
-        print(f'{WIDTH}*{HEIGHT}分辨率未做适配')
-        return False
-
-    res = res[0]
-    # 确保使用正确的数据类型和访问方式
-    res['mail_b_x'] = res['mail_c_x']
-    res['mail_b_y'] = res['mail_c_y'] - res['mail_t_y'] + res['mail_c_y']
-
-    # 可能需要返回更新后的配置，以便外部使用
-    return res
-
 
 resolution_case = get_resolution_case()
 
@@ -64,118 +37,14 @@ def filter_lines_by_y1(coords, y1_threshold):
     filtered_coords = []
     for coord in coords:
         # 检查当前坐标与已过滤坐标的 y1 值之差
-        if all(abs(coord[1] - c[1]) >= y1_threshold for c in filtered_coords):
-            filtered_coords.append(coord)
+        if all(abs(coord[1] - c[1]) >= y1_threshold for c in filtered_coords) and all(
+                abs(coord[3] - c[3]) >= y1_threshold for c in filtered_coords) and coord[2] - coord[0] > 10:
+            filtered_coords.append((int(coord[0]), int(coord[1]), int(coord[2]), int(coord[3])))
     return filtered_coords
 
 
-def get_mil(img, saved=True, error_save=True):
-    '''
-    获取密位
-    :param img:
-    :return:
-    '''
-    # cv2.imwrite(f'imgs/mail_test/test.png', img)
-    # 步骤1：切割图像，只要刻度部分
-    image = img[:, resolution_case['mail_l_x1']:resolution_case['mail_l_x2']]
-    # cv2.imwrite(f'imgs/mail_test/test2.png', image)
-
-    # 转换为灰度图
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    # 应用二值化
-    _, binary = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY_INV)
-    # 定义形态学操作的核
-    kernel = np.ones((1, 1), np.uint8)
-
-    # 应用闭运算（先膨胀后腐蚀）
-    morphology = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
-    # 再次应用膨胀操作
-    dilated = cv2.dilate(morphology, kernel, iterations=1)
-    # 步骤3：使用霍夫变换(HoughLinesP)检测线条并获取线条的端点
-    lines = cv2.HoughLinesP(dilated, 1, np.pi / 180, threshold=30, minLineLength=10, maxLineGap=2)
-    # Extract the line coordinates into a list of tuples
-    line_coordinates = [tuple(line[0]) for line in lines] if lines is not None else []
-
-    # Filter the line coordinates
-    filtered_line_coordinates = filter_lines_by_y1(line_coordinates, 6)
-
-    # 步骤4：基于线条长度过滤出粗线，并在图像上绘制
-    thick_lines = []
-    if filtered_line_coordinates is not None:
-        for line in filtered_line_coordinates:
-            x1 = line[0] + resolution_case['mail_l_x1']
-            y1 = line[1]
-            x2 = line[2] + resolution_case['mail_l_x1']
-            y2 = line[3]
-            length = np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
-            # if length > 20 and abs(y2 - y1) < 4:  # 假设粗线条长度大于20像素
-            thick_lines.append(line)
-                # 画线
-            cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
-    if not thick_lines:
-        return None
-
-    thick_lines = sorted(thick_lines, key=lambda l: l[1], reverse=False)
-    mail_lines = list(filter(lambda l: abs(l[0] - l[2]) > 60, thick_lines))
-    mail = None
-    mail_lines = sorted(mail_lines, key=lambda l: abs(l[0] - l[2]), reverse=True)
-    for mail_line in mail_lines:
-        # width_img = img[max(0, mail_line[1] - 30):min(260, mail_line[1] + 30),]
-        # cv2.line(img, (0, mail_line[1]), (260, mail_line[3]), (0, 0, 255), 2)
-        mail_img = img[max(0, mail_line[1] - 30):min(resolution_case['mail_b_y'] - resolution_case['mail_t_y'],
-                                                     mail_line[1] + 30), :mail_line[0] + resolution_case['mail_l_x1']]
-
-        # Convert the image to grayscale
-        gray = cv2.cvtColor(mail_img, cv2.COLOR_BGR2GRAY)
-        if mail_img.size == 0:
-            continue
-        _, mail_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
-        # 配置 tesseract 以仅识别数字
-
-        _, image_bytes = cv2.imencode('.png', mail_img)
-        mail = ocr.classification(image_bytes.tobytes())
-
-        if len(mail) > 0:
-            if saved:
-
-                file_name = f'./imgs/mail/{mail}/{mail}_{int(time.time() * 1000)}.png'
-
-                folder_path = f'./imgs/mail/{mail}'
-                if not os.path.exists(folder_path):
-                    # 创建文件夹
-                    os.makedirs(folder_path)
-                cv2.imwrite(file_name, mail_img)
-            if error_save and (int(mail) > 1580 or int(mail) < 800):
-
-                file_name = f'./imgs/error/mail/{mail}/{mail}_{int(time.time() * 1000)}.png'
-
-                folder_path = f'./imgs/error/mail/{mail}'
-                if not os.path.exists(folder_path):
-                    # 创建文件夹
-                    os.makedirs(folder_path)
-                cv2.imwrite(file_name, mail_img)
-                cv2.imwrite(f"./imgs/error/mail/{time.time() * 1000}.png", img)
-                # cv2.imwrite(f'imgs/all/{mail}_e{int(time.time()*1000)}.png',width_img)
-                # cv2.imwrite(f'imgs/all/{mail}_{int(time.time() * 1000)}.png', img)
-            mail = re.sub(r'[^\d]', '', mail)
-            if mail == '':
-                return 100000
-            mail = int(mail)
-
-            n = min(thick_lines, key=lambda coord: abs(
-                coord[1] - int((resolution_case['mail_b_y'] - resolution_case['mail_t_y']) / 2)))
-            n_index = thick_lines.index(n)
-            m_index = thick_lines.index(mail_line)
-            if mail_line[1] > int((resolution_case['mail_b_y'] - resolution_case['mail_t_y']) / 2):
-                mail = mail + abs(m_index - n_index)
-            else:
-                mail = mail - abs(m_index - n_index)
-            break
-
-    return mail
-
-
 def press_key(key, seconds=0.5):
+    # log(f"按住{key} {seconds}s")
     pyautogui.keyDown(key)
 
     # 等待 10 毫秒
@@ -282,7 +151,15 @@ def get_orientation(number_classify, img, save_err=False):
 ocr = ddddocr.DdddOcr(show_ad=False, import_onnx_path="./squard.onnx", charsets_path="./charsets.json")
 
 
-def stop():
+def is_auto_fire():
+    state = redis_cli.get("squad:fire_data:control:auto_fire")
+    state = int(state)
+    if state == 1:
+        return True
+    return False
+
+
+def is_stop():
     state = redis_cli.get("squad:fire_data:control:state")
     state = int(state)
     if state == 1:
@@ -306,6 +183,7 @@ class Squard():
             self._mouse.move((28 if i % 10 == 0 else 0) if move_orientation else 0, 27 * (-1 if gap > 0 else 1))
 
     def _mouse_move_orientation(self, gap, move_mail=False):
+        # log(f"鼠标向{'右' if gap > 0 else '左'}移动{gap}")
         count = 0
         for i in range(int(abs(gap) * 10)):
             time.sleep(0.01)
@@ -316,14 +194,116 @@ class Squard():
             self._mouse.move(12 * (1 if gap > 0 else -1), 2 if move_mail else 0)
         # self._mouse_move_mail(count,move_orientation=True)
 
-    def _amend_mail(self, target, deep=0):
+    def _get_mil(self, saved=True, error_save=True):
+        '''
+        获取密位
+        :param img:
+        :return:
+        '''
+        # 切割图像，只要刻度部分
 
         img = self._screen.capture(resolution_case['mail_t_x'], resolution_case['mail_t_y'],
                                    resolution_case['mail_b_x'], resolution_case['mail_b_y'])
-        mail = get_mil(img)
+        image = img[:, resolution_case['mail_l_x1']:resolution_case['mail_l_x2']]
+
+        # 将图像转换为灰度图
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # 应用较大的自适应阈值窗口以避免噪声和较小的物体
+        binary_image = cv2.adaptiveThreshold(image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+                                             cv2.THRESH_BINARY_INV, 35, 15)
+
+        # 使用较小的核心以防止靠近的线条融合。
+        horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (10, 2))
+        morph_image = cv2.morphologyEx(binary_image, cv2.MORPH_OPEN, horizontal_kernel, iterations=1)
+        lsd = cv2.createLineSegmentDetector(0)
+        # 检测线段
+        lines = lsd.detect(morph_image)[0]
+        # 将线段坐标提取为元组列表
+        line_coordinates = [tuple(line[0]) for line in lines] if lines is not None else []
+
+        # 过滤线段坐标
+        filtered_line_coordinates = filter_lines_by_y1(line_coordinates, resolution_case['y1_threshold'])
+
+        thick_lines = []
+        if filtered_line_coordinates is not None:
+            for line in filtered_line_coordinates:
+                x1 = line[0] + resolution_case['mail_l_x1']
+                y1 = line[1]
+                x2 = line[2] + resolution_case['mail_l_x1']
+                y2 = line[3]
+
+                thick_lines.append(line)
+                # 画线
+                cv2.line(img, (x1, y1), (x2, y2), (0, 255, 0), 2)
+        if not thick_lines:
+            return None
+
+        thick_lines = sorted(thick_lines, key=lambda l: l[1], reverse=False)
+        mail_lines = list(filter(lambda l: abs(l[0] - l[2]) > 60, thick_lines))
+        mail = None
+        mail_lines = sorted(mail_lines, key=lambda l: abs(l[0] - l[2]), reverse=True)
+        for mail_line in mail_lines:
+            # width_img = img[max(0, mail_line[1] - 30):min(260, mail_line[1] + 30),]
+            # cv2.line(img, (0, mail_line[1]), (260, mail_line[3]), (0, 0, 255), 2)
+            mail_img = img[max(0, mail_line[1] - 30):min(resolution_case['mail_b_y'] - resolution_case['mail_t_y'],
+                                                         mail_line[1] + 30),
+                       :mail_line[0] + resolution_case['mail_l_x1']]
+
+            # Convert the image to grayscale
+            gray = cv2.cvtColor(mail_img, cv2.COLOR_BGR2GRAY)
+            if mail_img.size == 0:
+                continue
+            _, mail_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
+            # 配置 tesseract 以仅识别数字
+
+            _, image_bytes = cv2.imencode('.png', mail_img)
+            mail = ocr.classification(image_bytes.tobytes())
+
+            if len(mail) > 0:
+                if saved:
+
+                    file_name = f'./imgs/mail/{mail}/{mail}_{int(time.time() * 1000)}.png'
+
+                    folder_path = f'./imgs/mail/{mail}'
+                    if not os.path.exists(folder_path):
+                        # 创建文件夹
+                        os.makedirs(folder_path)
+                    cv2.imwrite(file_name, mail_img)
+                if error_save and (int(mail) > 1580 or int(mail) < 800):
+
+                    file_name = f'./imgs/error/mail/{mail}/{mail}_{int(time.time() * 1000)}.png'
+
+                    folder_path = f'./imgs/error/mail/{mail}'
+                    if not os.path.exists(folder_path):
+                        # 创建文件夹
+                        os.makedirs(folder_path)
+                    cv2.imwrite(file_name, mail_img)
+                    cv2.imwrite(f"./imgs/error/mail/{time.time() * 1000}.png", img)
+                    # cv2.imwrite(f'imgs/all/{mail}_e{int(time.time()*1000)}.png',width_img)
+                    # cv2.imwrite(f'imgs/all/{mail}_{int(time.time() * 1000)}.png', img)
+                mail = re.sub(r'[^\d]', '', mail)
+                if mail == '':
+                    return 100000
+                mail = int(mail)
+
+                n = min(thick_lines, key=lambda coord: abs(
+                    coord[1] - int((resolution_case['mail_b_y'] - resolution_case['mail_t_y']) / 2)))
+                n_index = thick_lines.index(n)
+                m_index = thick_lines.index(mail_line)
+                if mail_line[1] > int((resolution_case['mail_b_y'] - resolution_case['mail_t_y']) / 2):
+                    mail = mail + abs(m_index - n_index)
+                else:
+                    mail = mail - abs(m_index - n_index)
+                break
+
+        return mail
+
+    def _amend_mail(self, target, deep=0):
+
+        mail = self._get_mil()
         if not mail:
             return None
-        # log(f"识别到当前密位：{mail}")
+        # log(f"识别到当前密位:{mail}")
         # cv2.imwrite(f'{mail}.png', img)
         if mail > 1580 or mail < 800:
             log(f"识别密位错误，重新识别")
@@ -352,12 +332,11 @@ class Squard():
         :param target:
         :return:r
        '''
-        img = self._screen.capture(resolution_case['mail_t_x'], resolution_case['mail_t_y'],
-                                   resolution_case['mail_b_x'], resolution_case['mail_b_y'])
-        mail = get_mil(img)
+
+        mail = self._get_mil()
         if not mail:
             return None
-        # log(f"识别到当前密位：{mail}")
+        # log(f"识别到当前密位:{mail}")
         # cv2.imwrite(f'{mail}.png', img)
         if mail > 1580 or mail < 800:
             log(f"识别密位错误，重新识别")
@@ -369,6 +348,7 @@ class Squard():
             if deep >= 4:
                 return None
             return self._move_target_mail(target, deep + 1)
+
         gap = target - mail
         start_point = 0  # 起始水平位置
         end_point = gap  # 终点水平位置
@@ -396,28 +376,52 @@ class Squard():
                 self._mouse_move_mail(gap)
                 time.sleep(random.uniform(0.1, 0.3))
 
-
         return self._amend_mail(target)
 
     def _amend_orientation(self, target, deep=0):
+        try:
+
+            orientation = self._get_orientation()
+            if not orientation:
+                log("方位识别错误")
+                return False
+            gap = shortest_angle_distance(orientation, target)
+            if round(abs(gap), 2) <= get_settings()['orientation_gap']:
+                return True
+            if deep >= 5:
+                return
+            if abs(gap) > 10:
+                seconds = calculate_press_ad_time(abs(gap))
+                press_key('d' if gap > 0 else 'a', seconds)
+                return self._amend_orientation(target, deep + 1)
+            else:
+                self._mouse_move_orientation(gap, True)
+                time.sleep(0.1)
+                return self._amend_orientation(target, deep + 1)
+        except Exception:
+            self._mouse_move_orientation(4, True)
+            if deep >= 4:
+                return
+            return self._amend_orientation(target, deep + 1)
+
+    def _get_orientation(self):
         img = self._screen.capture(resolution_case['orientation_t_x'], resolution_case['orientation_t_y'],
                                    resolution_case['orientation_b_x'], resolution_case['orientation_b_y'])
+        if not os.path.exists("./imgs/orientation"):
+            os.makedirs("./imgs/orientation")
+        # 转换为灰度图
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # 应用二值化
+        _, img = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
         _, image_bytes = cv2.imencode('.png', img)
+        # orientation = get_orientation(self._number_classify, img)
         orientation = self._number_classify.classification(image_bytes.tobytes())
+        cv2.imwrite(f"./imgs/orientation/{time.time() * 1000}_{orientation}.png", img)
+        # orientation = get_orientation(self._number_classify, img)
+        if not orientation:
+            return False
         orientation = int(orientation) / 10
-        gap = shortest_angle_distance(orientation, target)
-        if round(abs(gap), 2) <= get_settings()['orientation_gap']:
-            return True
-        if deep >= 5:
-            return
-        if abs(gap) > 10:
-            seconds = calculate_press_ad_time(abs(gap))
-            press_key('d' if gap > 0 else 'a', seconds)
-            return self._amend_orientation(target, deep + 1)
-        else:
-            self._mouse_move_orientation(gap,True)
-            time.sleep(0.1)
-            return self._amend_orientation(target, deep + 1)
+        return orientation
 
     def _move_target_orientation(self, target, deep=0):
         '''
@@ -427,28 +431,18 @@ class Squard():
         '''
 
         # TODO  这里把获取方位的图像位置调为根据分辨率自动调整
-        img = self._screen.capture(resolution_case['orientation_t_x'], resolution_case['orientation_t_y'],
-                                   resolution_case['orientation_b_x'], resolution_case['orientation_b_y'])
-        if not os.path.exists("./imgs/orientation"):
-            os.makedirs("./imgs/orientation")
 
-        cv2.imwrite(f"./imgs/orientation/{time.time() * 1000}.png", img)
-        _, image_bytes = cv2.imencode('.png', img)
-        # orientation = get_orientation(self._number_classify, img)
-        orientation = self._number_classify.classification(image_bytes.tobytes())
-        # orientation = get_orientation(self._number_classify, img)
-
+        orientation = self._get_orientation()
         if not orientation:
             log("方位识别错误")
             return False
-        orientation = int(orientation) / 10
         # log(f"当前方位{orientation}")
         if orientation > 360 or orientation < 0:
             log(f"获取方位错误，重新获取")
             press_key('d', 0.01)
-            if deep>=3:
+            if deep >= 3:
                 return False
-            return self._move_target_orientation(target,deep+1)
+            return self._move_target_orientation(target, deep + 1)
 
         gap = shortest_angle_distance(orientation, target)
         start_point = 0  # 起始水平位置
@@ -469,11 +463,51 @@ class Squard():
                 press_key('d' if gap > 0 else 'a', calculate_press_ad_time(abs(gap)))
                 time.sleep(random.uniform(0.1, 0.3))
             elif abs(gap) <= 10:
-                self._mouse_move_orientation(gap,True)
+                self._mouse_move_orientation(gap, True)
                 time.sleep(random.uniform(0.1, 0.3))
-
-
         return self._amend_orientation(target)
+
+    def _verify_orientation(self, target):
+        gap = float(get_settings()['orientation_gap'])
+
+        while True:
+            orientation = self._get_orientation()
+            if round(abs(orientation - target), 1) <= gap:
+                topmost_orientation["set_background_color"]("#4ade80")
+                return True
+            if is_stop():
+                return False
+
+            time.sleep(0.1)
+
+    def _verify_mail(self, target):
+        gap = float(get_settings()['mail_gap'])
+
+        while True:
+            mail = self._get_mil()
+            if not mail:
+                continue
+            if abs(mail - target) <= gap:
+                topmost_mail["set_background_color"]("#4ade80")
+                return True
+            if is_stop():
+                return False
+
+            time.sleep(0.1)
+
+    def listen_verify_orientation(self, target):
+        topmost_orientation["set_background_color"]("#f87171")
+        topmost_orientation["update_text"](f"方位:{target}")
+        t = threading.Thread(target=self._verify_orientation, args=(target,))
+        t.start()
+        return t
+
+    def listen_verify_mail(self, target):
+        topmost_mail["set_background_color"]("#f87171")
+        topmost_mail["update_text"](f"密位:{target}")
+        t = threading.Thread(target=self._verify_mail, args=(target,))
+        t.start()
+        return t
 
     def fire(self, count, dir, angle):
         '''
@@ -487,7 +521,6 @@ class Squard():
             f1 = self._move_target_orientation(dir)
             f2 = self._move_target_mail(angle)
 
-
             # if not f1 or not f2:
             #     log("跳过该点")
             #     return
@@ -496,7 +529,7 @@ class Squard():
             log("开炮!!!")
             for i in range(count):
 
-                if stop():
+                if is_stop():
                     break
 
                 self._mouse.leftDown()

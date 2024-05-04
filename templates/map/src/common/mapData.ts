@@ -323,25 +323,27 @@ export const maps = {
       "mapTextureCorner1": {"loc_x": -130000.0, "loc_y": -220000.0},
       "compression": {"z_translate": 0}
   },
-  "skorpoFull": {
-    "reference": "Invasion_v1",
-    "minimap_image_src": "maps/skorpo_minimap_full.jpg",
-    "heightmap_image_src": "maps/skorpo_heightmap.png",
-    "landscape": {
-      "loc_x": -481127.25, "loc_y": -394791.78125,
-      "scale_x": 120.0, "scale_y": 120.0, "scale_z": 350.0,
-      "slice_x": 508, "slice_y": 1524,
-      "rot_z": -2.006195,
-      "resolution_x": 7113, "resolution_y": 5081
-
-      // "min_x": -420167.25, "max_x":  402792.75 // max_x + 254*120
-      // "min_y": -211911.78125, "max_y": 367208.21875
+    skorpoFull: {
+        reference: "RAAS_v1",
+        minimap_image_src: "maps/skorpo_minimap_full.jpg",
+        heightmap_image_src: "maps/skorpo_heightmap.png",
+        landscape: {
+            loc_x: -481127.25,
+            loc_y: -394791.78125,
+            scale_x: 120,
+            scale_y: 120,
+            scale_z: 350,
+            slice_x: 508,
+            slice_y: 1524,
+            rot_z: -2.006195,
+            resolution_x: 7113,
+            resolution_y: 5081
+        },
+        mapTexture: {size_x: 4096, size_y: 4096},
+        mapTextureCorner0: {loc_x: 324850, loc_y: 357608},
+        mapTextureCorner1: {loc_x: -360150, loc_y: -329300},
+        compression: {z_translate: 0}
     },
-    "mapTexture": {"size_x": 4096, "size_y": 4096},
-    "mapTextureCorner0": {"loc_x": 380000.0, "loc_y": 380000.0},
-    "mapTextureCorner1": {"loc_x": -380000.0, "loc_y": -380000.0},
-    "compression": {"z_translate": 0}
-},
   "sumari": {
       "reference": "AAS_v1",
       "minimap_image_src": "maps/sumari_minimap.jpg",
