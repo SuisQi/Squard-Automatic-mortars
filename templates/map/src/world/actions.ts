@@ -1,10 +1,10 @@
-import {vec3} from "gl-matrix";
+import {mat4, vec3} from "gl-matrix";
 import {WeaponType} from "./components/weapon";
 import {
     DirData,
     EntityAction,
     EntityActionType,
-    EntityId, HasLocation,
+    EntityId, HasLocation, HasTransform,
     SerializableComponents,
     Target,
     TransformAction,
@@ -14,8 +14,16 @@ import {
 } from "./types";
 import {IconComponent} from "./components/icon";
 import {DirDataComponent} from "./components/dirData";
+import {SquareSelectionComponent} from "./components/selection";
 
-
+export const downSquareSelection=(pos:vec3):SquareSelectionAction=>({
+    type:SelectionActionType.endPos,
+    payload:pos
+})
+export const upSquareSelection=(pos:vec3):SquareSelectionAction=>({
+    type:SelectionActionType.startPos,
+    payload:pos
+})
 export const setAllEntities = (components: SerializableComponents): EntityAction => ({
   type: EntityActionType.setAll,
   payload: {components}
@@ -128,11 +136,28 @@ export enum IconActionType{
     remove="ICON_REMOVE",
     remove_all="ICON_REMOVE_ALL"
 }
+
+export enum SelectionActionType{
+    add="SELECTION_ADD",
+    endPos="SELECTION_DOWN",
+    startPos="SELECTION_UP",
+    gapX="SELECTION_Y",
+    gapY="SELECTION_Y",
+    gapXY="SELECTION_XY"
+}
 export type IconAction={
     type:IconActionType.add,payload:HasLocation&IconComponent
 }|{
     type:IconActionType.remove,payload:EntityId
 }|{type:IconActionType.remove_all}
+
+
+export type SquareSelectionAction=
+|{type:SelectionActionType.endPos,payload:vec3}
+|{type:SelectionActionType.startPos,payload:vec3}
+|{type:SelectionActionType.gapX,payload:number}
+|{type:SelectionActionType.gapY,payload:number}
+|{type:SelectionActionType.gapXY,payload:number}
 
 export enum DirDataActionType {
     add="DIRDATA_ADD",

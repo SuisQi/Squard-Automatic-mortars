@@ -54,15 +54,21 @@ class WebSocketManager {
                 const state = this.store.getState()
                 const targets = getEntitiesByType<Target>(state.world, "Target");
                 let target = targets.filter(t => t.entityId === parseInt(msg.payload))[0]
-                let {solution, angleValue} = getSolution(state, target)
-                this.sendMessage(JSON.stringify({
-                    "command":"SET",
-                    "payload":{
-                        entityId:target.entityId,
-                        dir: solution.dir,
-                        angle: angleValue >> 0,
-                    }
-                }))
+                if(target){
+
+                    let {solution, angleValue} = getSolution(state, target)
+                    this.sendMessage(JSON.stringify({
+                        "command":"SET",
+                        "payload":{
+                            entityId:target.entityId,
+                            dir: solution.dir,
+                            angle: angleValue >> 0,
+                        }
+                    }))
+                }else {
+                    console.log("没有找到"+msg.payload)
+                }
+
             }
             else if(msg.command==="ERROR"){
                 // notification.error({

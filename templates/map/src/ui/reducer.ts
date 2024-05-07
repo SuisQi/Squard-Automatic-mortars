@@ -74,7 +74,9 @@ const defaultIconToolState=():ICONToolState=>({
     x:0,
     y:0,
     c_name:"",
-    location:vec3.fromValues(0,0,0)
+    location:vec3.fromValues(0,0,0),
+    selectionState:0,
+    selectionType:0
 })
 
 const defaultImageState = ():ImageState=>{

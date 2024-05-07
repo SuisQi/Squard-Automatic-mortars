@@ -3,6 +3,7 @@ import {EntityComponent, EntityType} from './components/entity';
 import {WeaponComponent, WeaponType} from './components/weapon';
 import {IconComponent} from "./components/icon";
 import {DirDataComponent} from "./components/dirData";
+import {SelectionComponent, SquareSelectionComponent} from "./components/selection";
 
 export type HasEntityId = { entityId: EntityId }
 export type HasTransform = { transform: Transform }
@@ -52,6 +53,7 @@ export type Component =
     | EntityComponent
     | IconComponent
     |  DirDataComponent
+    |SelectionComponent
 
 
 export enum WeaponActionType {
@@ -78,6 +80,7 @@ export type Components = {
     entity: Map<EntityId, EntityComponent>;
     icon: Map<EntityId, Icon>;
     dirData:Map<EntityId,DirData>
+    squareSelection:Map<EntityId,SquareSelection>
 }
 export type ComponentKey = keyof Components
 export type ComponentKeySet = Set<ComponentKey>
@@ -92,5 +95,6 @@ export type Target = EntityComponent & HasTransform &Selected
 export type Weapon = EntityComponent & WeaponComponent & HasTransform
 export type Icon = IconComponent &HasTransform
 export type DirData = DirDataComponent
+export type SquareSelection=SquareSelectionComponent
 
 export type SerializableComponents = { [k in ComponentKey]: Array<[EntityId, Component]> };

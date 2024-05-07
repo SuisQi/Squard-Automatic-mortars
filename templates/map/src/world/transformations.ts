@@ -38,7 +38,18 @@ export const applyInverseTransform: (ctx:CanvasRenderingContext2D, transform:Tra
     applyTransform(ctx, mat4.invert(mat4.create(), transform))
   }
 
-
+// export const vec3ToTranslationMat4=(vec:vec3)=> {
+//   let mat = mat4.create();
+//   mat4.trans
+//   // 创建一个单位矩阵
+//   let mat = [
+//     1, 0, 0, 0,
+//     0, 1, 0, 0,
+//     0, 0, 1, 0,
+//     vec[0], vec[1], vec[2], 1
+//   ];
+//   return mat;
+// }
 export const event2canvas: (event: MouseEvent | WheelEvent | {target: any, clientX: number, clientY: number}) => vec3
 = (event) => {
   const rc = (event.target as HTMLCanvasElement)!.getBoundingClientRect();

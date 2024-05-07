@@ -1,29 +1,28 @@
-import {dispatch, Store0, StoreState} from '../store';
+import {dispatch, Store0} from '../store';
 import {newMousePosition, removeTouch, setDragEntity, setDragStartPosition, setMouseDown, updateTouch} from './actions';
 import {changeZoom, moveCamera} from '../camera/actions';
 import {vec3} from 'gl-matrix';
-import {canvas2world, canvas2worldScale, event2canvas, getTranslation} from '../world/transformations';
+import {canvas2world, canvas2worldScale, event2canvas} from '../world/transformations';
 import {getClosestEntity, getClosestIcon, getEntitiesByType} from '../world/world';
 import {IconToolActionType, TouchInfo} from './types';
 import {
     addDirData,
-    addSelected,
     addTarget,
     addWeapon,
+    downSquareSelection,
     IconActionType,
-    moveEntityTo, removeDirData,
-    removeSelect,
+    moveEntityTo,
+    removeDirData,
     removeTarget,
-    toggleWeaponActive, updateDirData
+    SelectionActionType,
+    toggleWeaponActive,
+    updateDirData,
+    upSquareSelection
 } from '../world/actions';
 import {$canvas, $contourmap} from '../elements';
 import {getZoom} from '../camera/camera';
-import {EntityId, Target, Weapon} from '../world/types';
-import {getMortarFiringSolution} from "../world/projectilePhysics";
-import {US_MIL} from "../world/constants";
-import {remove, save, update} from "../api/standard";
-import {getHeight} from "../heightmap/heightmap";
-import {getSolution} from "../common/mapData";
+import {EntityId, Target} from '../world/types';
+import {newTransform} from "../world/components/transform";
 
 
 const dragOrPan = (store: Store0, event: any) => {
@@ -45,7 +44,13 @@ const dragOrPan = (store: Store0, event: any) => {
 
 export const mouseMove = (store: Store0) => (e: MouseEvent) => {
 
-    if(store.getState().iconToolState.display)
+    if (store.getState().iconToolState.selectionState === 2) {
+        const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
+        dispatch(store, upSquareSelection(eventLocation))
+        removeSquareTargets(store)
+        return;
+    }
+    if (store.getState().iconToolState.display)
         return
     if ((e.buttons & 1) === 1) {
         dragOrPan(store, e)
@@ -66,28 +71,124 @@ const zoom = (store: Store0, targetElement: any, zoomLocation: vec3, desiredZoom
 }
 
 export const mouseScroll = (store: Store0) => (e: WheelEvent) => {
-    dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: false }});
-    dispatch(store,{type:IconToolActionType.write,payload:{key: "c_name", value: "" }});
+
+    if(store.getState().iconToolState.selectionState===4){//如果选区完成
+        dispatch(store,{type:SelectionActionType.gapXY,payload:e.deltaY>0?100:-100})
+        removeSquareTargets(store)
+        fillSquareTargets(store)
+        return
+    }
+    dispatch(store, {type: IconToolActionType.write, payload: {key: "display", value: false}});
+    dispatch(store, {type: IconToolActionType.write, payload: {key: "c_name", value: ""}});
     const camera = store.getState().camera;
     const currentZoom = getZoom(store.getState().camera)
+
     let delta = currentZoom < 0.01 ? 0.001 : currentZoom < 0.02 ? 0.002 : 0.005;
     const newZoom = e.deltaY > 0 ? Math.max(0.002, currentZoom - delta) : Math.min(0.08, currentZoom + delta)
     zoom(store, $canvas, event2canvas(e), newZoom)
 }
 
 export const mouseDown = (store: Store0) => (e: MouseEvent) => {
-    if(store.getState().iconToolState.display)
+    const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
+
+
+    if (store.getState().iconToolState.selectionState === 1) {
+        dispatch(store, downSquareSelection(eventLocation))
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "selectionState", value: 2}})
+
+    }
+    if (store.getState().iconToolState.display || store.getState().iconToolState.selectionState !== 0)
         return
     const dragEntity = getDragEntityId(store)(e)
-    const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
     dispatch(store, setDragStartPosition(eventLocation))
     dispatch(store, setDragEntity(dragEntity))
     dispatch(store, setMouseDown(true))
 }
 
-export const mouseUp = (store: Store0) => (e: any) => {
+function customRound(value: number) {
+    if (value < 0) {
+        // 对负数向下取整
+        return Math.floor(value);
+    } else {
+        // 对正数向上取整
+        return Math.ceil(value);
+    }
+}
 
-    const state = store.getState();
+// 定义计算矩形起点和终点的函数
+function calculateBounds(x: number, w: number) {
+    const start = w > 0 ? x : x + w;
+    const end = w > 0 ? x + w : x;
+    return {start, end};
+}
+
+const removeSquareTargets = (store: Store0) => {
+    let selection = store.getState().world.components.squareSelection.get(0);
+    if(!selection)
+        return
+    let downTransform = selection.location.transform
+    // 计算矩形的水平和垂直边界
+    const xBounds = calculateBounds(downTransform[12], selection.w);
+    const yBounds = calculateBounds(downTransform[13], selection.h);
+
+    for (const [key, value] of store.getState().world.components.transform) {
+        const x = value.transform[12];
+        const y = value.transform[13];
+        // 检查组件的x和y坐标是否在矩形范围内
+        if (x >= xBounds.start && x <= xBounds.end && y >= yBounds.start && y <= yBounds.end) {
+            if(store.getState().world.components.entity.get(key)?.entityType==="Target")
+                dispatch(store, removeTarget(key))
+
+        }
+    }
+}
+const fillSquareTargets = (store: Store0) => {
+    let selection = store.getState().world.components.squareSelection.get(0);
+    if(!selection)
+        return
+    let index = 0
+    const state = store.getState()
+    for (let i = 0; i < Math.abs(customRound(selection.w / selection.gapX)); i++) {
+        for (let j = 0; j < Math.abs(customRound(selection.h / selection.gapY)); j++) {
+            if (index >= 100)
+                return;
+            index++
+            let pos = [selection?.location.transform[12] + i * selection?.gapX * (selection.w > 0 ? 1 : -1), selection?.location.transform[13] + j * selection?.gapY * (selection.h > 0 ? 1 : -1), 0] as vec3
+            let id = store.getState().world.nextId
+            dispatch(store, addTarget(pos, id))
+            dispatch(store, addDirData({
+                entityId: id,
+
+                userIds: [state.session?.userId ?? "0"]
+            }))
+        }
+    }
+
+}
+export const mouseUp = (store: Store0) => (e: any) => {
+    const state = store.getState()
+    if (store.getState().iconToolState.selectionState === 2) {
+        const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
+        dispatch(store, upSquareSelection(eventLocation))
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "selectionState", value: 3}})
+        let tool = store.getState().iconToolState
+        let selection = store.getState().world.components.squareSelection.get(tool.selectionType)
+        let upTransform = newTransform(eventLocation).transform
+        if (selection) {
+            if (tool.selectionType === 0) {
+                removeSquareTargets(store)
+
+                fillSquareTargets(store)
+
+
+            }
+
+
+        }
+
+        return;
+    }
+
     const dragEntityId = state.uiState.dragEntityId;
     state.world.components.entity.forEach(f => {
         if (f.entityId === dragEntityId && f.selected) {
@@ -95,7 +196,7 @@ export const mouseUp = (store: Store0) => (e: any) => {
 
             let target = getEntitiesByType<Target>(state.world, "Target").filter(e => e.entityId === f.entityId)[0];
 
-            dispatch(store,updateDirData({
+            dispatch(store, updateDirData({
                 entityId: target.entityId,
 
             }))
@@ -106,9 +207,21 @@ export const mouseUp = (store: Store0) => (e: any) => {
 
 
 export const click = (store: Store0) => (e: any) => {
+
+
+    if (store.getState().iconToolState.selectionState === 3) {
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "selectionState", value: 4}})
+        return;
+    }
+    if (store.getState().iconToolState.selectionState === 4) {
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "selectionState", value: 0}})
+        return;
+    }
+    if (store.getState().iconToolState.selectionState !== 0)
+        return
     // 如果点击的不是图标工具栏，则关闭工具栏
-    dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: false }});
-    dispatch(store,{type:IconToolActionType.write,payload:{key: "c_name", value: "" }});
+    dispatch(store, {type: IconToolActionType.write, payload: {key: "display", value: false}});
+    dispatch(store, {type: IconToolActionType.write, payload: {key: "c_name", value: ""}});
 
 
     const state = store.getState();
@@ -116,7 +229,7 @@ export const click = (store: Store0) => (e: any) => {
     const radius = canvas2worldScale(state.camera, [25, 0, 0])[0]
     const candidates = getClosestEntity(state.world, worldLoc, radius)
     const iconRadius = canvas2worldScale(state.camera, [15, 0, 0])[0]
-    const removeIcons = getClosestIcon(state.world,worldLoc,iconRadius)
+    const removeIcons = getClosestIcon(state.world, worldLoc, iconRadius)
 
     if (e.shiftKey) {
 
@@ -131,38 +244,36 @@ export const click = (store: Store0) => (e: any) => {
 
             dispatch(store, removeTarget(candidates[0].entityId));
         }
-        if(removeIcons.length>0){
-            dispatch(store,{type:IconActionType.remove,payload:removeIcons[0].entityId})
+        if (removeIcons.length > 0) {
+            dispatch(store, {type: IconActionType.remove, payload: removeIcons[0].entityId})
         }
     } else if (e.altKey) {
-
 
 
         if (candidates.length > 0) {
             console.log(state.world)
             const targets = getEntitiesByType<Target>(state.world, "Target");
             let target = targets.filter(t => t.entityId === candidates[0].entityId)[0]
-            let userIds:string[] = state.world.components.dirData.has(target.entityId)?state.world.components.dirData.get(target.entityId)?.userIds??[]:[]
+            let userIds: string[] = state.world.components.dirData.has(target.entityId) ? state.world.components.dirData.get(target.entityId)?.userIds ?? [] : []
             if (state.world.components.dirData.has(target.entityId)) {
-                if(userIds.includes(state.session?.userId??"0")){
-                    dispatch(store,removeDirData({
+                if (userIds.includes(state.session?.userId ?? "0")) {
+                    dispatch(store, removeDirData({
                         entityId: target.entityId,
-                        userIds:userIds.filter(f=>f!==(state.session?.userId??"0"))
+                        userIds: userIds.filter(f => f !== (state.session?.userId ?? "0"))
                     }))
-                }
-                else {
-                    dispatch(store,addDirData({
+                } else {
+                    dispatch(store, addDirData({
                         entityId: target.entityId,
 
-                        userIds:[...userIds,state.session?.userId??"0"]
+                        userIds: [...userIds, state.session?.userId ?? "0"]
                     }))
                 }
                 // dispatch(store, removeSelect(target.entityId))
             } else {
-                dispatch(store,addDirData({
+                dispatch(store, addDirData({
                     entityId: target.entityId,
 
-                    userIds:[state.session?.userId??"0"]
+                    userIds: [state.session?.userId ?? "0"]
                 }))
                 // dispatch(store, addSelected(target))
             }
@@ -180,7 +291,7 @@ export const click = (store: Store0) => (e: any) => {
 
 }
 
-export const rightClick = (store:Store0)=>(event:any)=>{
+export const rightClick = (store: Store0) => (event: any) => {
 
     if (event.button === 2) {
         const eventLocation = canvas2world(store.getState().camera, event2canvas(event))
@@ -190,12 +301,12 @@ export const rightClick = (store:Store0)=>(event:any)=>{
         const xPos = event.clientX;
         const yPos = event.clientY;
 
-        console.log(xPos,yPos)
+        console.log(xPos, yPos)
 
-        dispatch(store,{type:IconToolActionType.write,payload:{key: "display", value: true }});
-        dispatch(store,{type:IconToolActionType.write,payload:{key: "x", value: xPos+15 }});
-        dispatch(store,{type:IconToolActionType.write,payload:{key: "y", value: yPos-15 }});
-        dispatch(store,{type:IconToolActionType.write,payload:{key: "location", value: eventLocation }});
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "display", value: true}});
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "x", value: xPos}});
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "y", value: yPos}});
+        dispatch(store, {type: IconToolActionType.write, payload: {key: "location", value: eventLocation}});
         // 这里可以添加你想要执行的逻辑
     }
 }
@@ -205,9 +316,9 @@ export const doubleClick = (store: Store0) => (e: any) => {
         return
     let nextId = store.getState().world.nextId
     if (store.getState().uiState.weaponCreationMode || e.shiftKey) {
-        dispatch(store, addWeapon(eventLocation, "standardMortar",nextId));
+        dispatch(store, addWeapon(eventLocation, "standardMortar", nextId));
     } else {
-        dispatch(store, addTarget(eventLocation,nextId));
+        dispatch(store, addTarget(eventLocation, nextId));
     }
 }
 
