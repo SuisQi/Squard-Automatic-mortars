@@ -16,7 +16,7 @@ import { replicationReducer, sessionReducer } from './replication_ws/reducer';
 import { ReplicationAction, SessionAction } from './replication_ws/types';
 import { heightmap } from './heightmap/reducer';
 import { EntityAction, TransformAction, WeaponAction } from './world/types';
-import {DirDataAction, DirDataActionType, IconAction, IconActionType} from "./world/actions";
+import {DirDataAction, DirDataActionType, IconAction, IconActionType, SquareSelectionAction} from "./world/actions";
 import {iconReducer} from "./world/components/icon";
 
 // https://github.com/reduxjs/redux-thunk/blob/master/test/typescript.ts
@@ -49,6 +49,7 @@ export type StoreAction
   | EntityAction
   | TransformAction
   | WeaponAction
+    |SquareSelectionAction
 |DirDataAction
 
 

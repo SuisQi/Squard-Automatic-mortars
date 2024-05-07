@@ -2,7 +2,7 @@
 //import { setEntity, removeEntity, updateEntity } from './world';
 import produce from "immer"
 import {Reducer} from 'redux';
-import {StoreAction} from "../store";
+import {dispatch, StoreAction} from "../store";
 import {
   componentsReducer,
   getFilteredEntityIds,
@@ -17,10 +17,11 @@ import {EntityComponent} from "./components/entity";
 import {SetAction} from "./components/types";
 import {EntityActionType, EntityId, World} from './types';
 import {remove, remove_all, save, update} from "../api/standard";
-import {DirDataActionType, IconActionType} from "./actions";
+import {DirDataActionType, IconActionType, SelectionActionType} from "./actions";
 import {newTransform} from "./components/transform";
 import {newIcon} from "./components/icon";
 import {DirDataComponent} from "./components/dirData";
+import {newSquareSelectionComponent} from "./components/selection";
 
 
 const newWorld = (): World => ({
@@ -40,6 +41,54 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
   }
 
   switch(action.type){
+    case SelectionActionType.gapX:
+      return produce(state,(proxy:World)=>{
+        let square = proxy.components.squareSelection.get(0);
+        if(square){
+          if(square.gapX+action.payload<=600)
+            return
+          square.gapX+=action.payload
+        }
+      })
+    case SelectionActionType.gapY:
+      return produce(state,(proxy:World)=>{
+        let square = proxy.components.squareSelection.get(0);
+        if(square){
+          if(square.gapY+action.payload<=600)
+            return
+          square.gapY+=action.payload
+        }
+      })
+    case SelectionActionType.gapXY:
+      return produce(state,(proxy:World)=>{
+        let square = proxy.components.squareSelection.get(0);
+        if(square){
+          if(square.gapX+action.payload<=600||square.gapY+action.payload<=600)
+            return
+          square.gapX+=action.payload
+          square.gapY+=action.payload
+        }
+      })
+    case SelectionActionType.endPos:
+      return produce(state,(proxy:World)=>{
+
+        let square = proxy.components.squareSelection.get(0);
+        if(square){
+          square.location=newTransform(action.payload)
+        }
+      })
+    case SelectionActionType.startPos:
+      return produce(state,(proxy:World)=>{
+        let square = proxy.components.squareSelection.get(0);
+        if(square){
+
+          let upTransform = newTransform(action.payload).transform
+          let downTransform = square.location.transform
+          square.w=upTransform[12]-downTransform[12]
+          square.h=upTransform[13]-downTransform[13]
+
+        }
+      })
     case DirDataActionType.add:
       return produce(state,(proxy:World)=>{
         save(action.payload)

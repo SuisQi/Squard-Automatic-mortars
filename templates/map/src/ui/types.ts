@@ -66,7 +66,9 @@ export type ICONToolState = {
     x:number,
     y:number,
     c_name:string,
-    location:vec3
+    location:vec3,
+    selectionType:number,//0:拉框
+    selectionState:number,//0:没开始进入框选模式，1:进入框选模式，2：框选左键已经点击，3：框选左键已经松开,4:选区完成
 }
 
 export type TouchInfo = {

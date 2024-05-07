@@ -11,7 +11,7 @@ import {
   EntityActionType,
   EntityAction,
   SerializableComponents,
-  Icon, DirData, World
+  Icon, DirData, World, SquareSelection
 } from "../types";
 import { EntityComponent, entityReducer, newEntity } from "./entity";
 import { newTransform, transformReducer, tryNewTransform } from "./transform";
@@ -21,15 +21,28 @@ import {IconComponent, iconReducer} from "./icon";
 import {dirDataReducer} from "./dirData";
 import {save, update} from "../../api/standard";
 import {world} from "../reducer";
+import {newSquareSelectionComponent, SelectionReducer} from "./selection";
+import {vec3} from "gl-matrix";
 
 
-export const newComponents = (): Components => ({
-  transform: new Map<EntityId, HasTransform>(),
-  weapon: new Map<EntityId, WeaponComponent>(),
-  entity: new Map<EntityId, EntityComponent>(),
-  icon:new Map<EntityId,Icon>(),
-  dirData:new Map<EntityId, DirData>()
-})
+export const newComponents = (): Components => {
+  let selection = new Map<EntityId,SquareSelection>()
+  selection.set(0,newSquareSelectionComponent({
+    location:newTransform(vec3.create()),
+    w:0,
+    h:0,
+    gapX:3000,
+    gapY:3000
+  }))
+  return {
+    transform: new Map<EntityId, HasTransform>(),
+    weapon: new Map<EntityId, WeaponComponent>(),
+    entity: new Map<EntityId, EntityComponent>(),
+    icon:new Map<EntityId,Icon>(),
+    dirData:new Map<EntityId, DirData>(),
+    squareSelection:selection
+  }
+}
 
 
 // register new components here as well
@@ -108,7 +121,8 @@ export const componentsReducer: (state: Components, action: StoreAction) => Comp
     weapon: weaponReducer,
     entity: entityReducer,
     icon:   iconReducer,
-    dirData:dirDataReducer
+    dirData:dirDataReducer,
+    squareSelection:SelectionReducer
   }) as any
 
 export const serializableComponents = (world: World): {[k in ComponentKey]: Array<[EntityId, Component]>}=> {
