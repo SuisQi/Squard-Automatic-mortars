@@ -23,6 +23,9 @@ import {$canvas, $contourmap} from '../elements';
 import {getZoom} from '../camera/camera';
 import {EntityId, Target} from '../world/types';
 import {newTransform} from "../world/components/transform";
+import {SquareSelectionComponent} from "../world/components/selection";
+import {fillSquareTargets, removeSquareTargets} from "../render/selection/square";
+import {fillLineSelection, removeAllFromLineSelection} from "../render/selection/line";
 
 
 const dragOrPan = (store: Store0, event: any) => {
@@ -46,8 +49,14 @@ export const mouseMove = (store: Store0) => (e: MouseEvent) => {
 
     if (store.getState().iconToolState.selectionState === 2) {
         const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
-        dispatch(store, upSquareSelection(eventLocation))
-        removeSquareTargets(store)
+        let selectionType= store.getState().iconToolState.selectionType
+        if(selectionType===0){
+            dispatch(store, upSquareSelection(eventLocation))
+            removeSquareTargets(store)
+        }else if(selectionType===1){
+            dispatch(store,{type:SelectionActionType.LineEndtPos,payload:eventLocation})
+            removeAllFromLineSelection(store)
+        }
         return;
     }
     if (store.getState().iconToolState.display)
@@ -73,9 +82,17 @@ const zoom = (store: Store0, targetElement: any, zoomLocation: vec3, desiredZoom
 export const mouseScroll = (store: Store0) => (e: WheelEvent) => {
 
     if(store.getState().iconToolState.selectionState===4){//如果选区完成
-        dispatch(store,{type:SelectionActionType.gapXY,payload:e.deltaY>0?100:-100})
-        removeSquareTargets(store)
-        fillSquareTargets(store)
+        if(store.getState().iconToolState.selectionType===0){
+            dispatch(store,{type:SelectionActionType.gapXY,payload:e.deltaY>0?100:-100})
+            removeSquareTargets(store)
+            fillSquareTargets(store)
+        }
+        else if(store.getState().iconToolState.selectionType===1){
+            dispatch(store,{type:SelectionActionType.gap,payload:e.deltaY>0?100:-100})
+            removeAllFromLineSelection(store)
+            fillLineSelection(store)
+        }
+
         return
     }
     dispatch(store, {type: IconToolActionType.write, payload: {key: "display", value: false}});
@@ -93,7 +110,12 @@ export const mouseDown = (store: Store0) => (e: MouseEvent) => {
 
 
     if (store.getState().iconToolState.selectionState === 1) {
-        dispatch(store, downSquareSelection(eventLocation))
+        if(store.getState().iconToolState.selectionType===0) {
+            dispatch(store, downSquareSelection(eventLocation))
+        }
+        else if (store.getState().iconToolState.selectionType===1){
+            dispatch(store,{type:SelectionActionType.LineStartPos,payload:eventLocation})
+        }
         dispatch(store, {type: IconToolActionType.write, payload: {key: "selectionState", value: 2}})
 
     }
@@ -105,82 +127,27 @@ export const mouseDown = (store: Store0) => (e: MouseEvent) => {
     dispatch(store, setMouseDown(true))
 }
 
-function customRound(value: number) {
-    if (value < 0) {
-        // 对负数向下取整
-        return Math.floor(value);
-    } else {
-        // 对正数向上取整
-        return Math.ceil(value);
-    }
-}
 
-// 定义计算矩形起点和终点的函数
-function calculateBounds(x: number, w: number) {
-    const start = w > 0 ? x : x + w;
-    const end = w > 0 ? x + w : x;
-    return {start, end};
-}
-
-const removeSquareTargets = (store: Store0) => {
-    let selection = store.getState().world.components.squareSelection.get(0);
-    if(!selection)
-        return
-    let downTransform = selection.location.transform
-    // 计算矩形的水平和垂直边界
-    const xBounds = calculateBounds(downTransform[12], selection.w);
-    const yBounds = calculateBounds(downTransform[13], selection.h);
-
-    for (const [key, value] of store.getState().world.components.transform) {
-        const x = value.transform[12];
-        const y = value.transform[13];
-        // 检查组件的x和y坐标是否在矩形范围内
-        if (x >= xBounds.start && x <= xBounds.end && y >= yBounds.start && y <= yBounds.end) {
-            if(store.getState().world.components.entity.get(key)?.entityType==="Target")
-                dispatch(store, removeTarget(key))
-
-        }
-    }
-}
-const fillSquareTargets = (store: Store0) => {
-    let selection = store.getState().world.components.squareSelection.get(0);
-    if(!selection)
-        return
-    let index = 0
-    const state = store.getState()
-    for (let i = 0; i < Math.abs(customRound(selection.w / selection.gapX)); i++) {
-        for (let j = 0; j < Math.abs(customRound(selection.h / selection.gapY)); j++) {
-            if (index >= 100)
-                return;
-            index++
-            let pos = [selection?.location.transform[12] + i * selection?.gapX * (selection.w > 0 ? 1 : -1), selection?.location.transform[13] + j * selection?.gapY * (selection.h > 0 ? 1 : -1), 0] as vec3
-            let id = store.getState().world.nextId
-            dispatch(store, addTarget(pos, id))
-            dispatch(store, addDirData({
-                entityId: id,
-
-                userIds: [state.session?.userId ?? "0"]
-            }))
-        }
-    }
-
-}
 export const mouseUp = (store: Store0) => (e: any) => {
     const state = store.getState()
     if (store.getState().iconToolState.selectionState === 2) {
         const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
-        dispatch(store, upSquareSelection(eventLocation))
+
         dispatch(store, {type: IconToolActionType.write, payload: {key: "selectionState", value: 3}})
         let tool = store.getState().iconToolState
-        let selection = store.getState().world.components.squareSelection.get(tool.selectionType)
-        let upTransform = newTransform(eventLocation).transform
+        let selection = store.getState().world.components.selection.get(tool.selectionType)
         if (selection) {
             if (tool.selectionType === 0) {
+                dispatch(store, upSquareSelection(eventLocation))
                 removeSquareTargets(store)
 
                 fillSquareTargets(store)
 
 
+            }else if(tool.selectionType===1){
+                dispatch(store,{type:SelectionActionType.LineEndtPos,payload:eventLocation})
+                removeAllFromLineSelection(store)
+                fillLineSelection(store)
             }
 
 

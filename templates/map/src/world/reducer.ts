@@ -2,7 +2,7 @@
 //import { setEntity, removeEntity, updateEntity } from './world';
 import produce from "immer"
 import {Reducer} from 'redux';
-import {dispatch, StoreAction} from "../store";
+import {StoreAction} from "../store";
 import {
   componentsReducer,
   getFilteredEntityIds,
@@ -21,7 +21,7 @@ import {DirDataActionType, IconActionType, SelectionActionType} from "./actions"
 import {newTransform} from "./components/transform";
 import {newIcon} from "./components/icon";
 import {DirDataComponent} from "./components/dirData";
-import {newSquareSelectionComponent} from "./components/selection";
+import {LineSelectionComponent, SquareSelectionComponent} from "./components/selection";
 
 
 const newWorld = (): World => ({
@@ -43,8 +43,9 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
   switch(action.type){
     case SelectionActionType.gapX:
       return produce(state,(proxy:World)=>{
-        let square = proxy.components.squareSelection.get(0);
+        let square = proxy.components.selection.get(0);
         if(square){
+          square = square as SquareSelectionComponent
           if(square.gapX+action.payload<=600)
             return
           square.gapX+=action.payload
@@ -52,8 +53,9 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
       })
     case SelectionActionType.gapY:
       return produce(state,(proxy:World)=>{
-        let square = proxy.components.squareSelection.get(0);
+        let square = proxy.components.selection.get(0);
         if(square){
+          square = square as SquareSelectionComponent
           if(square.gapY+action.payload<=600)
             return
           square.gapY+=action.payload
@@ -61,32 +63,67 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
       })
     case SelectionActionType.gapXY:
       return produce(state,(proxy:World)=>{
-        let square = proxy.components.squareSelection.get(0);
+
+        let square = proxy.components.selection.get(0);
+
         if(square){
+          square = square as SquareSelectionComponent
           if(square.gapX+action.payload<=600||square.gapY+action.payload<=600)
             return
           square.gapX+=action.payload
           square.gapY+=action.payload
         }
       })
-    case SelectionActionType.endPos:
+    case SelectionActionType.gap:
       return produce(state,(proxy:World)=>{
 
-        let square = proxy.components.squareSelection.get(0);
+        let line = proxy.components.selection.get(1);
+
+        if(line){
+          line = line as LineSelectionComponent
+          if(line.gap+action.payload<=600)
+            return
+          line.gap+=action.payload
+        }
+      })
+
+    case SelectionActionType.SquareEndPos:
+      return produce(state,(proxy:World)=>{
+
+        let square = proxy.components.selection.get(0);
         if(square){
+          square = square as SquareSelectionComponent
           square.location=newTransform(action.payload)
         }
       })
-    case SelectionActionType.startPos:
+    case SelectionActionType.SquareStartPos:
       return produce(state,(proxy:World)=>{
-        let square = proxy.components.squareSelection.get(0);
-        if(square){
 
+        let square = proxy.components.selection.get(0);
+        if(square){
+          square = square as SquareSelectionComponent
           let upTransform = newTransform(action.payload).transform
           let downTransform = square.location.transform
           square.w=upTransform[12]-downTransform[12]
           square.h=upTransform[13]-downTransform[13]
 
+        }
+      })
+
+    case SelectionActionType.LineEndtPos:
+      return produce(state,(proxy:World)=>{
+        let line = proxy.components.selection.get(1)
+        if(line){
+          line = line as LineSelectionComponent
+          line.endLocation=newTransform(action.payload)
+        }
+      })
+    case SelectionActionType.LineStartPos:
+      return produce(state,(proxy:World)=>{
+        let line = proxy.components.selection.get(1)
+        if(line){
+          line = line as LineSelectionComponent
+          line.startLocation=newTransform(action.payload)
         }
       })
     case DirDataActionType.add:

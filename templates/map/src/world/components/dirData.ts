@@ -5,7 +5,7 @@ import {DirDataAction} from "../actions";
 export type DirDataComponent=  {
     entityId:EntityId,
 
-    userIds?:Array<string>
+    userIds?:Array<string>,
 }
 
 export const newDirData=(action:DirDataComponent):DirData=><DirDataComponent>({

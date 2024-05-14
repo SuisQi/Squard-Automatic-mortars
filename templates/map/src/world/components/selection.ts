@@ -11,13 +11,25 @@ export type SquareSelectionComponent={
     gapX:number,
     gapY:number
 }
-export type SelectionComponent = SquareSelectionComponent
-export const newSquareSelectionComponent=(action:SquareSelectionComponent):SquareSelectionComponent=><SquareSelectionComponent>({
+export type LineSelectionComponent={
+    startLocation:HasTransform,
+    endLocation:HasTransform,
+    gap:number
+}
+export type SelectionComponent = SquareSelectionComponent|LineSelectionComponent
+export const newSquareSelectionComponent=(action:SquareSelectionComponent):SelectionComponent=><SquareSelectionComponent>({
     location:action.location,
     w:action.w,
     h:action.h,
     gapX:action.gapX,
-    gapY:action.gapY
+    gapY:action.gapY,
+
+})
+export const newLineSelectionComponent=(action:LineSelectionComponent):SelectionComponent=><LineSelectionComponent>({
+    startLocation:action.startLocation,
+    endLocation:action.endLocation,
+    gap:action.gap
+
 })
 type State = Map<EntityId, SquareSelectionComponent>;
 export const SelectionReducer = (state:State, action:SquareSelectionAction)=>{
@@ -25,6 +37,7 @@ export const SelectionReducer = (state:State, action:SquareSelectionAction)=>{
     if(state == undefined){
         /**
          * 0:方形-SquareSelection
+         * 1:直线-LineSelection
          */
 
 
