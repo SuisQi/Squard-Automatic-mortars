@@ -17,11 +17,11 @@ import {DirDataComponent} from "./components/dirData";
 import {SquareSelectionComponent} from "./components/selection";
 
 export const downSquareSelection=(pos:vec3):SquareSelectionAction=>({
-    type:SelectionActionType.endPos,
+    type:SelectionActionType.SquareEndPos,
     payload:pos
 })
 export const upSquareSelection=(pos:vec3):SquareSelectionAction=>({
-    type:SelectionActionType.startPos,
+    type:SelectionActionType.SquareStartPos,
     payload:pos
 })
 export const setAllEntities = (components: SerializableComponents): EntityAction => ({
@@ -139,8 +139,11 @@ export enum IconActionType{
 
 export enum SelectionActionType{
     add="SELECTION_ADD",
-    endPos="SELECTION_DOWN",
-    startPos="SELECTION_UP",
+    SquareEndPos="SQUARE_END_POS",
+    SquareStartPos="SQUARE_START_POS",
+    LineStartPos="LINE_START_POS",
+    LineEndtPos="LINE_END_POS",
+    gap="SELECTION_GAP",
     gapX="SELECTION_Y",
     gapY="SELECTION_Y",
     gapXY="SELECTION_XY"
@@ -153,9 +156,12 @@ export type IconAction={
 
 
 export type SquareSelectionAction=
-|{type:SelectionActionType.endPos,payload:vec3}
-|{type:SelectionActionType.startPos,payload:vec3}
+|{type:SelectionActionType.SquareEndPos,payload:vec3}
+|{type:SelectionActionType.SquareStartPos,payload:vec3}
+|{type:SelectionActionType.LineStartPos,payload:vec3}
+|{type:SelectionActionType.LineEndtPos,payload:vec3}
 |{type:SelectionActionType.gapX,payload:number}
+|{type:SelectionActionType.gap,payload:number}
 |{type:SelectionActionType.gapY,payload:number}
 |{type:SelectionActionType.gapXY,payload:number}
 

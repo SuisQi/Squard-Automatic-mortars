@@ -58,10 +58,7 @@ const iconTool: (props:{iconTool: ICONToolState} &  any) => any
                             <div className="flex flex-col bg-black/50 w-[370px] ">
                                 {
                                     icons.right.filter(f => f.name === props.iconTool.c_name)[0].list.map(f => {
-                                        const imgStyle: CSSProperties = {
-                                            backgroundImage: `url(${f.src})`,
-                                            backgroundSize: "100% 100%"
-                                        }
+
                                         return (
                                             <div className="flex flex-row p-2 hover:bg-black/70 items-center h-[30px]"
                                                  onMouseUp={() => {
@@ -87,19 +84,26 @@ const iconTool: (props:{iconTool: ICONToolState} &  any) => any
                 </div>
                 <div className="fixed  " style={
                     {
-                        top: (props.iconTool.y-15) + "px",
-                        left: (props.iconTool.x-15) + "px",
+                        top: (props.iconTool.y - 15) + "px",
+                        left: (props.iconTool.x - 15) + "px",
                     }
                 }>
-                    <div className="w-10 h-10 hover:bg-black/70 bg-black/50 absolute right-0 top-0 flex flex-col justify-center items-center"
-                        onMouseUp={()=>{
-                            props.onAddSquareSelection({
-                                location: props.iconTool.location,
-                                selectionType:0
-                            })
+                    <div
+                        className="w-10 h-10 hover:bg-black/70 bg-black/50 absolute right-0 top-0 flex flex-col justify-center items-center"
+                        onMouseUp={() => {
+                            props.onSetSelection(0)
                         }}
                     >
                         <div className="w-6 h-6 bg-red-600/30 border-2 border-red-600/70 border-solid   "></div>
+
+                    </div>
+                    <div
+                        className="w-10 h-10 hover:bg-black/70 bg-black/50 absolute right-[55px] top-0 flex flex-col justify-center items-center"
+                        onMouseUp={() => {
+                            props.onSetSelection(1)
+                        }}
+                    >
+                        <img src="./icon/框选/绘制路线.png"></img>
 
                     </div>
                 </div>
@@ -117,10 +121,10 @@ const mapDispatchToProps = (dispatch: any) => ({
         dispatch({type: IconToolActionType.write, payload: {key: "c_name", value: ""}});
 
     },
-    onAddSquareSelection:(v: object) => {
+    onSetSelection: (v: number) => {
         dispatch({type: IconToolActionType.write, payload: {key: "selectionState", value: 1}});
         dispatch({type: IconToolActionType.write, payload: {key: "display", value: false}});
-        dispatch({type: IconToolActionType.write, payload: {key: "selectionType", value: 0}});
+        dispatch({type: IconToolActionType.write, payload: {key: "selectionType", value: v}});
     }
 
 })

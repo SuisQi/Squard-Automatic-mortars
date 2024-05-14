@@ -11,7 +11,7 @@ import {
   EntityActionType,
   EntityAction,
   SerializableComponents,
-  Icon, DirData, World, SquareSelection
+  Icon, DirData, World, Selection
 } from "../types";
 import { EntityComponent, entityReducer, newEntity } from "./entity";
 import { newTransform, transformReducer, tryNewTransform } from "./transform";
@@ -21,12 +21,12 @@ import {IconComponent, iconReducer} from "./icon";
 import {dirDataReducer} from "./dirData";
 import {save, update} from "../../api/standard";
 import {world} from "../reducer";
-import {newSquareSelectionComponent, SelectionReducer} from "./selection";
+import {newLineSelectionComponent, newSquareSelectionComponent, SelectionReducer} from "./selection";
 import {vec3} from "gl-matrix";
 
 
 export const newComponents = (): Components => {
-  let selection = new Map<EntityId,SquareSelection>()
+  let selection = new Map<EntityId,Selection>()
   selection.set(0,newSquareSelectionComponent({
     location:newTransform(vec3.create()),
     w:0,
@@ -34,13 +34,18 @@ export const newComponents = (): Components => {
     gapX:3000,
     gapY:3000
   }))
+  selection.set(1,newLineSelectionComponent({
+    startLocation:newTransform(vec3.create()),
+    endLocation:newTransform(vec3.create()),
+    gap:3000
+  }))
   return {
     transform: new Map<EntityId, HasTransform>(),
     weapon: new Map<EntityId, WeaponComponent>(),
     entity: new Map<EntityId, EntityComponent>(),
     icon:new Map<EntityId,Icon>(),
     dirData:new Map<EntityId, DirData>(),
-    squareSelection:selection
+    selection:selection
   }
 }
 
@@ -87,6 +92,8 @@ export const setComponentsFromActionMut = (components: Components, entityId: Ent
   const newComponentKeys = Object.keys(components) as Array<keyof Components>;
   let newState = components;
   newComponentKeys.forEach((componentKey: ComponentKey) => {
+    if(componentKey==="selection")
+      return
     try {
       let maybeComponent = tryComponentConstructor(components, componentKey, action)
       if (maybeComponent !== null){
@@ -111,6 +118,8 @@ export const removeComponents = (components: Components, entityId: EntityId): Co
 export const removeComponentsMut = (components: Components, entityId: EntityId): void => {
   const componentKeys = Object.keys(components) as Array<keyof Components>;
   componentKeys.forEach((componentKey: ComponentKey) => {
+    if(componentKey==="selection")
+      return
     components[componentKey].delete(entityId);
   })
 }
@@ -122,13 +131,15 @@ export const componentsReducer: (state: Components, action: StoreAction) => Comp
     entity: entityReducer,
     icon:   iconReducer,
     dirData:dirDataReducer,
-    squareSelection:SelectionReducer
+    selection:SelectionReducer
   }) as any
 
 export const serializableComponents = (world: World): {[k in ComponentKey]: Array<[EntityId, Component]>}=> {
   const components = world.components
   let out: any = {};
   (Object.keys(components) as Array<ComponentKey>).forEach((componentKey: ComponentKey) => {
+    if(componentKey==="selection")
+      return
     /*let obj: any = {};
     components[key].forEach((value: unknown, key: number) => {
       obj[key] = value;
@@ -145,6 +156,8 @@ export const serializableComponents = (world: World): {[k in ComponentKey]: Arra
 
 export const insertComponentsBulkMut = (components: Components, newComponents: SerializableComponents): Components => {
   (Object.keys(components) as Array<ComponentKey>).forEach((componentKey: ComponentKey) => {
+    if(componentKey==="selection")
+      return
     newComponents[componentKey].forEach((kv_pair) => {
       let [entityId, value] = kv_pair;
       components[componentKey].set(entityId, value as any);
@@ -159,6 +172,8 @@ export const insertComponentsBulkMut = (components: Components, newComponents: S
 export const maxEntityId = (components: SerializableComponents): EntityId => {
   let curMax = 0;
   (Object.keys(components) as Array<ComponentKey>).forEach((componentKey: ComponentKey) => {
+    if(componentKey==="selection")
+      return
     curMax = Math.max(curMax, ...components[componentKey].map(kv => kv[0]))
   })
   return curMax;

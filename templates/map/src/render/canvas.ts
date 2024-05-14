@@ -23,6 +23,7 @@ import { WeaponComponent } from "../world/components/weapon";
 import produce from "immer";
 import {drawIcons} from "./icon";
 import {drawSquare} from "./selection/square";
+import {drawLineSelection} from "./selection/line";
 //import { $contourmap } from "../main";
 
 export const drawLine: (ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number) => void =
@@ -216,7 +217,8 @@ export const drawAll = (store: Store0) => {
     drawTargets(ctx, weapons, targets,state,dirDatas,state.session?.userId??"0");
     drawPlacementHelpers(ctx, state.camera, state.userSettings, state.uiState, state.world, state.minimap);
     drawIcons(ctx,state.camera, icons,state.images);
-    drawSquare(ctx,state.camera,state.world.components.squareSelection.get(0)??null)
+    drawSquare(ctx,state.camera,state.world.components.selection.get(0)??null);
+      drawLineSelection(ctx,state.camera,state.world.components.selection.get(1)??null)
 
     /*
     if (state.userSettings.weaponPlacementHelper && state.uiState.mouseDown){ //  && state.uiState.dragEntityId.type === "Weapon"
