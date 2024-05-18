@@ -1,11 +1,13 @@
 import {Camera} from "../../camera/types";
-import {HasTransform, Selection} from "../../world/types";
+import {HasTransform, Selection, Target} from "../../world/types";
 import {LineSelectionComponent, SquareSelectionComponent} from "../../world/components/selection";
 import {applyTransform} from "../../world/transformations";
 import {vec3} from "gl-matrix";
 import e from "express";
 import {dispatch, Store0} from "../../store";
 import {addDirData, addTarget, removeTarget} from "../../world/actions";
+import {getEntitiesByType} from "../../world/world";
+import {getSolution} from "../../common/mapData";
 
 export const drawLineSelection=(ctx: CanvasRenderingContext2D,camera:Camera,line:Selection|null)=>{
 
@@ -50,7 +52,7 @@ export function fillLineSelection(store:Store0) {
     if(!line)
         return
     line = line as LineSelectionComponent
-    const state = store.getState()
+
     let start = line.startLocation
     let end = line.endLocation
     let interval = line.gap
@@ -58,11 +60,15 @@ export function fillLineSelection(store:Store0) {
     const dx = end.transform[12] - start.transform[12];
     const dy = end.transform[13] - start.transform[13];
     const length = Math.sqrt(dx * dx + dy * dy);
+    if(length<1000)
+        return;
     const stepCount = Math.floor(length / interval);
     const unitX = dx / length;
     const unitY = dy / length;
 
     for (let i = 0; i <= stepCount; i++) {
+        if(i>=30)
+            break
         const factor = i * interval;
         const x = start.transform[12] + unitX * factor;
         const y = start.transform[13] + unitY * factor;
@@ -77,9 +83,16 @@ export function fillLineSelection(store:Store0) {
     for (let i = 0; i < result.length; i++) {
         let id = store.getState().world.nextId
         dispatch(store,addTarget(result[i],id))
+
+        const state = store.getState()
+        let target = state.world.components.transform.get(id)
+        let {solution, angleValue} = getSolution(state, target)
+
+
         dispatch(store, addDirData({
             entityId: id,
-
+            dir:solution.dir,
+            angle:angleValue,
             userIds: [state.session?.userId ?? "0"]
         }))
     }
@@ -104,6 +117,8 @@ function isOnLineSegment(line:LineSelectionComponent, point: HasTransform): bool
 
     // 利用叉积计算点到直线的垂直距离
     const crossProduct = AB.x * AC.y - AB.y * AC.x;
+    if(lengthAB===0)
+        return false;
     const distanceToLine = Math.abs(crossProduct) / lengthAB;
 
     let tolerance=400
@@ -121,14 +136,16 @@ function isOnLineSegment(line:LineSelectionComponent, point: HasTransform): bool
     return true;
 }
 export const removeAllFromLineSelection=(store:Store0)=>{
-    let line = store.getState().world.components.selection.get(1);
+    // debugger
+    const  state= store.getState()
+    let line = state.world.components.selection.get(1);
     if(!line)
         return
     line = line as LineSelectionComponent
 
-    for (const [key, value] of store.getState().world.components.transform) {
+    for (const [key, value] of state.world.components.transform) {
         if(isOnLineSegment(line,value)){
-            if(store.getState().world.components.entity.get(key)?.entityType==="Target") {
+            if(state.world.components.entity.get(key)?.entityType==="Target") {
                 dispatch(store, removeTarget(key))
             }
         }

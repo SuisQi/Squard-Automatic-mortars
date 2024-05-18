@@ -309,7 +309,7 @@ if __name__ == '__main__':
     threading.Thread(target=start_control).start()
     threading.Thread(target=listen_fire).start()
     # 一直从计算器网页端获取方位密位
-    threading.Thread(target=start_dir_server).start()
+    # start_dir_server()
     threading.Thread(target=listener_click).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

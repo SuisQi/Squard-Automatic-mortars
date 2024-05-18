@@ -39,14 +39,14 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
   if (state === undefined){
     return newWorld();
   }
-
+  const gap = 1200
   switch(action.type){
     case SelectionActionType.gapX:
       return produce(state,(proxy:World)=>{
         let square = proxy.components.selection.get(0);
         if(square){
           square = square as SquareSelectionComponent
-          if(square.gapX+action.payload<=600)
+          if(square.gapX+action.payload<=gap)
             return
           square.gapX+=action.payload
         }
@@ -56,7 +56,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
         let square = proxy.components.selection.get(0);
         if(square){
           square = square as SquareSelectionComponent
-          if(square.gapY+action.payload<=600)
+          if(square.gapY+action.payload<=gap)
             return
           square.gapY+=action.payload
         }
@@ -68,7 +68,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
 
         if(square){
           square = square as SquareSelectionComponent
-          if(square.gapX+action.payload<=600||square.gapY+action.payload<=600)
+          if(square.gapX+action.payload<=gap||square.gapY+action.payload<=gap)
             return
           square.gapX+=action.payload
           square.gapY+=action.payload
@@ -81,7 +81,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
 
         if(line){
           line = line as LineSelectionComponent
-          if(line.gap+action.payload<=600)
+          if(line.gap+action.payload<=gap)
             return
           line.gap+=action.payload
         }
@@ -135,9 +135,11 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
       return produce(state,(proxy:World)=>{
 
         let oldDirData:DirDataComponent = proxy.components.dirData.get(action.payload.entityId) as DirDataComponent;
+        if(oldDirData){
+          update(oldDirData)
 
-        update(oldDirData)
-        proxy.components.dirData.set(action.payload.entityId,oldDirData)
+        }
+        // proxy.components.dirData.set(action.payload.entityId,oldDirData)
       })
     case DirDataActionType.left:
       return produce(state,(proxy:World)=>{

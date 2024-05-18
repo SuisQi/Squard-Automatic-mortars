@@ -26,10 +26,14 @@ import {newTransform} from "../world/components/transform";
 import {SquareSelectionComponent} from "../world/components/selection";
 import {fillSquareTargets, removeSquareTargets} from "../render/selection/square";
 import {fillLineSelection, removeAllFromLineSelection} from "../render/selection/line";
+import {getSolution} from "../common/mapData";
 
 
 const dragOrPan = (store: Store0, event: any) => {
+
     const state = store.getState();
+    if(state.iconToolState.selectionState!==0)
+        return
     const start = state.uiState.dragStartPosition;
     const eventLocation = canvas2world(state.camera, event2canvas(event));
     const dragEntityId = state.uiState.dragEntityId;
@@ -129,6 +133,7 @@ export const mouseDown = (store: Store0) => (e: MouseEvent) => {
 
 
 export const mouseUp = (store: Store0) => (e: any) => {
+    // console.log("松开")
     const state = store.getState()
     if (store.getState().iconToolState.selectionState === 2) {
         const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
@@ -155,17 +160,21 @@ export const mouseUp = (store: Store0) => (e: any) => {
 
         return;
     }
-
+    if(state.iconToolState.selectionState!==0)
+    {
+        return;
+    }
     const dragEntityId = state.uiState.dragEntityId;
     state.world.components.entity.forEach(f => {
-        if (f.entityId === dragEntityId && f.selected) {
+        if (f.entityId === dragEntityId ) {
 
 
             let target = getEntitiesByType<Target>(state.world, "Target").filter(e => e.entityId === f.entityId)[0];
-
+            let {solution, angleValue} = getSolution(state, target)
             dispatch(store, updateDirData({
                 entityId: target.entityId,
-
+                dir:solution.dir,
+                angle:angleValue,
             }))
         }
     })
@@ -218,10 +227,11 @@ export const click = (store: Store0) => (e: any) => {
 
 
         if (candidates.length > 0) {
-            console.log(state.world)
+            // console.log(state.world)
             const targets = getEntitiesByType<Target>(state.world, "Target");
             let target = targets.filter(t => t.entityId === candidates[0].entityId)[0]
             let userIds: string[] = state.world.components.dirData.has(target.entityId) ? state.world.components.dirData.get(target.entityId)?.userIds ?? [] : []
+            let {solution, angleValue} = getSolution(state, target)
             if (state.world.components.dirData.has(target.entityId)) {
                 if (userIds.includes(state.session?.userId ?? "0")) {
                     dispatch(store, removeDirData({
@@ -231,7 +241,8 @@ export const click = (store: Store0) => (e: any) => {
                 } else {
                     dispatch(store, addDirData({
                         entityId: target.entityId,
-
+                        dir:solution.dir,
+                        angle:angleValue,
                         userIds: [...userIds, state.session?.userId ?? "0"]
                     }))
                 }
@@ -239,7 +250,8 @@ export const click = (store: Store0) => (e: any) => {
             } else {
                 dispatch(store, addDirData({
                     entityId: target.entityId,
-
+                    dir:solution.dir,
+                    angle:angleValue,
                     userIds: [state.session?.userId ?? "0"]
                 }))
                 // dispatch(store, addSelected(target))
@@ -263,12 +275,12 @@ export const rightClick = (store: Store0) => (event: any) => {
     if (event.button === 2) {
         const eventLocation = canvas2world(store.getState().camera, event2canvas(event))
         event.preventDefault(); // 阻止默认右键菜单行为
-        console.log('Right clicked!');
+        // console.log('Right clicked!');
         // 获取鼠标右键单击时相对于屏幕左上角的距离
         const xPos = event.clientX;
         const yPos = event.clientY;
 
-        console.log(xPos, yPos)
+        // console.log(xPos, yPos)
 
         dispatch(store, {type: IconToolActionType.write, payload: {key: "display", value: true}});
         dispatch(store, {type: IconToolActionType.write, payload: {key: "x", value: xPos}});
@@ -305,6 +317,10 @@ export const getDragEntityId: (store: Store0) => (event: any) => EntityId
 
 export const handleNewTouch = (store: Store0) => (ev: any) => {
     // not preventing default to keep click emulation intact
+    if(store.getState().iconToolState.selectionState!==0)
+    {
+        return;
+    }
     const range = Array(ev.changedTouches.length).fill(0).map((x, y) => x + y)
     range
         .map(k => {
@@ -352,6 +368,10 @@ const touchMove = (store: Store0) => (ev: any) => {
     }
 }
 export const handleTouchMove = (store: Store0) => (ev: any) => {
+    if(store.getState().iconToolState.selectionState!==0)
+    {
+        return;
+    }
     ev.preventDefault();
     ev.stopImmediatePropagation();
     const eventTouches = Object.values<Touch>(ev.changedTouches);
