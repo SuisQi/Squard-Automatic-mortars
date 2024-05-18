@@ -75,6 +75,8 @@ export const getEntity = <E>(world: World, entityId: EntityId): E | null =>  {
   //          https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-4.html#const-assertions
   let components: Array<Component> = [];
   (Object.keys(world.components) as Array<ComponentKey>).forEach((componentKey: ComponentKey) => {
+    if (componentKey==="selection")
+      return
     const maybeComponent = world.components[componentKey].get(entityId)
     if(maybeComponent){
       components.push(maybeComponent);

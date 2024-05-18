@@ -42,21 +42,18 @@ async def dir_web_server():
         await asyncio.Future()  # 运行直到被取消
 
 
-def get_dirs():
+async def get_dirs():
     while True:
-        for w in connect_pools:
-            if redis_cli.exists('squad:fire_data:standard'):
-                entityIds = list(redis_cli.hkeys('squad:fire_data:standard'))
-                entityIds = list(map(lambda f: f.decode(), entityIds))
+        if connect_pools and redis_cli.exists('squad:fire_data:standard'):
+            entityIds = list(redis_cli.hkeys('squad:fire_data:standard'))
+            entityIds = list(map(lambda f: f.decode(), entityIds))
+            for websocket in connect_pools:
                 for entityId in entityIds:
-                    send = w.send(json.dumps({
+                    await websocket.send(json.dumps({
                         "command": "compute",
                         "payload": entityId
                     }))
-                    asyncio.run(send)
-
-        time.sleep(0.2)
-
+        await asyncio.sleep(0.2)  # 异步等待，替代 time.sleep
 
 if __name__ == '__main__':
     threading.Thread(target=get_dirs).start()
@@ -64,5 +61,20 @@ if __name__ == '__main__':
 
 
 def start_dir_server():
-    threading.Thread(target=get_dirs).start()
-    asyncio.run(dir_web_server())
+    async def async_server_tasks():
+        # 创建两个任务
+        dir_server = asyncio.create_task(dir_web_server())
+        dir_task = asyncio.create_task(get_dirs())
+        # 等待这两个任务完成，gather 会同时运行这两个任务
+        await asyncio.gather(dir_server, dir_task)
+
+    def run_async_server():
+        loop = asyncio.new_event_loop()  # 创建新的事件循环
+        asyncio.set_event_loop(loop)  # 设置为当前线程的事件循环
+        try:
+            loop.run_until_complete(async_server_tasks())  # 运行异步任务
+        finally:
+            loop.close()  # 关闭事件循环
+
+    thread = threading.Thread(target=run_async_server)  # 创建并启动线程
+    thread.start()

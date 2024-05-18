@@ -17,13 +17,16 @@ mortar_blueprint = Blueprint('mortar', __name__)
 def save():
     if request.is_json:
         data = request.get_json()
+        data['dir'] = round(data['dir'], 1)
+        data['angle'] = int(data['angle'])
         # 将数据转换为JSON字符串并追加到Redis列表中
         redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(data))
+
         sessionId = redis_cli.get("squad:session:sessionId")
         if sessionId:
             sessionId = sessionId.decode()
             ip = redis_cli.get("squad:session:ip").decode()
-            requests.get(f"http://{ip}:8081/add_fire?sessionId={sessionId}&targetId={data['entityId']}")
+            requests.get(f"http://{ip}:8081/add_fire?sessionId={sessionId}&targetId={data['entityId']}",proxies={})
     return R(0)
 
 
@@ -33,7 +36,11 @@ def update():
     if request.is_json:
         data = request.get_json()
         standard = json.loads(redis_cli.hget('squad:fire_data:standard', data['entityId']))
-        standard['userIds'] = data['userIds']
+        if 'userIds' in data:
+            standard['userIds'] = data['userIds']
+        if 'dir' in data and 'angle' in data:
+            data['dir'] = round(data['dir'], 1)
+            data['angle'] = int(data['angle'])
         redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(standard))
 
     return R(0)
@@ -77,7 +84,7 @@ def remove():
     if sessionId:
         sessionId = sessionId.decode()
         ip = redis_cli.get("squad:session:ip").decode()
-        requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}")
+        requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}",proxies={})
     return R(0)
 
 
@@ -89,7 +96,7 @@ def remove_all():
     if sessionId:
         sessionId = sessionId.decode()
         ip = redis_cli.get("squad:session:ip").decode()
-        requests.get(f"http://{ip}:8081/remove_all?sessionId={sessionId}")
+        requests.get(f"http://{ip}:8081/remove_all?sessionId={sessionId}",proxies={})
     return R(0)
 
 
@@ -239,3 +246,11 @@ def update_settings():
 def get_settings_():
     settings = json.loads(redis_cli.get('squad:settings'))
     return R(200, settings)
+
+
+@mortar_blueprint.route("/set_dir_data", methods=["POST"])
+def set_dir_data():
+    data = request.get_json()
+    dir_data = json.loads(redis_cli.hget("squad:fire_data:standard", data['id']))
+    dir_data['dir'] = data['dir']
+    dir_data['angle'] = data['angle']

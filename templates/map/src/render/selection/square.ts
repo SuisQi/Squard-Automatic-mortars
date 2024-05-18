@@ -1,11 +1,13 @@
 import {Camera} from "../../camera/types";
 import {applyTransform} from "../../world/transformations";
 import {canvasScaleTransform} from "../canvas";
-import {Selection} from "../../world/types";
+import {Selection, Target} from "../../world/types";
 import {SquareSelectionComponent} from "../../world/components/selection";
 import {dispatch, Store0} from "../../store";
 import {addDirData, addTarget, removeTarget} from "../../world/actions";
 import {vec3} from "gl-matrix";
+import {getSolution} from "../../common/mapData";
+import {getEntitiesByType} from "../../world/world";
 
 export const drawSquare=(ctx: CanvasRenderingContext2D,camera:Camera,square:Selection|null)=>{
 
@@ -71,20 +73,28 @@ export const fillSquareTargets = (store: Store0) => {
         return
     selection = selection as SquareSelectionComponent
     let index = 0
-    const state = store.getState()
+
     for (let i = 0; i < Math.abs(customRound(selection.w / selection.gapX)); i++) {
         for (let j = 0; j < Math.abs(customRound(selection.h / selection.gapY)); j++) {
-            if (index >= 100)
+            if (index >= 30)
                 return;
             index++
             let pos = [selection?.location.transform[12] + i * selection?.gapX * (selection.w > 0 ? 1 : -1), selection?.location.transform[13] + j * selection?.gapY * (selection.h > 0 ? 1 : -1), 0] as vec3
             let id = store.getState().world.nextId
             dispatch(store, addTarget(pos, id))
-            dispatch(store, addDirData({
-                entityId: id,
+            const state = store.getState()
 
-                userIds: [state.session?.userId ?? "0"]
-            }))
+            let target = state.world.components.transform.get(id)
+            if(target){
+                let {solution, angleValue} = getSolution(state, target)
+                dispatch(store, addDirData({
+                    entityId: id,
+                    dir:solution.dir,
+                    angle:angleValue,
+                    userIds: [state.session?.userId ?? "0"]
+                }))
+            }
+
         }
     }
 

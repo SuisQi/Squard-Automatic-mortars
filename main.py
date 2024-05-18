@@ -388,8 +388,12 @@ class Squard():
             gap = shortest_angle_distance(orientation, target)
             if round(abs(gap), 2) <= get_settings()['orientation_gap']:
                 return True
+
             if deep >= 5:
                 return
+
+            if orientation > 360 or orientation < 0:
+                return self._amend_orientation(target, deep + 1)
             if abs(gap) > 10:
                 seconds = calculate_press_ad_time(abs(gap))
                 press_key('d' if gap > 0 else 'a', seconds)

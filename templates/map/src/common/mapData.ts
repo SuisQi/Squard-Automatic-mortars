@@ -429,8 +429,12 @@ export const getSolution = (state: StoreState, target: any) => {
     const targetTranslation = getTranslation(target.transform);
     const targetHeight = getHeight(state.heightmap, targetTranslation)
     targetTranslation[2] = targetHeight;
-    const solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
-    const angleValue = userSettings.weaponType === "technicalMortar" ? solution.angle / Math.PI * 180 : solution.angle * US_MIL;
+    let solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
+    let angleValue = userSettings.weaponType === "technicalMortar" ? solution.angle / Math.PI * 180 : solution.angle * US_MIL;
+
+    // debugger
+    // angleValue=parseFloat(angleValue.toFixed(0))
+    // solution.dir=parseFloat(solution.dir.toFixed(1))
     return {
         solution,
         angleValue
