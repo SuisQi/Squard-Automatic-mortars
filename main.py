@@ -13,6 +13,7 @@ import numpy as np
 import pyautogui
 
 from show_info import topmost_orientation, topmost_mail
+from utils.classify.mail import PredictMail, PredictNumber
 from utils.redis_connect import redis_cli
 from utils.utils import generate_bezier_points, get_settings, get_resolution_case
 
@@ -92,62 +93,6 @@ def save_num(img, name, save_err):
     cv2.imwrite(file_path + f"/{name}_{time.time() * 1000}.png", img)
 
 
-def extract_and_classify(img, slices, number_classify, save_num, save_err):
-    result = 0
-    for i, (start, end) in enumerate(slices):
-        try:
-            img_slice = img[:, start:end]  # 提取图像切片
-            number_ = number_classify.detect(img_slice)
-            cv2.imwrite(f"./number_test/{number_}_{time.time() * 1000}.png", img_slice)
-
-            number = int(number_)  # 识别数字
-            result += number * (10 ** (3 - i))  # 计算结果，假设是从最高位到最低位
-        except Exception as e:
-            cv2.imwrite(f"./number_test/{number_}_{time.time() * 1000}.png", img_slice)
-            print(e)
-            return None
-
-        # 保存图像和数字
-        # save_num(img_slice, number, save_err)
-
-    return result
-
-
-def get_orientation(number_classify, img, save_err=False):
-    '''
-    获取方位
-    :return:
-    '''
-    try:
-        # 2560*1600
-        # result = int(number_classify.detect(img[:, :14])) * 1000
-        # result += int(number_classify.detect(img[:, 16:27])) * 100
-        # result += int(number_classify.detect(img[:, 27:44])) * 10
-        # result += int(number_classify.detect(img[:, 48:]))
-        # 2560*1400
-        # 定义图像切片的起始和结束位置
-        # slices = [(0, 15), (15, 27), (27, 39), (44, 57)]
-        o_x_1 = list(map(lambda f: int(f), resolution_case['o_x_1'].split(":")))
-        o_x_2 = list(map(lambda f: int(f), resolution_case['o_x_2'].split(":")))
-        o_x_3 = list(map(lambda f: int(f), resolution_case['o_x_3'].split(":")))
-        o_x_4 = list(map(lambda f: int(f), resolution_case['o_x_3'].split(":")))
-        slices = [
-            (o_x_1[0], o_x_1[1]),
-            (o_x_2[0], o_x_2[1]),
-            (o_x_3[0], o_x_3[1]),
-            (o_x_4[0],
-             o_x_4[1] if len(o_x_4) > 1 else resolution_case['orientation_b_x'] - resolution_case[
-                 'orientation_t_x']),
-
-        ]
-        # 调用函数
-        result = extract_and_classify(img, slices, number_classify, save_num, save_err)
-        return result
-    except Exception as e:
-        # log(traceback.format_exc())
-        return None
-
-
 ocr = ddddocr.DdddOcr(show_ad=False, import_onnx_path="./squard.onnx", charsets_path="./charsets.json")
 
 
@@ -175,12 +120,66 @@ class Squard():
         self._screen = screen_shot()
         self._mouse = Mouse_ghub()
         self._count = 0
+        self._mail_model = PredictMail("./model/mail.onnx")
+        self._number_model = PredictNumber("./model/number.onnx")
 
     def _mouse_move_mail(self, gap, move_orientation=False):
 
         for i in range(abs(gap)):
             time.sleep(0.01)
             self._mouse.move((28 if i % 10 == 0 else 0) if move_orientation else 0, 27 * (-1 if gap > 0 else 1))
+
+    def _predict_orientation(self, img, save_err=False):
+        '''
+        获取方位
+        :return:
+        '''
+        try:
+            # 2560*1600
+            # result = int(number_classify.detect(img[:, :14])) * 1000
+            # result += int(number_classify.detect(img[:, 16:27])) * 100
+            # result += int(number_classify.detect(img[:, 27:44])) * 10
+            # result += int(number_classify.detect(img[:, 48:]))
+            # 2560*1400
+            # 定义图像切片的起始和结束位置
+            # slices = [(0, 15), (15, 27), (27, 39), (44, 57)]
+            o_x_1 = list(map(lambda f: int(f), resolution_case['o_x_1'].split(":")))
+            o_x_2 = list(map(lambda f: int(f), resolution_case['o_x_2'].split(":")))
+            o_x_3 = list(map(lambda f: int(f), resolution_case['o_x_3'].split(":")))
+            o_x_4 = list(map(lambda f: int(f), resolution_case['o_x_4'].split(":")))
+            slices = [
+                (o_x_1[0], o_x_1[1]),
+                (o_x_2[0], o_x_2[1]),
+                (o_x_3[0], o_x_3[1]),
+                (o_x_4[0],
+                 o_x_4[1] if len(o_x_4) > 1 else resolution_case['orientation_b_x'] - resolution_case[
+                     'orientation_t_x']),
+
+            ]
+            # 调用函数
+            result = self._extract_and_classify(img, slices, save_num, save_err)
+            return result
+        except Exception as e:
+            # log(traceback.format_exc())
+            return None
+
+    def _extract_and_classify(self, img, slices, save_num, save_err):
+        result = 0
+        for i, (start, end) in enumerate(slices):
+            try:
+                img_slice = img[:, start:end]  # 提取图像切片
+                number = self._number_model(img_slice)
+                if number < 0:
+                    return -1
+                result += number * (10 ** (3 - i))  # 计算结果，假设是从最高位到最低位
+            except Exception as e:
+                print(e)
+                return -1
+
+            # 保存图像和数字
+            # save_num(img_slice, number, save_err)
+
+        return result
 
     def _mouse_move_orientation(self, gap, move_mail=False):
         # log(f"鼠标向{'右' if gap > 0 else '左'}移动{gap}")
@@ -256,35 +255,9 @@ class Squard():
             _, mail_img = cv2.threshold(gray, 128, 255, cv2.THRESH_BINARY_INV)
             # 配置 tesseract 以仅识别数字
 
-            _, image_bytes = cv2.imencode('.png', mail_img)
-            mail = ocr.classification(image_bytes.tobytes())
+            mail = self._mail_model(mail_img)
 
-            if len(mail) > 0:
-                if saved:
-
-                    file_name = f'./imgs/mail/{mail}/{mail}_{int(time.time() * 1000)}.png'
-
-                    folder_path = f'./imgs/mail/{mail}'
-                    if not os.path.exists(folder_path):
-                        # 创建文件夹
-                        os.makedirs(folder_path)
-                    cv2.imwrite(file_name, mail_img)
-                if error_save and (int(mail) > 1580 or int(mail) < 800):
-
-                    file_name = f'./imgs/error/mail/{mail}/{mail}_{int(time.time() * 1000)}.png'
-
-                    folder_path = f'./imgs/error/mail/{mail}'
-                    if not os.path.exists(folder_path):
-                        # 创建文件夹
-                        os.makedirs(folder_path)
-                    cv2.imwrite(file_name, mail_img)
-                    cv2.imwrite(f"./imgs/error/mail/{time.time() * 1000}.png", img)
-                    # cv2.imwrite(f'imgs/all/{mail}_e{int(time.time()*1000)}.png',width_img)
-                    # cv2.imwrite(f'imgs/all/{mail}_{int(time.time() * 1000)}.png', img)
-                mail = re.sub(r'[^\d]', '', mail)
-                if mail == '':
-                    return 100000
-                mail = int(mail)
+            if mail > 0:
 
                 n = min(thick_lines, key=lambda coord: abs(
                     coord[1] - int((resolution_case['mail_b_y'] - resolution_case['mail_t_y']) / 2)))
@@ -295,12 +268,13 @@ class Squard():
                 else:
                     mail = mail - abs(m_index - n_index)
                 break
-
         return mail
 
     def _amend_mail(self, target, deep=0):
 
         mail = self._get_mil()
+        if is_stop():
+            return False
         if not mail:
             return None
         # log(f"识别到当前密位:{mail}")
@@ -334,6 +308,8 @@ class Squard():
        '''
 
         mail = self._get_mil()
+        if is_stop():
+            return False
         if not mail:
             return None
         # log(f"识别到当前密位:{mail}")
@@ -382,6 +358,8 @@ class Squard():
         try:
 
             orientation = self._get_orientation()
+            if is_stop():
+                return False
             if not orientation:
                 log("方位识别错误")
                 return False
@@ -419,7 +397,7 @@ class Squard():
         _, img = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
         _, image_bytes = cv2.imencode('.png', img)
         # orientation = get_orientation(self._number_classify, img)
-        orientation = self._number_classify.classification(image_bytes.tobytes())
+        orientation = self._predict_orientation(img)
         cv2.imwrite(f"./imgs/orientation/{time.time() * 1000}_{orientation}.png", img)
         # orientation = get_orientation(self._number_classify, img)
         if not orientation:
@@ -437,11 +415,11 @@ class Squard():
         # TODO  这里把获取方位的图像位置调为根据分辨率自动调整
 
         orientation = self._get_orientation()
-        if not orientation:
-            log("方位识别错误")
+        if is_stop():
             return False
+
         # log(f"当前方位{orientation}")
-        if orientation > 360 or orientation < 0:
+        if orientation < 0:
             log(f"获取方位错误，重新获取")
             press_key('d', 0.01)
             if deep >= 3:

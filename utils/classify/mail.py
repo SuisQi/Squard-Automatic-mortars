@@ -22,6 +22,7 @@ mail_class_labels = {0: '1000', 1: '1010', 2: '1020', 3: '1030', 4: '1040', 5: '
                      65: '870',
                      66: '880', 67: '890', 68: '900', 69: '910', 70: '920', 71: '930', 72: '940', 73: '950', 74: '960',
                      75: '970', 76: '980', 77: '990'}
+number_class_labels = {0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9'}
 
 
 class ToTensor:
@@ -170,7 +171,7 @@ class PredictMail():
 
         mail = int(mail_class_labels[max_index])
 
-        if max_prob >=0.7:
+        if max_prob >= 0.7:
             file_name = f'./imgs/mail/{mail}/{mail}_[{round(max_prob, 2)}]_{int(time.time() * 1000)}.png'
 
             folder_path = f'./imgs/mail/{mail}'
@@ -188,3 +189,47 @@ class PredictMail():
                 os.makedirs(folder_path)
             cv2.imwrite(file_name, im)
             return 0
+
+
+class PredictNumber():
+    def __init__(self, model_path):
+        self._model = DetectMultiBackend(weights=model_path, fp16=False)
+        self._img_size = 64
+
+    def __call__(self, im, saved=True):
+        input_data = preprocess(im, self._img_size)
+        # 调试输出
+        output = self._model.forward(input_data)[0]
+
+        # 对输出进行 softmax 处理
+        def softmax(x):
+            e_x = np.exp(x - np.max(x))
+            return e_x / e_x.sum(axis=-1, keepdims=True)
+
+        # 确保 softmax 输出为一维数组
+        probabilities = softmax(output)[0]
+
+        # 找到最高概率的类别索引
+        max_index = np.argmax(probabilities)
+        max_prob = probabilities[max_index]
+
+        number = int(number_class_labels[max_index])
+
+        if max_prob >= 0.7:
+            file_name = f'./imgs/number/{number}/{number}_[{round(max_prob, 2)}]_{int(time.time() * 1000)}.png'
+
+            folder_path = f'./imgs/number/{number}'
+            if not os.path.exists(folder_path):
+                # 创建文件夹
+                os.makedirs(folder_path)
+            cv2.imwrite(file_name, im)
+            return number
+        else:
+            file_name = f'./imgs/error/number/{number}/{number}_[{round(max_prob, 2)}]_{int(time.time() * 1000)}.png'
+
+            folder_path = f'./imgs/error/number/{number}'
+            if not os.path.exists(folder_path):
+                # 创建文件夹
+                os.makedirs(folder_path)
+            cv2.imwrite(file_name, im)
+            return -1
