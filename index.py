@@ -299,8 +299,8 @@ if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
-    display_rule()
-    display_squard()
+    # display_rule()
+    # display_squard()
     check_redis_service()
     init_settings()
 
