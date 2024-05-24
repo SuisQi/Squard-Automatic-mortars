@@ -133,7 +133,8 @@ export const mouseDown = (store: Store0) => (e: MouseEvent) => {
 
 
 export const mouseUp = (store: Store0) => (e: any) => {
-    // console.log("松开")
+    console.log("松开")
+    // debugger
     const state = store.getState()
     if (store.getState().iconToolState.selectionState === 2) {
         const eventLocation = canvas2world(store.getState().camera, event2canvas(e))
@@ -163,6 +164,9 @@ export const mouseUp = (store: Store0) => (e: any) => {
     if(state.iconToolState.selectionState!==0)
     {
         return;
+    }
+    if ((e.buttons & 1) === 1) {
+        dragOrPan(store, e)
     }
     const dragEntityId = state.uiState.dragEntityId;
     state.world.components.entity.forEach(f => {
