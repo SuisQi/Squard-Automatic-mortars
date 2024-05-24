@@ -134,11 +134,7 @@ export const world: Reducer<World, StoreAction> = (state, action) => {
     case DirDataActionType.update:
       return produce(state,(proxy:World)=>{
 
-        let oldDirData:DirDataComponent = proxy.components.dirData.get(action.payload.entityId) as DirDataComponent;
-        if(oldDirData){
-          update(oldDirData)
-
-        }
+        update(action.payload)
         // proxy.components.dirData.set(action.payload.entityId,oldDirData)
       })
     case DirDataActionType.left:
