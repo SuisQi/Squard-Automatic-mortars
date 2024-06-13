@@ -6,8 +6,30 @@ import { Heightmap } from "../heightmap/types";
 import {Icon, Target, Transform, Weapon} from "../world/types";
 import { Maybe } from "../common/types";
 import { getHeight } from "../heightmap/heightmap";
-import { calcSpreadHigh, distDir, getMortarFiringSolution, solveProjectileFlightHighArc, getS5FiringSolution, FiringSolution, getHellCannonFiringSolution, getBM21FiringSolution, angle2groundDistance} from "../world/projectilePhysics";
-import { GRAVITY, HELL_CANNON_100_DAMAGE_RANGE, HELL_CANNON_25_DAMAGE_RANGE, MAPSCALE, MORTAR_100_DAMAGE_RANGE, MORTAR_25_DAMAGE_RANGE, MORTAR_DEVIATION, MORTAR_VELOCITY, US_MIL} from "../world/constants";
+import {
+  calcSpreadHigh,
+  distDir,
+  getMortarFiringSolution,
+  solveProjectileFlightHighArc,
+  getS5FiringSolution,
+  FiringSolution,
+  getHellCannonFiringSolution,
+  getBM21FiringSolution,
+  angle2groundDistance,
+  getM106FiringSolution
+} from "../world/projectilePhysics";
+import {
+  GRAVITY,
+  HELL_CANNON_100_DAMAGE_RANGE,
+  HELL_CANNON_25_DAMAGE_RANGE,
+  M106_100_DAMAGE_RANGE, M106_25_DAMAGE_RANGE,
+  MAPSCALE,
+  MORTAR_100_DAMAGE_RANGE,
+  MORTAR_25_DAMAGE_RANGE,
+  MORTAR_DEVIATION,
+  MORTAR_VELOCITY,
+  US_MIL
+} from "../world/constants";
 import { UserSettings } from "../ui/types";
 import { $s5map } from "../elements";
 import { TEXT_RED, TEXT_WHITE } from "./constants";
@@ -42,7 +64,16 @@ const drawSimpleMortarSplash = (ctx: CanvasRenderingContext2D, lineWidthFactor: 
   ctx.arc(0, 0, MORTAR_25_DAMAGE_RANGE, 0, 2 * Math.PI);
   ctx.stroke();
 }
-
+const drawSimpleM106Splash = (ctx: CanvasRenderingContext2D, lineWidthFactor: number): void => {
+  ctx.lineWidth = 1 * lineWidthFactor
+  ctx.strokeStyle = '#f00';
+  ctx.beginPath();
+  ctx.arc(0, 0, M106_100_DAMAGE_RANGE, 0, 2 * Math.PI);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, M106_25_DAMAGE_RANGE, 0, 2 * Math.PI);
+  ctx.stroke();
+}
 const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
 
   ctx.lineWidth = 1 * lineWidthFactor
@@ -79,6 +110,43 @@ const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringS
   }
 }
 
+const drawM106Spread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
+  ctx.beginPath()
+  ctx.save()
+  ctx.lineWidth = 1 * lineWidthFactor
+
+
+  if(!selected) {
+    ctx.strokeStyle = '#00f';
+  }
+
+  drawSpreadEllipse(
+      ctx,
+      firingSolution.weaponToTargetVec,
+      firingSolution.horizontalSpread,
+      firingSolution.closeSpread,
+      firingSolution.closeSpread,
+      selected
+  )
+  if (withSplash){
+    ctx.strokeStyle = '#f00';
+    drawSpreadEllipse(
+        ctx,
+        firingSolution.weaponToTargetVec,
+        firingSolution.horizontalSpread + M106_100_DAMAGE_RANGE,
+        firingSolution.closeSpread + M106_100_DAMAGE_RANGE,
+        firingSolution.closeSpread + M106_100_DAMAGE_RANGE
+    )
+    drawSpreadEllipse(
+        ctx,
+        firingSolution.weaponToTargetVec,
+        firingSolution.horizontalSpread + M106_25_DAMAGE_RANGE,
+        firingSolution.closeSpread + M106_25_DAMAGE_RANGE,
+        firingSolution.closeSpread + M106_25_DAMAGE_RANGE
+    )
+  }
+  ctx.restore()
+}
 const drawHellCannonSplash = (ctx: CanvasRenderingContext2D, lineWidthFactor: number): void => {
   ctx.lineWidth = 1 * lineWidthFactor
   ctx.strokeStyle = '#f00';
@@ -154,6 +222,9 @@ export const drawTargets = (ctx: CanvasRenderingContext2D, weapons: Array<Weapon
     targets.forEach((t: Target) => drawHellCannonTarget(ctx, camera, userSettings, heightmap, weapons, t))
   } else if (userSettings.weaponType === "bm21"){
     targets.forEach((t: Target) => drawBM21Target(ctx, camera, userSettings, heightmap, weapons, t))
+  }
+  else if (userSettings.weaponType === "M106"){
+    targets.forEach((t: Target) => drawM106Target(ctx, camera, userSettings, heightmap, weapons, t,dirdatas,userId))
   }
 }
 
@@ -259,7 +330,81 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
   })
   drawTargetIcon(ctx, camera, target.transform);
 }
+const drawM106Target = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target,dirdatas:Map<number,DirDataComponent>,userId:User['id']) => {
+  const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0] // uniform scaling
+  canonicalEntitySort(weapons);
+  const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
+  const allWeaponsIndex: any = {};
+  weapons.forEach((w: Weapon, index: number) => {
+    if (w.isActive){
+      allWeaponsIndex[w.entityId] = index;
+    }
+  })
+  activeWeapons.forEach((weapon: Weapon, activeWeaponIndex: number) => {
+    const weaponTranslation = getTranslation(weapon.transform);
+    const weaponHeight = getHeight(heightmap, weaponTranslation)
+    weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
+    const targetTranslation = getTranslation(target.transform);
+    const targetHeight = getHeight(heightmap, targetTranslation)
+    targetTranslation[2] = targetHeight;
+    const solution = getM106FiringSolution(weaponTranslation, targetTranslation).highArc;
 
+
+
+    const lineHeight = userSettings.fontSize * (userSettings.targetCompactMode ? 1 : 1.7)
+
+    if (userSettings.targetGrid){
+      // could remove transform param via a ctxMove(translate: vec3)
+      drawTargetGridMortar(ctx, canvasSizeFactor, weapon.transform, solution);
+    }
+    ctx.save()
+    applyTransform(ctx, target.transform)
+    if (userSettings.targetSpread /* && weapons.length < 2 */){
+      //console.log("spread", hSpread, closeSpread, farSpread)
+      if (dirdatas.get(target.entityId)?.userIds?.includes(userId)??false){
+        ctx.strokeStyle = '#ff004d';
+        ctx.fillStyle='rgba(231, 76, 60,0.5)'
+      }else if(!dirdatas.get(target.entityId)?.userIds?.includes(userId)??false){
+        ctx.strokeStyle = '#AAB7B8';
+        ctx.fillStyle='rgba(131, 145, 146,0.5)'
+      }
+      drawM106Spread(ctx, solution, canvasSizeFactor, userSettings.targetSplash,dirdatas.has(target.entityId));
+    } else if (userSettings.targetSplash){
+      drawSimpleM106Splash(ctx, canvasSizeFactor);
+    }
+    // firing solution text
+    applyTransform(ctx, canvasScaleTransform(camera))
+    const angleValue =  solution.angle / Math.PI * 180 ;
+
+    applyTransform(ctx, newTranslation(10, activeWeaponIndex * lineHeight, 0))
+    if (userSettings.targetCompactMode){
+      let angleText =  "-----"
+      const angleValuePrecision =1
+      if (solution.angle && angleValue >= 1000){
+        angleText = angleValue.toFixed(angleValuePrecision).toString().substr(1, 4 + angleValuePrecision)
+      } else if (solution.angle) {
+        angleText = angleValue.toFixed(angleValuePrecision).toString().substr(0, 3 + angleValuePrecision)
+      }
+      if (activeWeapons.length > 1){
+        angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
+      }
+
+      outlineText(ctx, angleText, "middle", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true)
+    } else {
+      let angleText = solution.angle ? `${(angleValue.toFixed(1))}` : "-----"
+      if (activeWeapons.length > 1){
+        angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
+      }
+      outlineText(ctx, angleText, "bottom", TEXT_RED, TEXT_WHITE,  userSettings.fontSize, true)
+      const bottomText = userSettings.targetDistance ? `${solution.dir.toFixed(1)}° ${(solution.dist * MAPSCALE).toFixed(0)}m` : `${solution.dir.toFixed(1)}°`
+
+
+      outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true)
+    }
+    ctx.restore();
+  })
+  drawTargetIcon(ctx, camera, target.transform);
+}
 function drawRocketPodTarget(ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target){
   const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0];
   canonicalEntitySort(weapons);

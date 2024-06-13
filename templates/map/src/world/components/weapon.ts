@@ -16,15 +16,15 @@ export const tryNewWeaponComponent = (components: Components, action: SetAction)
   return null
 }
 
-export type WeaponComponent = { 
-  weaponType: WeaponType; 
+export type WeaponComponent = {
+  weaponType: WeaponType;
   isActive: boolean;
   heightOverGround: number;
 }
-export type WeaponType = "standardMortar" | "technicalMortar" | "ub32" | "hellCannon" | "bm21"
+export type WeaponType = "standardMortar" | "technicalMortar" | "ub32" | "hellCannon" | "bm21"|"M106"
 
 type State = Map<EntityId, WeaponComponent>;
-export const weaponReducer: (state: State, action: StoreAction) => State = 
+export const weaponReducer: (state: State, action: StoreAction) => State =
   (state, action) => {
     if (state === undefined){
       return new Map();
@@ -32,14 +32,14 @@ export const weaponReducer: (state: State, action: StoreAction) => State =
     switch(action.type){
       case WeaponActionType.setActive:
         return produce(state, (draft: State) => {
-          let weapon = draft.get(action.payload.entityId) 
+          let weapon = draft.get(action.payload.entityId)
           if (weapon){
             weapon.isActive = action.payload.newState;
           }
         })
       case WeaponActionType.toggleActive:
         return produce(state, (draft: State) => {
-          let weapon = draft.get(action.payload.entityId) 
+          let weapon = draft.get(action.payload.entityId)
           if (weapon){
             weapon.isActive = !weapon.isActive;
           }
