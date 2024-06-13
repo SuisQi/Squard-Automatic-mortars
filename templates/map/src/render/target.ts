@@ -16,13 +16,13 @@ import {
   getHellCannonFiringSolution,
   getBM21FiringSolution,
   angle2groundDistance,
-  getM106FiringSolution
+  getM121FiringSolution
 } from "../world/projectilePhysics";
 import {
   GRAVITY,
   HELL_CANNON_100_DAMAGE_RANGE,
   HELL_CANNON_25_DAMAGE_RANGE,
-  M106_100_DAMAGE_RANGE, M106_25_DAMAGE_RANGE,
+  M121_100_DAMAGE_RANGE, M121_25_DAMAGE_RANGE,
   MAPSCALE,
   MORTAR_100_DAMAGE_RANGE,
   MORTAR_25_DAMAGE_RANGE,
@@ -64,14 +64,14 @@ const drawSimpleMortarSplash = (ctx: CanvasRenderingContext2D, lineWidthFactor: 
   ctx.arc(0, 0, MORTAR_25_DAMAGE_RANGE, 0, 2 * Math.PI);
   ctx.stroke();
 }
-const drawSimpleM106Splash = (ctx: CanvasRenderingContext2D, lineWidthFactor: number): void => {
+const drawSimpleM121Splash = (ctx: CanvasRenderingContext2D, lineWidthFactor: number): void => {
   ctx.lineWidth = 1 * lineWidthFactor
   ctx.strokeStyle = '#f00';
   ctx.beginPath();
-  ctx.arc(0, 0, M106_100_DAMAGE_RANGE, 0, 2 * Math.PI);
+  ctx.arc(0, 0, M121_100_DAMAGE_RANGE, 0, 2 * Math.PI);
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(0, 0, M106_25_DAMAGE_RANGE, 0, 2 * Math.PI);
+  ctx.arc(0, 0, M121_25_DAMAGE_RANGE, 0, 2 * Math.PI);
   ctx.stroke();
 }
 const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
@@ -110,7 +110,7 @@ const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringS
   }
 }
 
-const drawM106Spread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
+const drawM121Spread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
   ctx.beginPath()
   ctx.save()
   ctx.lineWidth = 1 * lineWidthFactor
@@ -133,16 +133,16 @@ const drawM106Spread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSol
     drawSpreadEllipse(
         ctx,
         firingSolution.weaponToTargetVec,
-        firingSolution.horizontalSpread + M106_100_DAMAGE_RANGE,
-        firingSolution.closeSpread + M106_100_DAMAGE_RANGE,
-        firingSolution.closeSpread + M106_100_DAMAGE_RANGE
+        firingSolution.horizontalSpread + M121_100_DAMAGE_RANGE,
+        firingSolution.closeSpread + M121_100_DAMAGE_RANGE,
+        firingSolution.closeSpread + M121_100_DAMAGE_RANGE
     )
     drawSpreadEllipse(
         ctx,
         firingSolution.weaponToTargetVec,
-        firingSolution.horizontalSpread + M106_25_DAMAGE_RANGE,
-        firingSolution.closeSpread + M106_25_DAMAGE_RANGE,
-        firingSolution.closeSpread + M106_25_DAMAGE_RANGE
+        firingSolution.horizontalSpread + M121_25_DAMAGE_RANGE,
+        firingSolution.closeSpread + M121_25_DAMAGE_RANGE,
+        firingSolution.closeSpread + M121_25_DAMAGE_RANGE
     )
   }
   ctx.restore()
@@ -223,8 +223,8 @@ export const drawTargets = (ctx: CanvasRenderingContext2D, weapons: Array<Weapon
   } else if (userSettings.weaponType === "bm21"){
     targets.forEach((t: Target) => drawBM21Target(ctx, camera, userSettings, heightmap, weapons, t))
   }
-  else if (userSettings.weaponType === "M106"){
-    targets.forEach((t: Target) => drawM106Target(ctx, camera, userSettings, heightmap, weapons, t,dirdatas,userId))
+  else if (userSettings.weaponType === "M121"){
+    targets.forEach((t: Target) => drawM121Target(ctx, camera, userSettings, heightmap, weapons, t,dirdatas,userId))
   }
 }
 
@@ -330,7 +330,7 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
   })
   drawTargetIcon(ctx, camera, target.transform);
 }
-const drawM106Target = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target,dirdatas:Map<number,DirDataComponent>,userId:User['id']) => {
+const drawM121Target = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target,dirdatas:Map<number,DirDataComponent>,userId:User['id']) => {
   const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0] // uniform scaling
   canonicalEntitySort(weapons);
   const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
@@ -347,7 +347,7 @@ const drawM106Target = (ctx: any, camera:Camera, userSettings: UserSettings, hei
     const targetTranslation = getTranslation(target.transform);
     const targetHeight = getHeight(heightmap, targetTranslation)
     targetTranslation[2] = targetHeight;
-    const solution = getM106FiringSolution(weaponTranslation, targetTranslation).highArc;
+    const solution = getM121FiringSolution(weaponTranslation, targetTranslation).highArc;
 
 
 
@@ -368,9 +368,9 @@ const drawM106Target = (ctx: any, camera:Camera, userSettings: UserSettings, hei
         ctx.strokeStyle = '#AAB7B8';
         ctx.fillStyle='rgba(131, 145, 146,0.5)'
       }
-      drawM106Spread(ctx, solution, canvasSizeFactor, userSettings.targetSplash,dirdatas.has(target.entityId));
+      drawM121Spread(ctx, solution, canvasSizeFactor, userSettings.targetSplash,dirdatas.has(target.entityId));
     } else if (userSettings.targetSplash){
-      drawSimpleM106Splash(ctx, canvasSizeFactor);
+      drawSimpleM121Splash(ctx, canvasSizeFactor);
     }
     // firing solution text
     applyTransform(ctx, canvasScaleTransform(camera))

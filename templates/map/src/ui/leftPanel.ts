@@ -59,7 +59,7 @@ export const mapOptions = [
 ]
 const weaponOptions = [
   ["standardMortar", "Standard mortar", "options/mortarRound10.png"],
-  ["M106", "120mm mortar", "options/mortarRound10.png"],
+  ["M121", "120mm mortar", "options/mortarRound10.png"],
   ["technicalMortar", "Technical mortar", "options/mortarRound10.png"],
   ["ub32", "UB32/S5 rockets", "options/s5rocket2.png"],
   ["hellCannon", "Hell Cannon", "options/mortarRound10.png"],
