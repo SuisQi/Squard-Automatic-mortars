@@ -14,7 +14,9 @@ a = Analysis(
     ("./templates/control/dist","./templates/control/dist"),
     ("./templates/map/public","./templates/map/public"),
     ("./resolution_case.json","."),
-    ("./Redis-x64-5.0.14.1","./Redis-x64-5.0.14.1")
+    ("./Redis-x64-5.0.14.1","./Redis-x64-5.0.14.1"),
+    ("./model","./model"),
+    ("./lib","./lib")
     ],
     hiddenimports=['engineio.async_drivers.threading','torch','pytorch'],
     hookspath=[],

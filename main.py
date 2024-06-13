@@ -15,23 +15,19 @@ import pyautogui
 from show_info import topmost_orientation, topmost_mail
 from utils.classify.mail import PredictMail, PredictNumber
 from utils.redis_connect import redis_cli
-from utils.utils import generate_bezier_points, get_settings, get_resolution_case
+from utils.utils import generate_bezier_points, get_settings, get_resolution_case, log
 
 pyautogui.FAILSAFE = False
 from utils.calculate_press_time import calculate_press_ad_time, calculate_press_ws_time
 from utils.mouse.mouse_ghub import Mouse_ghub
 from utils.screen_shot import screen_shot
 
-pubsub_msgs = []  # 一个日志队列
+
 
 resolution_case = get_resolution_case()
 
 
-def log(msg):
-    # 获取当前时间
-    now = datetime.now()
-    t = now.strftime("%H:%M:%S.") + str(now.microsecond)[:3]
-    pubsub_msgs.append(f'{t}  :{msg}')
+
 
 
 def filter_lines_by_y1(coords, y1_threshold):
@@ -357,7 +353,7 @@ class Squard():
     def _amend_orientation(self, target, deep=0):
         try:
 
-            orientation = self._get_orientation()
+            orientation = self._get_orientation(False)
             if is_stop():
                 return False
             if not orientation:
@@ -386,7 +382,7 @@ class Squard():
                 return
             return self._amend_orientation(target, deep + 1)
 
-    def _get_orientation(self):
+    def _get_orientation(self,save=True):
         img = self._screen.capture(resolution_case['orientation_t_x'], resolution_case['orientation_t_y'],
                                    resolution_case['orientation_b_x'], resolution_case['orientation_b_y'])
         if not os.path.exists("./imgs/orientation"):
@@ -397,8 +393,9 @@ class Squard():
         _, img = cv2.threshold(gray, 100, 255, cv2.THRESH_BINARY)
         _, image_bytes = cv2.imencode('.png', img)
         # orientation = get_orientation(self._number_classify, img)
-        orientation = self._predict_orientation(img)
-        cv2.imwrite(f"./imgs/orientation/{time.time() * 1000}_{orientation}.png", img)
+        orientation = self._predict_orientation(img,save)
+        if save:
+            cv2.imwrite(f"./imgs/orientation/{time.time() * 1000}_{orientation}.png", img)
         # orientation = get_orientation(self._number_classify, img)
         if not orientation:
             return False

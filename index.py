@@ -19,14 +19,16 @@ from websockets.exceptions import ConnectionClosedOK
 
 from API.apis import mortar_blueprint
 from login import verify, display_squard, display_rule
-from main import log, Squard, pubsub_msgs, is_auto_fire, is_stop
+from main import log, Squard, is_auto_fire, is_stop
 
 from flask_cors import CORS
 from flask import Flask, jsonify
 
 from show_info import root, topmost_mail, topmost_orientation
+from utils.key_mouse_listener import KeyMouseListener
+from utils.map_raning import MapRanging
 from utils.redis_connect import check_redis_service, redis_cli
-from utils.utils import get_settings
+from utils.utils import get_settings, pubsub_msgs
 from websocket_.dir_websocket import start_dir_server
 from websocket_.server import web_server
 
@@ -153,7 +155,11 @@ async def fire_client(squard, userId, sessionId):
                         res = json.loads(result)
                         targetId = res['targetId']
                         if targetId:
-                            standard = json.loads(redis_cli.hget("squad:fire_data:standard", targetId).decode())
+                            standard = redis_cli.hget("squad:fire_data:standard", targetId)
+                            if not standard:
+                                log(f"ID:{targetId}没有密位")
+                                break
+                            standard=json.loads(standard.decode())
                             # 如果不在范围内
                             if standard['angle'] == 0:
                                 websocket.send(json.dumps({
@@ -176,27 +182,24 @@ async def fire_client(squard, userId, sessionId):
         pass
 
 
-from pynput.mouse import Listener, Button
-
-
-def on_click(x, y, button, pressed):
-    if pressed:
-        if button == Button.middle:
-            state = redis_cli.get("squad:fire_data:control:state")
-            state = int(state)
-            if state==0:
-                redis_cli.set("squad:fire_data:control:state", 1)
-            else:
-                redis_cli.set("squad:fire_data:control:state", 0)
+def set_fire_state():
+    state = redis_cli.get("squad:fire_data:control:state")
+    state = int(state)
+    if state == 0:
+        redis_cli.set("squad:fire_data:control:state", 1)
+    else:
+        redis_cli.set("squad:fire_data:control:state", 0)
 
 
 def listener_click():
-    with Listener(on_click=on_click) as listener:
-        listener.join()
+    m = MapRanging()
+    threading.Thread(target=start_map).start()
+    threading.Thread(target=start_control).start()
+    k = KeyMouseListener(ctrl_action=set_fire_state,alt_action=m.start)
+    k.start()
 
 
 def listen_fire():
-    log("启动成功")
     squard = Squard()
     while True:
         try:
@@ -212,10 +215,15 @@ def listen_fire():
                 time.sleep(0.5)
                 continue
 
-
             # 协同开火
             if synergy:
-                sessionId = redis_cli.get("squad:session:sessionId").decode()
+                sessionId = redis_cli.get("squad:session:sessionId")
+                if not sessionId:
+                    redis_cli.set("squad:fire_data:control:synergy",0)
+                    log('没加入房间')
+                    continue
+                sessionId = sessionId.decode()
+
                 asyncio.run(fire_client(squard, userId, sessionId))
                 log("停火")
                 redis_cli.set("squad:fire_data:control:state", 0)
@@ -254,12 +262,13 @@ def init_settings():
 
     '''
     redis_cli.set("squad:session:userId", "0")
-    redis_cli.set('squad:settings', json.dumps({
-        "beforeFire": [0.5, 1],
-        "afterFire": [0.5, 1],
-        "mail_gap": 1,
-        "orientation_gap": 0.1
-    }))
+    if not redis_cli.exists("squad:settings"):
+        redis_cli.set('squad:settings', json.dumps({
+            "beforeFire": [0.5, 1],
+            "afterFire": [0.5, 1],
+            "mail_gap": 1,
+            "orientation_gap": 0.1
+        }))
     trajectory_default = {
         "mail": [
             {
@@ -299,14 +308,14 @@ if __name__ == '__main__':
     # if not login():
     #     input()
     #     exit(0)
-    # display_rule()
-    # display_squard()
+    display_rule()
+    display_squard()
     check_redis_service()
+    subprocess.Popen("start ./lib/rpc.exe", shell=True)
     init_settings()
 
     threading.Thread(target=listen_for_logs).start()
-    threading.Thread(target=start_map).start()
-    threading.Thread(target=start_control).start()
+
     threading.Thread(target=listen_fire).start()
     # 一直从计算器网页端获取方位密位
     # start_dir_server()

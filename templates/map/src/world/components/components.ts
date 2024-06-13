@@ -118,7 +118,8 @@ export const removeComponents = (components: Components, entityId: EntityId): Co
 export const removeComponentsMut = (components: Components, entityId: EntityId): void => {
   const componentKeys = Object.keys(components) as Array<keyof Components>;
   componentKeys.forEach((componentKey: ComponentKey) => {
-    if(componentKey==="selection")
+
+    if(componentKey==="selection"||componentKey==="icon")
       return
     components[componentKey].delete(entityId);
   })

@@ -1,10 +1,13 @@
 import json
 import re
 
+import cv2
 import requests
 from flask import request, Blueprint
 
 from API.R import R
+import utils.public as pub
+from utils.map_raning import MapRanging
 from utils.redis_connect import redis_cli
 from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords
 
@@ -26,7 +29,7 @@ def save():
         if sessionId:
             sessionId = sessionId.decode()
             ip = redis_cli.get("squad:session:ip").decode()
-            requests.get(f"http://{ip}:8081/add_fire?sessionId={sessionId}&targetId={data['entityId']}",proxies={})
+            requests.get(f"http://{ip}:8081/add_fire?sessionId={sessionId}&targetId={data['entityId']}", proxies={})
     return R(0)
 
 
@@ -35,12 +38,15 @@ def save():
 def update():
     if request.is_json:
         data = request.get_json()
-        standard = json.loads(redis_cli.hget('squad:fire_data:standard', data['entityId']))
+        standard = redis_cli.hget('squad:fire_data:standard', data['entityId'])
+        if not standard:
+            return R(0)
+        standard = json.loads(standard)
         if 'userIds' in data:
             standard['userIds'] = data['userIds']
         if 'dir' in data and 'angle' in data:
-            data['dir'] = round(data['dir'], 1)
-            data['angle'] = int(data['angle'])
+            standard['dir'] = round(data['dir'], 1)
+            standard['angle'] = int(data['angle'])
         redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(standard))
 
     return R(0)
@@ -84,7 +90,7 @@ def remove():
     if sessionId:
         sessionId = sessionId.decode()
         ip = redis_cli.get("squad:session:ip").decode()
-        requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}",proxies={})
+        requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}", proxies={})
     return R(0)
 
 
@@ -96,7 +102,7 @@ def remove_all():
     if sessionId:
         sessionId = sessionId.decode()
         ip = redis_cli.get("squad:session:ip").decode()
-        requests.get(f"http://{ip}:8081/remove_all?sessionId={sessionId}",proxies={})
+        requests.get(f"http://{ip}:8081/remove_all?sessionId={sessionId}", proxies={})
     return R(0)
 
 
@@ -254,3 +260,13 @@ def set_dir_data():
     dir_data = json.loads(redis_cli.hget("squad:fire_data:standard", data['id']))
     dir_data['dir'] = data['dir']
     dir_data['angle'] = data['angle']
+    return R(200)
+
+
+@mortar_blueprint.route("/set_map", methods=["GET"])
+def set_map():
+    file_name = request.args.get("file_name")
+    m = MapRanging()
+    m.set_map(f"./templates/map/public/{file_name}")
+
+    return R(0)

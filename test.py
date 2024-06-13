@@ -1,5 +1,7 @@
-import asyncio
+import onnxruntime
 
-from websocket_.server import web_server
+print(onnxruntime.get_device())
 
-asyncio.run(web_server())
+ort_session = onnxruntime.InferenceSession("./model/map.onnx",
+providers=['CUDAExecutionProvider'])
+print(ort_session.get_providers())

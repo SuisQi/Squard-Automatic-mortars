@@ -4,7 +4,7 @@
   "description": "",
   "private": true,
   "scripts": {
-    "server": "live-server --port=8000 ./public",
+    "server": "live-server --port=8002 ./public",
     "dev": "webpack-dev-server  --env NODE_ENV=development ",
     "start": "webpack server",
     "css": "npx tailwindcss -i ./public/t_i.css -o ./public/t_o.css --watch",
