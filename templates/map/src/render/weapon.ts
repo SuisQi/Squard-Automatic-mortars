@@ -6,8 +6,8 @@ import {
   MORTAR_MIN_RANGE,
   MORTAR_MAX_RANGE,
   HELL_CANNON_MAX_RANGE,
-  M106_MAX_RANGE,
-  M106_MIN_RANGE
+  M121_MAX_RANGE,
+  M121_MIN_RANGE
 } from "../world/constants";
 import { mat4, vec3 } from "gl-matrix";
 import { EntityId, Weapon } from "../world/types";
@@ -26,8 +26,8 @@ const drawMaxRangeCircle = (ctx: CanvasRenderingContext2D, weaponType: WeaponTyp
     ctx.arc(0, 0, HELL_CANNON_MAX_RANGE, 0, 2 * Math.PI);
   } else if (weaponType == "standardMortar" || weaponType == "technicalMortar" ){
     ctx.arc(0, 0, MORTAR_MAX_RANGE, 0, 2 * Math.PI);
-  }else if(weaponType=="M106"){
-    ctx.arc(0, 0, M106_MAX_RANGE, 0, 2 * Math.PI);
+  }else if(weaponType=="M121"){
+    ctx.arc(0, 0, M121_MAX_RANGE, 0, 2 * Math.PI);
   }
   ctx.stroke();
 }
@@ -39,8 +39,8 @@ const drawMinRangeCircle=(ctx: CanvasRenderingContext2D, weaponType: WeaponType,
   ctx.beginPath();
   ctx.lineWidth = 1 * scale;
   ctx.strokeStyle = '#ff002f';
-  if(weaponType=="M106"){
-    ctx.arc(0, 0, M106_MIN_RANGE, 0, 2 * Math.PI);
+  if(weaponType=="M121"){
+    ctx.arc(0, 0, M121_MIN_RANGE, 0, 2 * Math.PI);
   }else {
     ctx.arc(0, 0, MORTAR_MIN_RANGE, 0, 2 * Math.PI);
   }

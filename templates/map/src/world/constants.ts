@@ -50,11 +50,11 @@ export const BM21_EXPLOSIVE_FALLOFF = 1;
 export const BM21_REARM_TIME_PER_ROCKET = 3.8;
 
 //120mm
-export const M106_MOA = 25;
-export const M106_DRAG = 0.01;
-export const M106_VELOCITY = 19000;
-export const M106_MIN_RANGE = 30000; // cm
-export const M106_MAX_RANGE = 360000 // cm
-export const M106_DEVIATION = M106_MOA / 60 * Math.PI / 180/2 ; // cone angle from center ~ "radius angle"
-export const M106_100_DAMAGE_RANGE = 3000; // cm
-export const M106_25_DAMAGE_RANGE = 6000; // cm
+export const M121_MOA = 25;
+export const M121_DRAG = 0;
+export const M121_VELOCITY = 19000;
+export const M121_MIN_RANGE = 30000; // cm
+export const M121_MAX_RANGE = 360000 // cm
+export const M121_DEVIATION = M121_MOA / 60 * Math.PI / 180/2 ; // cone angle from center ~ "radius angle"
+export const M121_100_DAMAGE_RANGE = 3000; // cm
+export const M121_25_DAMAGE_RANGE = 6000; // cm
