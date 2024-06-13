@@ -177,8 +177,9 @@ class PredictMail():
             folder_path = f'./imgs/mail/{mail}'
             if not os.path.exists(folder_path):
                 # 创建文件夹
-                os.makedirs(folder_path)
-            cv2.imwrite(file_name, im)
+                os.makedirs(folder_path,exist_ok=True)
+            if saved:
+                cv2.imwrite(file_name, im)
             return int(mail_class_labels[max_index])
         else:
             file_name = f'./imgs/error/mail/{mail}/{mail}_[{round(max_prob, 2)}]_{int(time.time() * 1000)}.png'
@@ -186,8 +187,9 @@ class PredictMail():
             folder_path = f'./imgs/error/mail/{mail}'
             if not os.path.exists(folder_path):
                 # 创建文件夹
-                os.makedirs(folder_path)
-            cv2.imwrite(file_name, im)
+                os.makedirs(folder_path,exist_ok=True)
+            if saved:
+                cv2.imwrite(file_name, im)
             return 0
 
 
@@ -221,8 +223,9 @@ class PredictNumber():
             folder_path = f'./imgs/number/{number}'
             if not os.path.exists(folder_path):
                 # 创建文件夹
-                os.makedirs(folder_path)
-            cv2.imwrite(file_name, im)
+                os.makedirs(folder_path,exist_ok=True)
+            if saved:
+                cv2.imwrite(file_name, im)
             return number
         else:
             file_name = f'./imgs/error/number/{number}/{number}_[{round(max_prob, 2)}]_{int(time.time() * 1000)}.png'
@@ -230,6 +233,7 @@ class PredictNumber():
             folder_path = f'./imgs/error/number/{number}'
             if not os.path.exists(folder_path):
                 # 创建文件夹
-                os.makedirs(folder_path)
-            cv2.imwrite(file_name, im)
+                os.makedirs(folder_path,exist_ok=True)
+            if saved:
+                cv2.imwrite(file_name, im)
             return -1

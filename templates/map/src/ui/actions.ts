@@ -14,6 +14,7 @@ import { $contourmap } from '../elements';
 import { maps } from '../common/mapData';
 import { EntityId } from '../world/types';
 import {dispatch} from "../store";
+import {set_map} from "../api/standard";
 
 export const newUserSettingsWriteAction: <K extends keyof UserSettings>(k: K, v: UserSettings[K]) => (dispatch:any, getState:any) => Promise<any> =
   (k, v) => (dispatch, getState) => {
@@ -51,7 +52,8 @@ export const settingsToActions: (settings: Partial<UserSettings>) => Array<UISta
   }
 
 export const changeMap = (new_map_id: keyof (typeof maps)) => (dispatch: any, getState:any) => {
-  const contourmap_active = getState().userSettings.contourmap
+  const contourmap_active = getState().userSettings.contourmap;
+    set_map(maps[new_map_id]['minimap_image_src'])
   return dispatch(newUserSettingsWriteAction("mapId", new_map_id)).then(
     () => contourmap_active ? $contourmap.set_image_source((maps[new_map_id] as any)?.contourmap_image_src || "") : null
   );

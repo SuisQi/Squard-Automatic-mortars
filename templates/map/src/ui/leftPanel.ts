@@ -59,6 +59,7 @@ export const mapOptions = [
 ]
 const weaponOptions = [
   ["standardMortar", "Standard mortar", "options/mortarRound10.png"],
+  ["M106", "120mm mortar", "options/mortarRound10.png"],
   ["technicalMortar", "Technical mortar", "options/mortarRound10.png"],
   ["ub32", "UB32/S5 rockets", "options/s5rocket2.png"],
   ["hellCannon", "Hell Cannon", "options/mortarRound10.png"],
@@ -428,7 +429,7 @@ const mapDispatchToProps = (dispatch: any) => ({
   onChangeWeaponHeightOverGround: (entityId: EntityId) => (e: any) => dispatch(setWeaponHeightOverGroundMeters(entityId, parseInt(e.target.value))), //dispatch(writeUserSettings("extraWeaponHeight", parseInt(e.target.value))),
   onClickRemoveAllTargets: (e: any) => {
     dispatch(removeAllTargets())
-    dispatch({type:IconActionType.remove_all})
+    // dispatch({type:IconActionType.remove_all})
   },
   onChangeDeleteMode: (e: any) => dispatch(writeUserSettings("deleteMode", e.target.value)),
   onChangeExtraButtons: (e: any) => dispatch(writeUserSettings("extraButtonsAlwaysShown", e.target.value)),

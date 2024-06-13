@@ -46,6 +46,7 @@ def create_topmost_window(x, y, width, height, text):
 root = tk.Tk()
 win_w = 120
 win_h = 50
+icon_w = 150
 # 隐藏主窗口
 root.withdraw()
 resolution_case = get_resolution_case()
@@ -57,9 +58,37 @@ topmost_orientation = create_topmost_window(
 topmost_mail = create_topmost_window(int(resolution_case['mail_b_x'] + 3), int(resolution_case['mail_c_y'] - win_h / 2),
                                      win_w, win_h, "窗口 2")
 
+# A标
+a_icon = create_topmost_window(
+    int((resolution_case['orientation_b_x'] + resolution_case['orientation_t_x']) / 4 - win_w / 2),
+    100,
+    icon_w, win_h,"A:100m,1580°"
+)
+a_icon['set_background_color']("green")
+a_icon['set_visibility'](False)
+# B标
+b_icon = create_topmost_window(
+    int((resolution_case['orientation_b_x'] + resolution_case['orientation_t_x']) / 2 - win_w / 2),
+    100,
+    icon_w, win_h,"B:100m,1580°"
+)
+b_icon['set_background_color']("#A569BD")
+b_icon['set_visibility'](False)
+
+# C标
+c_icon = create_topmost_window(
+    int((resolution_case['orientation_b_x'] + resolution_case['orientation_t_x'])*3 / 4 - win_w / 2),
+    100,
+    icon_w, win_h,"A:100m,1580°"
+)
+c_icon['set_background_color']("#76D7C4")
+c_icon['set_visibility'](False)
+
+
 # 更新窗口文本内容的示例
 topmost_mail["update_text"]("密位:1333")
 topmost_orientation["update_text"]("方位:111.1")
 topmost_mail['set_visibility'](False)
+
 topmost_orientation['set_visibility'](False)
 

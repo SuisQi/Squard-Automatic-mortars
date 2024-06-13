@@ -10,6 +10,13 @@ import win32ui
 
 
 class screen_shot():
+    _instance = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls._instance is None:
+            cls._instance = super(screen_shot, cls).__new__(cls, *args, **kwargs)
+        return cls._instance
+
     def __init__(self):
         # hwnd = win32gui.FindWindow(0, "dumpbin - Everything")
         # hwnd = win32gui.FindWindow(0, win_name)
@@ -59,5 +66,3 @@ class screen_shot():
             # Ensuring the array is contiguous in memory
             img_np = np.ascontiguousarray(img_np[:, :, :3])  # Trimming to BGR and making contiguous
             return img_np
-
-

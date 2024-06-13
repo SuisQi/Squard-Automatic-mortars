@@ -5,6 +5,7 @@ import {getTranslation} from "../world/transformations";
 import {getHeight} from "../heightmap/heightmap";
 import {getMortarFiringSolution} from "../world/projectilePhysics";
 import {US_MIL} from "../world/constants";
+import {vec3} from "gl-matrix";
 
 export const maps = {
   //default scale 100, default rotation 0
@@ -417,7 +418,8 @@ export const maps = {
         "compression": {"z_translate": 0 }
     },
 }
-export const getSolution = (state: StoreState, target: any) => {
+// console.log(Object.keys(maps))
+export const getSolution = (state: StoreState, target: any,targetPos?:any) => {
 
     const userSettings = state.userSettings
 
@@ -426,10 +428,11 @@ export const getSolution = (state: StoreState, target: any) => {
     const weaponTranslation = getTranslation(weapon.transform)
     const weaponHeight = getHeight(state.heightmap, weaponTranslation)
     weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
-    const targetTranslation = getTranslation(target.transform);
+    const targetTranslation = getTranslation(target?.transform||targetPos);
     const targetHeight = getHeight(state.heightmap, targetTranslation)
     targetTranslation[2] = targetHeight;
     let solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
+    let dist = solution.dist;
     let angleValue = userSettings.weaponType === "technicalMortar" ? solution.angle / Math.PI * 180 : solution.angle * US_MIL;
 
     // debugger
@@ -437,6 +440,7 @@ export const getSolution = (state: StoreState, target: any) => {
     // solution.dir=parseFloat(solution.dir.toFixed(1))
     return {
         solution,
-        angleValue
+        angleValue,
+        dist
     }
 }

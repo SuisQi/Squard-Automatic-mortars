@@ -44,3 +44,6 @@ export const set_sessionId = (sessionId:string) => {
 export const set_server_ip = (address:string) => {
     return axios.get(baseURL + "set_server_ip?address="+address)
 }
+export const set_map=(filename:string)=>{
+    return axios.get(baseURL + "set_map?file_name="+filename)
+}
