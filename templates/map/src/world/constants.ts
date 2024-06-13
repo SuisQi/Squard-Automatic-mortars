@@ -8,7 +8,7 @@ export const MORTAR_MOA = 50;
 export const MORTAR_DEVIATION = MORTAR_MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
 export const MORTAR_MIN_RANGE = 5000; // cm
 export const MORTAR_MAX_RANGE = 123096.963 // cm
-export const MORTAR_100_DAMAGE_RANGE = 600; // cm
+export const MORTAR_100_DAMAGE_RANGE = 650; // cm
 export const MORTAR_25_DAMAGE_RANGE = 1200; // cm
 export const MORTAR_10_DAMAGE_RANGE = 1500; // cm
 
@@ -49,3 +49,12 @@ export const BM21_EXPLOSIVE_OUTER_RADIUS = 3500; // cm
 export const BM21_EXPLOSIVE_FALLOFF = 1;
 export const BM21_REARM_TIME_PER_ROCKET = 3.8;
 
+//120mm
+export const M106_MOA = 25;
+export const M106_DRAG = 0.01;
+export const M106_VELOCITY = 19000;
+export const M106_MIN_RANGE = 30000; // cm
+export const M106_MAX_RANGE = 360000 // cm
+export const M106_DEVIATION = M106_MOA / 60 * Math.PI / 180/2 ; // cone angle from center ~ "radius angle"
+export const M106_100_DAMAGE_RANGE = 3000; // cm
+export const M106_25_DAMAGE_RANGE = 6000; // cm

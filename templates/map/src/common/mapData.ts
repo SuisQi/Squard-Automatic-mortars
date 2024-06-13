@@ -3,7 +3,7 @@ import {Target, Weapon} from "../world/types";
 import {getEntitiesByType} from "../world/world";
 import {getTranslation} from "../world/transformations";
 import {getHeight} from "../heightmap/heightmap";
-import {getMortarFiringSolution} from "../world/projectilePhysics";
+import {getM106FiringSolution, getMortarFiringSolution} from "../world/projectilePhysics";
 import {US_MIL} from "../world/constants";
 import {vec3} from "gl-matrix";
 
@@ -432,8 +432,16 @@ export const getSolution = (state: StoreState, target: any,targetPos?:any) => {
     const targetHeight = getHeight(state.heightmap, targetTranslation)
     targetTranslation[2] = targetHeight;
     let solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
+    let angleValue = 0
+    if(userSettings.weaponType=="M106"){
+        solution = getM106FiringSolution(weaponTranslation, targetTranslation).highArc;
+        angleValue = solution.angle / Math.PI * 180
+    }else if(userSettings.weaponType=="standardMortar"){
+        solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
+        angleValue = solution.angle * US_MIL
+    }
     let dist = solution.dist;
-    let angleValue = userSettings.weaponType === "technicalMortar" ? solution.angle / Math.PI * 180 : solution.angle * US_MIL;
+
 
     // debugger
     // angleValue=parseFloat(angleValue.toFixed(0))
