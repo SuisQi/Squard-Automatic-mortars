@@ -20,7 +20,6 @@ export const newUserSettingsWriteAction: <K extends keyof UserSettings>(k: K, v:
   (k, v) => (dispatch, getState) => {
     dispatch(({type: UserSettingsActionType.write, payload: {key: k, value: v }}));
     return new Promise((resolve, reject) => {
-      //console.log("saving settings: ", getState().userSettings.toJS());
       saveUserSettings(getState().userSettings);
       resolve(null)
     });
@@ -53,7 +52,7 @@ export const settingsToActions: (settings: Partial<UserSettings>) => Array<UISta
 
 export const changeMap = (new_map_id: keyof (typeof maps)) => (dispatch: any, getState:any) => {
   const contourmap_active = getState().userSettings.contourmap;
-    set_map(maps[new_map_id]['minimap_image_src'])
+
   return dispatch(newUserSettingsWriteAction("mapId", new_map_id)).then(
     () => contourmap_active ? $contourmap.set_image_source((maps[new_map_id] as any)?.contourmap_image_src || "") : null
   );

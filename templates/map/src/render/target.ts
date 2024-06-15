@@ -374,12 +374,12 @@ const drawM121Target = (ctx: any, camera:Camera, userSettings: UserSettings, hei
     }
     // firing solution text
     applyTransform(ctx, canvasScaleTransform(camera))
-    const angleValue =  solution.angle / Math.PI * 180 ;
+    const angleValue =  solution.angle / Math.PI * 180+0.1 ;
 
     applyTransform(ctx, newTranslation(10, activeWeaponIndex * lineHeight, 0))
     if (userSettings.targetCompactMode){
       let angleText =  "-----"
-      const angleValuePrecision =1
+      const angleValuePrecision =2
       if (solution.angle && angleValue >= 1000){
         angleText = angleValue.toFixed(angleValuePrecision).toString().substr(1, 4 + angleValuePrecision)
       } else if (solution.angle) {
@@ -391,7 +391,7 @@ const drawM121Target = (ctx: any, camera:Camera, userSettings: UserSettings, hei
 
       outlineText(ctx, angleText, "middle", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true)
     } else {
-      let angleText = solution.angle ? `${(angleValue.toFixed(1))}` : "-----"
+      let angleText = solution.angle ? `${(angleValue.toFixed(2))}` : "-----"
       if (activeWeapons.length > 1){
         angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
       }

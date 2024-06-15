@@ -1,5 +1,6 @@
 import axios from "axios";
 import { notification } from 'antd';
+import {WeaponType} from "../world/components/weapon";
 axios.interceptors.response.use(
     res => {
         if (res.data.success !== 0) {
@@ -46,4 +47,7 @@ export const set_server_ip = (address:string) => {
 }
 export const set_map=(filename:string)=>{
     return axios.get(baseURL + "set_map?file_name="+filename)
+}
+export const set_weapon=(v:WeaponType)=>{
+    return axios.get(baseURL + "set_weapon?WeaponType="+v)
 }
