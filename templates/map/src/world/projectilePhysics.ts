@@ -2,16 +2,16 @@ import {vec3} from "gl-matrix";
 import {$s5map} from "../elements";
 import {FiringSolutionTable} from "./rocketTables";
 import {
-  BM21_DEVIATION,
-  BM21_GRAVITY,
-  BM21_VELOCITY,
-  GRAVITY,
-  HELL_CANNON_DEVIATION,
-  HELL_CANNON_VELOCITY, M121_DEVIATION, M121_DRAG,
-  M121_VELOCITY,
-  MORTAR_DEVIATION,
-  MORTAR_VELOCITY,
-  US_MIL
+    BM21_DEVIATION,
+    BM21_GRAVITY,
+    BM21_VELOCITY,
+    GRAVITY,
+    HELL_CANNON_DEVIATION,
+    HELL_CANNON_VELOCITY, M121_DEVIATION, M121_DRAG, M121_GRAVITY,
+    M121_VELOCITY,
+    MORTAR_DEVIATION,
+    MORTAR_VELOCITY,
+    US_MIL
 } from "./constants";
 
 
@@ -188,7 +188,7 @@ export const getMortarFiringSolution = (weaponTranslation: vec3, targetTranslati
     getProjectileSolutionPair(weaponTranslation, targetTranslation, MORTAR_VELOCITY, GRAVITY, MORTAR_DEVIATION);
 
 export const getM121FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
-    getProjectileSolutionPair(weaponTranslation, targetTranslation, M121_VELOCITY, GRAVITY, M121_DEVIATION,M121_DRAG);
+    getProjectileSolutionPair(weaponTranslation, targetTranslation, M121_VELOCITY, M121_GRAVITY, M121_DEVIATION,M121_DRAG);
 export const getHellCannonFiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
     getProjectileSolutionPair(weaponTranslation, targetTranslation, HELL_CANNON_VELOCITY, GRAVITY, HELL_CANNON_DEVIATION);
 

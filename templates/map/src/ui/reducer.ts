@@ -37,6 +37,7 @@ const defaultUserSettings = (): UserSettings => ({
 
     targetCompactMode: false,
     leftPanelCollapsed: false,
+    terrainmap:false
 });
 
 

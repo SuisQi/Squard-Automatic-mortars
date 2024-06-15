@@ -37,6 +37,8 @@ export type UserSettings = {
     deleteMode: boolean;
 
     leftPanelCollapsed: boolean;
+
+    terrainmap:boolean
 }
 
 export enum UIStateActionType {

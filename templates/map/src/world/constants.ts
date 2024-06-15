@@ -52,7 +52,9 @@ export const BM21_REARM_TIME_PER_ROCKET = 3.8;
 //120mm
 export const M121_MOA = 25;
 export const M121_DRAG = 0;
-export const M121_VELOCITY = 19000;
+export const M121_VELOCITY = 19396;
+export const M121_GRAVITY = M121_VELOCITY/19;//gv/t
+
 export const M121_MIN_RANGE = 30000; // cm
 export const M121_MAX_RANGE = 360000 // cm
 export const M121_DEVIATION = M121_MOA / 60 * Math.PI / 180/2 ; // cone angle from center ~ "radius angle"

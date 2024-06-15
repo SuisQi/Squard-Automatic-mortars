@@ -18,6 +18,8 @@ import { heightmap } from './heightmap/reducer';
 import { EntityAction, TransformAction, WeaponAction } from './world/types';
 import {DirDataAction, DirDataActionType, IconAction, IconActionType, SquareSelectionAction} from "./world/actions";
 import {iconReducer} from "./world/components/icon";
+import {terrainmap} from "./terrainmap/reducer";
+import {TerrainmapAction} from "./terrainmap/types";
 
 // https://github.com/reduxjs/redux-thunk/blob/master/test/typescript.ts
 const reducerObject = {
@@ -26,6 +28,7 @@ const reducerObject = {
   iconToolState,
   uiState,
   minimap,
+    terrainmap,
   contourmap,
   camera,
   counter: (state=0, action: any) => (action.type === "COUNTER_INCREMENT" ? state + 1 : state),
@@ -39,6 +42,7 @@ export type StoreAction
   = UserSettingsAction
   | UIStateAction
   | MinimapAction
+    |TerrainmapAction
   | ContourmapAction
   | CameraAction
   | ReplicationAction
@@ -51,6 +55,7 @@ export type StoreAction
   | WeaponAction
     |SquareSelectionAction
 |DirDataAction
+
 
 
 export type ThunkResult<R> = ThunkAction<R, any, undefined, StoreAction>;

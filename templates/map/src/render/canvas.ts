@@ -24,6 +24,7 @@ import produce from "immer";
 import {drawIcons} from "./icon";
 import {drawSquare} from "./selection/square";
 import {drawLineSelection} from "./selection/line";
+import {Terrainmap} from "../terrainmap/types";
 //import { $contourmap } from "../main";
 
 export const drawLine: (ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number) => void =
@@ -135,7 +136,18 @@ const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number
     }
     ctx.restore();
   }
-
+const drawTerrainmap: (ctx: CanvasRenderingContext2D, terrainmap: Terrainmap, zoom:number, settings: UserSettings) => void =
+    (ctx, terrainmap, zoom, settings) => {
+        if(!settings.terrainmap)
+            return
+        ctx.save()
+        applyTransform(ctx, terrainmap.transform)
+        drawTexture(ctx, terrainmap.transform, terrainmap.texture);
+        if(settings.mapGrid){
+            drawGrid(ctx, zoom, terrainmap.size)
+        }
+        ctx.restore();
+    }
 const drawContourmap: (ctx: CanvasRenderingContext2D, contourmap: Contourmap, settings: UserSettings) => void =
   (ctx, contourmap, settings) => {
     if ($contourmap.is_ready()) {
@@ -211,6 +223,9 @@ export const drawAll = (store: Store0) => {
 
     applyTransform(ctx, state.camera.transform)
     drawMinimap(ctx, state.minimap, zoom, state.userSettings);
+
+    drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);
+    drawContourmap(ctx, state.contourmap, state.userSettings);
     drawContourmap(ctx, state.contourmap, state.userSettings);
     // drawHeightmap(ctx, state.heightmap, state.userSettings);
     drawWeapons(ctx, state.userSettings, state.camera, weapons);
