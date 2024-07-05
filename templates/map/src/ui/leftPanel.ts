@@ -70,6 +70,7 @@ const weaponOptions = [
     ["ub32", "UB32/S5 rockets", "options/s5rocket2.png"],
     ["hellCannon", "Hell Cannon", "options/mortarRound10.png"],
     ["bm21", "BM-21 Grad", "options/s5rocket2.png"],
+    // ["MK19", "RWS MK19", "options/s5rocket2.png"],
 ]
 
 const mapOption: (label: string, imagePath: string) => any =
@@ -443,7 +444,7 @@ const mapStateToProps = (state: StoreState /*, ownProps*/) => {
 const mapDispatchToProps = (dispatch: any) => ({
     onChangeMap: (v:keyof (typeof maps)) => {
         dispatch(changeMap(v ))
-        // set_map(maps[v]['minimap_image_src'])
+        set_map(maps[v]['minimap_image_src'])
     },
     onChangeContourmap: (e: any) => dispatch(writeUserSettings("contourmap", e.target.value)),
     onChangeWeapon: (v: WeaponType) => {
