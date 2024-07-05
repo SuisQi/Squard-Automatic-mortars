@@ -342,8 +342,8 @@ export const maps = {
             // "min_y": -211911.78125, "max_y": 367208.21875
         },
         "mapTexture": {"size_x": 4096, "size_y": 4096},
-        "mapTextureCorner0": {"loc_x": 340000.0, "loc_y": 250000.0},
-        "mapTextureCorner1": {"loc_x": -130000.0, "loc_y": -220000.0},
+        "mapTextureCorner0": {"loc_x": 326758, "loc_y": 380000.0 - 22392},
+        "mapTextureCorner1": {"loc_x": -380000.0 + 19850, "loc_y": -380000.0 + 50700},
         "compression": {"z_translate": 0}
     },
     "skorpoFull": {
