@@ -16,14 +16,14 @@ import {
   getHellCannonFiringSolution,
   getBM21FiringSolution,
   angle2groundDistance,
-  getM121FiringSolution
+  getM121FiringSolution, getMK19FiringSolution
 } from "../world/projectilePhysics";
 import {
   GRAVITY,
   HELL_CANNON_100_DAMAGE_RANGE,
   HELL_CANNON_25_DAMAGE_RANGE,
   M121_100_DAMAGE_RANGE, M121_25_DAMAGE_RANGE,
-  MAPSCALE,
+  MAPSCALE, MK19_100_DAMAGE_RANGE, MK19_25_DAMAGE_RANGE,
   MORTAR_100_DAMAGE_RANGE,
   MORTAR_25_DAMAGE_RANGE,
   MORTAR_DEVIATION,
@@ -62,6 +62,16 @@ const drawSimpleMortarSplash = (ctx: CanvasRenderingContext2D, lineWidthFactor: 
   ctx.stroke();
   ctx.beginPath();
   ctx.arc(0, 0, MORTAR_25_DAMAGE_RANGE, 0, 2 * Math.PI);
+  ctx.stroke();
+}
+const drawSimpleMK19Splash = (ctx: CanvasRenderingContext2D, lineWidthFactor: number): void => {
+  ctx.lineWidth = 1 * lineWidthFactor
+  ctx.strokeStyle = '#f00';
+  ctx.beginPath();
+  ctx.arc(0, 0, MK19_100_DAMAGE_RANGE, 0, 2 * Math.PI);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.arc(0, 0, MK19_25_DAMAGE_RANGE, 0, 2 * Math.PI);
   ctx.stroke();
 }
 const drawSimpleM121Splash = (ctx: CanvasRenderingContext2D, lineWidthFactor: number): void => {
@@ -106,6 +116,42 @@ const drawMortarSpread = (ctx: CanvasRenderingContext2D, firingSolution: FiringS
       firingSolution.horizontalSpread + MORTAR_25_DAMAGE_RANGE,
       firingSolution.closeSpread + MORTAR_25_DAMAGE_RANGE,
       firingSolution.closeSpread + MORTAR_25_DAMAGE_RANGE
+    )
+  }
+}
+
+const drawMK19Spread = (ctx: CanvasRenderingContext2D, firingSolution: FiringSolution, lineWidthFactor: number, withSplash: boolean,selected:boolean) => {
+
+  ctx.lineWidth = 1 * lineWidthFactor
+
+
+  if(!selected) {
+    ctx.strokeStyle = '#00f';
+  }
+
+  drawSpreadEllipse(
+      ctx,
+      firingSolution.weaponToTargetVec,
+      firingSolution.horizontalSpread,
+      firingSolution.closeSpread,
+      firingSolution.closeSpread,
+      selected
+  )
+  if (withSplash){
+    ctx.strokeStyle = '#f00';
+    drawSpreadEllipse(
+        ctx,
+        firingSolution.weaponToTargetVec,
+        firingSolution.horizontalSpread + MK19_100_DAMAGE_RANGE,
+        firingSolution.closeSpread + MK19_100_DAMAGE_RANGE,
+        firingSolution.closeSpread + MK19_100_DAMAGE_RANGE
+    )
+    drawSpreadEllipse(
+        ctx,
+        firingSolution.weaponToTargetVec,
+        firingSolution.horizontalSpread + MK19_25_DAMAGE_RANGE,
+        firingSolution.closeSpread + MK19_25_DAMAGE_RANGE,
+        firingSolution.closeSpread + MK19_25_DAMAGE_RANGE
     )
   }
 }
@@ -225,6 +271,9 @@ export const drawTargets = (ctx: CanvasRenderingContext2D, weapons: Array<Weapon
   }
   else if (userSettings.weaponType === "M121"){
     targets.forEach((t: Target) => drawM121Target(ctx, camera, userSettings, heightmap, weapons, t,dirdatas,userId))
+  }else if(userSettings.weaponType==="MK19"){
+    targets.forEach((t: Target) => drawMK19Target(ctx, camera, userSettings, heightmap, weapons, t,dirdatas,userId))
+
   }
 }
 
@@ -317,6 +366,80 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
       outlineText(ctx, angleText, "middle", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true)
     } else {
       let angleText = solution.angle ? `${(angleValue.toFixed(1))}` : "-----"
+      if (activeWeapons.length > 1){
+        angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
+      }
+      outlineText(ctx, angleText, "bottom", TEXT_RED, TEXT_WHITE,  userSettings.fontSize, true)
+      const bottomText = userSettings.targetDistance ? `${solution.dir.toFixed(1)}° ${(solution.dist * MAPSCALE).toFixed(0)}m` : `${solution.dir.toFixed(1)}°`
+
+
+      outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true)
+    }
+    ctx.restore();
+  })
+  drawTargetIcon(ctx, camera, target.transform);
+}
+
+
+const drawMK19Target = (ctx: any, camera:Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target,dirdatas:Map<number,DirDataComponent>,userId:User['id']) => {
+  const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0] // uniform scaling
+  canonicalEntitySort(weapons);
+  const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
+  const allWeaponsIndex: any = {};
+  weapons.forEach((w: Weapon, index: number) => {
+    if (w.isActive){
+      allWeaponsIndex[w.entityId] = index;
+    }
+  })
+  activeWeapons.forEach((weapon: Weapon, activeWeaponIndex: number) => {
+    const weaponTranslation = getTranslation(weapon.transform);
+    const weaponHeight = getHeight(heightmap, weaponTranslation)
+    weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
+    const targetTranslation = getTranslation(target.transform);
+    const targetHeight = getHeight(heightmap, targetTranslation)
+    targetTranslation[2] = targetHeight;
+    const solution = getMK19FiringSolution(weaponTranslation, targetTranslation).lowArc;
+    const lineHeight = userSettings.fontSize * (userSettings.targetCompactMode ? 1 : 1.7)
+
+    // if (userSettings.targetGrid){
+    //   // could remove transform param via a ctxMove(translate: vec3)
+    //   drawTargetGridMortar(ctx, canvasSizeFactor, weapon.transform, solution);
+    // }
+    ctx.save()
+    applyTransform(ctx, target.transform)
+    if (userSettings.targetSpread /* && weapons.length < 2 */){
+      //console.log("spread", hSpread, closeSpread, farSpread)
+      if (dirdatas.get(target.entityId)?.userIds?.includes(userId)??false){
+        ctx.strokeStyle = '#ff004d';
+        ctx.fillStyle='rgba(231, 76, 60,0.5)'
+      }else if(!dirdatas.get(target.entityId)?.userIds?.includes(userId)??false){
+        ctx.strokeStyle = '#AAB7B8';
+        ctx.fillStyle='rgba(131, 145, 146,0.5)'
+      }
+      drawMK19Spread(ctx, solution, canvasSizeFactor, userSettings.targetSplash,dirdatas.has(target.entityId));
+    } else if (userSettings.targetSplash){
+      drawSimpleMK19Splash(ctx, canvasSizeFactor);
+    }
+    // firing solution text
+    applyTransform(ctx, canvasScaleTransform(camera))
+    const angleValue = solution.angle / Math.PI * 180
+
+    applyTransform(ctx, newTranslation(10, activeWeaponIndex * lineHeight, 0))
+    if (userSettings.targetCompactMode){
+      let angleText =  "-----"
+      const angleValuePrecision = 2
+      if (solution.angle && angleValue >= 1000){
+        angleText = angleValue.toFixed(angleValuePrecision).toString().substr(1, 4 + angleValuePrecision)
+      } else if (solution.angle) {
+        angleText = angleValue.toFixed(angleValuePrecision).toString().substr(0, 3 + angleValuePrecision)
+      }
+      if (activeWeapons.length > 1){
+        angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
+      }
+
+      outlineText(ctx, angleText, "middle", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true)
+    } else {
+      let angleText = solution.angle ? `${(angleValue.toFixed(2))}` : "-----"
       if (activeWeapons.length > 1){
         angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
       }

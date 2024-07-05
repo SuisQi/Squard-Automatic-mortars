@@ -8,7 +8,7 @@ import {
     GRAVITY,
     HELL_CANNON_DEVIATION,
     HELL_CANNON_VELOCITY, M121_DEVIATION, M121_DRAG, M121_GRAVITY,
-    M121_VELOCITY,
+    M121_VELOCITY, MK19_DEVIATION, MK19_GRAVITY, MK19_VELOCITY,
     MORTAR_DEVIATION,
     MORTAR_VELOCITY,
     US_MIL
@@ -189,6 +189,9 @@ export const getMortarFiringSolution = (weaponTranslation: vec3, targetTranslati
 
 export const getM121FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
     getProjectileSolutionPair(weaponTranslation, targetTranslation, M121_VELOCITY, M121_GRAVITY, M121_DEVIATION,M121_DRAG);
+
+export const getMK19FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
+    getProjectileSolutionPair(weaponTranslation, targetTranslation, MK19_VELOCITY, MK19_GRAVITY,MK19_DEVIATION);
 export const getHellCannonFiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
     getProjectileSolutionPair(weaponTranslation, targetTranslation, HELL_CANNON_VELOCITY, GRAVITY, HELL_CANNON_DEVIATION);
 
