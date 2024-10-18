@@ -226,7 +226,7 @@ export const drawAll = (store: Store0) => {
 
     drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);
     drawContourmap(ctx, state.contourmap, state.userSettings);
-    drawContourmap(ctx, state.contourmap, state.userSettings);
+    // drawContourmap(ctx, state.contourmap, state.userSettings);
     // drawHeightmap(ctx, state.heightmap, state.userSettings);
     drawWeapons(ctx, state.userSettings, state.camera, weapons);
     drawTargets(ctx, weapons, targets,state,dirDatas,state.session?.userId??"0");

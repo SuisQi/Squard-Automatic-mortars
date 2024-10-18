@@ -1,7 +1,9 @@
 import json
 import re
+import threading
 
 import cv2
+import redis
 import requests
 from flask import request, Blueprint
 
@@ -9,19 +11,25 @@ from API.R import R
 import utils.public as pub
 from utils.map_raning import MapRanging
 from utils.redis_connect import redis_cli
-from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords
+from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords, log
+from weapons.weapon import Weapon
 
 # 创建一个名为'user'的蓝图
 mortar_blueprint = Blueprint('mortar', __name__)
 
-
+redis_remove = threading.Lock()
 @mortar_blueprint.route('/save', methods=['POST'])
 # @check
 def save():
     if request.is_json:
         data = request.get_json()
         data['dir'] = round(data['dir'], 1)
-        data['angle'] = int(data['angle'])
+        angle_precision = Weapon().get_angle_precision()
+        if angle_precision == 0:
+
+            data['angle'] = int(data['angle'])
+        else:
+            data['angle'] = round(data['angle'], angle_precision)
         # 将数据转换为JSON字符串并追加到Redis列表中
         redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(data))
 
@@ -36,18 +44,24 @@ def save():
 @mortar_blueprint.route('/update', methods=['POST'])
 # @check
 def update():
-    if request.is_json:
-        data = request.get_json()
-        standard = redis_cli.hget('squad:fire_data:standard', data['entityId'])
-        if not standard:
-            return R(0)
-        standard = json.loads(standard)
-        if 'userIds' in data:
-            standard['userIds'] = data['userIds']
-        if 'dir' in data and 'angle' in data:
-            standard['dir'] = round(data['dir'], 1)
-            standard['angle'] = int(data['angle'])
-        redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(standard))
+    with redis_remove:
+        if request.is_json:
+            data = request.get_json()
+            standard = redis_cli.hget('squad:fire_data:standard', data['entityId'])
+            if not standard:
+                return R(0)
+            standard = json.loads(standard)
+            if 'userIds' in data:
+                standard['userIds'] = data['userIds']
+            if 'dir' in data and 'angle' in data:
+                standard['dir'] = round(data['dir'], 1)
+                angle_precision = Weapon().get_angle_precision()
+                if angle_precision == 0:
+
+                    standard['angle'] = int(data['angle'])
+                else:
+                    standard['angle'] = round(data['angle'], angle_precision)
+            redis_cli.hset('squad:fire_data:standard', data['entityId'], json.dumps(standard))
 
     return R(0)
 
@@ -84,14 +98,18 @@ def set_server_ip():
 @mortar_blueprint.route('/remove', methods=['POST'])
 # @check
 def remove():
-    data = request.get_json()
-    redis_cli.hdel('squad:fire_data:standard', data['entityId'])
-    sessionId = redis_cli.get("squad:session:sessionId")
-    if sessionId:
-        sessionId = sessionId.decode()
-        ip = redis_cli.get("squad:session:ip").decode()
-        requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}", proxies={})
-    return R(0)
+    try:
+        data = request.get_json()
+        with redis_remove:
+            redis_cli.hdel('squad:fire_data:standard', data['entityId'])
+        sessionId = redis_cli.get("squad:session:sessionId")
+        if sessionId:
+            sessionId = sessionId.decode()
+            ip = redis_cli.get("squad:session:ip").decode()
+            requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}", proxies={})
+        return R(0)
+    except Exception as e:
+        print(e)
 
 
 @mortar_blueprint.route("/remove_all")
@@ -269,4 +287,21 @@ def set_map():
     m = MapRanging()
     m.set_map(f"./templates/map/public/{file_name}")
 
+    return R(0)
+
+
+@mortar_blueprint.route("/set_weapon", methods=["GET"])
+def set_weapon():
+    weapon_type = request.args.get("WeaponType")
+    m = Weapon()
+    m.set_type(weapon_type)
+    redis_cli.set("squad:fire_data:control:weapon", weapon_type)
+    log(f"设置武器{weapon_type}")
+    return R(0)
+
+
+@mortar_blueprint.route("/create_squad", methods=["GET"])
+def create_squad():
+    squad_name = request.args.get("squad_name")
+    pub.set_createsquad_state(squad_name)
     return R(0)

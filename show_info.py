@@ -92,3 +92,13 @@ topmost_mail['set_visibility'](False)
 
 topmost_orientation['set_visibility'](False)
 
+
+
+# 显示的密位
+mil_icon = create_topmost_window(
+    int((resolution_case['orientation_b_x'] + resolution_case['orientation_t_x'])*3 / 4 - win_w / 2),
+    100,
+    icon_w, win_h,"A:100m,1580°"
+)
+mil_icon['set_background_color']("#76D7C4")
+mil_icon['set_visibility'](False)

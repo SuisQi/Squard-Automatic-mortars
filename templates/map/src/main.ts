@@ -12,7 +12,7 @@ import {loadUserSettings} from "./ui/persistence";
 import {enableMapSet} from "immer";
 import {addTarget, addWeapon, moveEntityTo, removeAllTargets} from "./world/actions";
 import {UIStateActionType} from "./ui/types";
-import {remove, remove_all} from "./api/standard";
+import {remove, remove_all, set_weapon} from "./api/standard";
 import {makeIconTool} from "./ui/iconTool";
 import {hl} from "./common/hlclient";
 import {vec3} from "gl-matrix";
@@ -135,7 +135,7 @@ const $rightPanel = document.getElementById('rightPanel')!;
 const $iconTool = document.getElementById('iconTool')!;
 const h = React.createElement
 
-
+set_weapon(store.getState().userSettings.weaponType)
 ReactDOM.render(makeLeftPanel(store), $leftPanel)
 ReactDOM.render(makeTooltip(store), $tooltip)
 ReactDOM.render(makeIconTool(store), $iconTool)

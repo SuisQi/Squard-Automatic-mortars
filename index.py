@@ -12,6 +12,7 @@ import logging
 import traceback
 from functools import wraps
 
+import keyboard
 import requests
 import websockets
 from flask_socketio import SocketIO
@@ -19,7 +20,6 @@ from websockets.exceptions import ConnectionClosedOK
 
 from API.apis import mortar_blueprint
 from login import verify, display_squard, display_rule
-from main import log, Squard, is_auto_fire, is_stop
 
 from flask_cors import CORS
 from flask import Flask, jsonify
@@ -27,8 +27,11 @@ from flask import Flask, jsonify
 from show_info import root, topmost_mail, topmost_orientation
 from utils.key_mouse_listener import KeyMouseListener
 from utils.map_raning import MapRanging
-from utils.redis_connect import check_redis_service, redis_cli
-from utils.utils import get_settings, pubsub_msgs
+from utils.redis_connect import check_redis_service, redis_cli, is_port_in_use
+from utils.utils import get_settings, pubsub_msgs, is_stop, is_auto_fire, log
+from weapons.m121 import M121
+from weapons.mortar import Mortar
+from weapons.weapon import Weapon
 from websocket_.dir_websocket import start_dir_server
 from websocket_.server import web_server
 
@@ -68,7 +71,6 @@ node_path = ""
 if os.path.exists("./v16.9.1"):
     node_path = "v16.9.1\\"
 
-
 def start_map():
     subprocess.run(f"{node_path}live-server --host={ip} --port=8000 ./templates/map/public", shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -80,6 +82,14 @@ def start_control():
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                    text=True)
 
+startupinfo = subprocess.STARTUPINFO()
+startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+def start_rpc():
+    if is_port_in_use(12080):
+        return
+    subprocess.run(f"start  /B ./lib/rpc.exe", shell=True,
+                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,startupinfo=startupinfo,
+                   text=True)
 
 def start_socket_server():
     # 运行websocket服务器
@@ -94,15 +104,15 @@ def listen_for_logs():
         time.sleep(0.01)
 
 
-def fire(target, squard):
+def fire(target, weapon):
     log(f"目标方位:{round(target['dir'], 1)}，密位{target['angle']}")
     topmost_mail['set_visibility'](True)
     topmost_orientation['set_visibility'](True)
     mortarRounds = int(redis_cli.get("squad:fire_data:control:mortarRounds"))
-    d_t = squard.listen_verify_orientation(round(target['dir'], 1))
-    m_t = squard.listen_verify_mail(target['angle'])
+    d_t = weapon.listen_verify_orientation()(round(target['dir'], 1))
+    m_t = weapon.listen_verify_mail()(target['angle'])
     if is_auto_fire():
-        squard.fire(mortarRounds, round(target['dir'], 1), target['angle'])
+        weapon.fire(mortarRounds, round(target['dir'], 1), target['angle'])
     else:
         d_t.join()
         m_t.join()
@@ -121,7 +131,7 @@ def get_fire_points(userId):
     return list_items
 
 
-async def fire_client(squard, userId, sessionId):
+async def fire_client(weapon, userId, sessionId):
     ip = redis_cli.get("squad:session:ip").decode()
     uri = f"ws://{ip}:1234"  # 更改为你想连接的WebSocket服务器的URI
     try:
@@ -159,7 +169,7 @@ async def fire_client(squard, userId, sessionId):
                             if not standard:
                                 log(f"ID:{targetId}没有密位")
                                 break
-                            standard=json.loads(standard.decode())
+                            standard = json.loads(standard.decode())
                             # 如果不在范围内
                             if standard['angle'] == 0:
                                 websocket.send(json.dumps({
@@ -174,7 +184,7 @@ async def fire_client(squard, userId, sessionId):
                                 log(f"ID为{targetId}的火力点不在攻击范围")
                                 break
                             #     开火
-                            fire(standard, squard)
+                            fire(standard, weapon)
                 # 取消尚未完成的任务
                 for task in pending:
                     task.cancel()
@@ -195,12 +205,12 @@ def listener_click():
     m = MapRanging()
     threading.Thread(target=start_map).start()
     threading.Thread(target=start_control).start()
-    k = KeyMouseListener(ctrl_action=set_fire_state,alt_action=m.start)
+    k = KeyMouseListener(ctrl_action=set_fire_state, alt_action=m.start)
     k.start()
 
 
 def listen_fire():
-    squard = Squard()
+    weapon = Weapon()
     while True:
         try:
             userId = redis_cli.get("squad:session:userId").decode()
@@ -219,12 +229,12 @@ def listen_fire():
             if synergy:
                 sessionId = redis_cli.get("squad:session:sessionId")
                 if not sessionId:
-                    redis_cli.set("squad:fire_data:control:synergy",0)
+                    redis_cli.set("squad:fire_data:control:synergy", 0)
                     log('没加入房间')
                     continue
                 sessionId = sessionId.decode()
 
-                asyncio.run(fire_client(squard, userId, sessionId))
+                asyncio.run(fire_client(weapon, userId, sessionId))
                 log("停火")
                 redis_cli.set("squad:fire_data:control:state", 0)
                 continue
@@ -233,7 +243,7 @@ def listen_fire():
             for item in list_items:
                 if is_stop():
                     break
-                fire(item, squard)
+                fire(item, weapon)
             log("停火")
             redis_cli.set("squad:fire_data:control:state", 0)
         except Exception as e:
@@ -298,6 +308,8 @@ def init_settings():
     redis_cli.set("squad:fire_data:control:synergy", 0)
     # 设置是否自动开火
     redis_cli.set("squad:fire_data:control:auto_fire", 1)
+    # 是否开始建队
+    redis_cli.set("squad:fire_data:control:createsquad", 0)
 
 
 def run_server():
@@ -310,8 +322,9 @@ if __name__ == '__main__':
     #     exit(0)
     display_rule()
     display_squard()
-    check_redis_service()
-    subprocess.Popen("start ./lib/rpc.exe", shell=True)
+    threading.Thread(target=check_redis_service).start()
+    time.sleep(2)
+    threading.Thread(target=start_rpc).start()
     init_settings()
 
     threading.Thread(target=listen_for_logs).start()

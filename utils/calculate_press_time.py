@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import curve_fit
 
 
-def calculate_press_ad_time(y):
+def calculate_press_ad_time(y,data):
     """
     根据给定的输出y值，计算按键需要按下的时间。
 
@@ -21,8 +21,8 @@ def calculate_press_ad_time(y):
         return a * x + b
 
     # 给定的数据
-    x_data = np.array([0.1, 0.2, 0.3, 0.4,0.5])  # 时间（秒）
-    y_data = np.array([10.4, 15.7, 21.2, 25.6,30.7])  # 输出值
+    x_data = np.array(data['press_time'])  # 时间（秒）
+    y_data = np.array(data['dist'])  # 输出值
 
     # 进行线性曲线拟合
     params, _ = curve_fit(fit_function, x_data, y_data)
@@ -35,7 +35,7 @@ def calculate_press_ad_time(y):
         return "无解"  # 防止除以零
     time_to_press = (y - b) / a
     return time_to_press
-def calculate_press_ws_time(y):
+def calculate_press_ws_time(y,data):
     """
     根据给定的输出y值，计算按键需要按下的时间。
 
@@ -54,8 +54,8 @@ def calculate_press_ws_time(y):
         return a * x + b
 
     # 给定的数据
-    x_data = np.array([0.1, 0.2, 0.3, 0.4,0.5])  # 时间（秒）
-    y_data = np.array([35, 51,68,81,100])  # 输出值
+    x_data = np.array(data['press_time'])  # 时间（秒）
+    y_data = np.array(data['dist'])  # 输出值
 
     # 进行线性曲线拟合
     params, _ = curve_fit(fit_function, x_data, y_data)

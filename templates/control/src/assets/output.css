@@ -582,10 +582,6 @@ video {
   margin-bottom: 1rem;
 }
 
-.mt-16 {
-  margin-top: 4rem;
-}
-
 .mt-auto {
   margin-top: auto;
 }
@@ -726,11 +722,6 @@ video {
   padding: 1rem;
 }
 
-.py-5 {
-  padding-top: 1.25rem;
-  padding-bottom: 1.25rem;
-}
-
 .text-2xl {
   font-size: 1.5rem;
   line-height: 2rem;
@@ -780,20 +771,12 @@ video {
     grid-row: span 2 / span 2;
   }
 
-  .max-md\:row-span-1 {
-    grid-row: span 1 / span 1;
-  }
-
   .max-md\:h-\[300px\] {
     height: 300px;
   }
 
   .max-md\:grid-cols-1 {
     grid-template-columns: repeat(1, minmax(0, 1fr));
-  }
-
-  .max-md\:grid-rows-3 {
-    grid-template-rows: repeat(3, minmax(0, 1fr));
   }
 
   .max-md\:justify-start {
