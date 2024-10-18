@@ -15,7 +15,7 @@ const h = React.createElement
 // @ts-ignore
 const div = <P, C>(props: P, children?: C) => h("div", props, children)
 
-const get_default_websocket_address = () => process.env.NODE_ENV === "development" ? "ws://" + window.location.hostname + ":1234" : "ws://110.40.183.13:1234";
+const get_default_websocket_address = () => process.env.NODE_ENV === "development" ? "ws://" + window.location.hostname + ":1234" : "ws://118.89.83.238:1234";
 const server_address_sanitization = (input: string) => input.trim();
 const session_id_sanitization = server_address_sanitization;
 

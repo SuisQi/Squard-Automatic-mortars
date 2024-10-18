@@ -44,6 +44,10 @@ export const list_fires = (flag:number)=>{
 export const list_trajectories = (type:string)=>{
     return axios.get(baseURL + "list_trajectories?type="+type)
 }
+
+export const create_squad = (squad_name:string)=>{
+    return axios.get(baseURL + "create_squad?squad_name="+squad_name)
+}
 export const get_bezier_points = (type:string,data:any)=>{
     return axios.post(baseURL + "get_bezier_points?type="+type,data)
 }

@@ -323,6 +323,7 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
     weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
     const targetTranslation = getTranslation(target.transform);
     const targetHeight = getHeight(heightmap, targetTranslation)
+    debugger
     targetTranslation[2] = targetHeight;
     const solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
     const lineHeight = userSettings.fontSize * (userSettings.targetCompactMode ? 1 : 1.7)
@@ -365,7 +366,7 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
 
       outlineText(ctx, angleText, "middle", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true)
     } else {
-      let angleText = solution.angle ? `${(angleValue.toFixed(1))}` : "-----"
+      let angleText = solution.angle ? `${(angleValue>>0)}` : "-----"
       if (activeWeapons.length > 1){
         angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
       }

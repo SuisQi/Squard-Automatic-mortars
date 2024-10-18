@@ -8,7 +8,7 @@ import {
   list_trajectories,
   setMortarRounds,
   setControl,
-  update_settings
+  update_settings, create_squad
 } from "@/api";
 import QrcodeVue from 'qrcode.vue';
 import {
@@ -21,6 +21,7 @@ import {
 } from '@element-plus/icons-vue'
 import * as d3 from 'd3';
 import BezierCurve from "@/components/BezierCurve.vue";
+import {ElMessage} from "element-plus";
 const qrShow=ref(true)  //显示二维码
 const isOn = ref(false) //开火控制
 const showOnlyMe = ref(true) //是否只显示自己的火力点
@@ -34,6 +35,8 @@ const dialogFires = ref(false)
 const dialogSetting = ref(false)
 const dialogOrigentationSetting = ref(false)
 const dialogFeature = ref(false)
+const squadName = ref("pjp")
+const createSquadState=ref(false)
 const mail_trajectories = ref([])
 const origentation_trajectories = ref([])
 const settings = ref({
@@ -46,6 +49,7 @@ const settings = ref({
 let viewportWidth = ref(window.innerWidth);
 let viewportHeight = window.innerHeight;
 let host = ref(window.location.hostname)
+
 console.log(viewportWidth)
 onMounted(() => {
   init()
@@ -131,8 +135,20 @@ const set_auto_fire = (autoFire) => {
 const onMortarRoundsChange = (value) => {
   setMortarRounds(value)
 }
-// https://cdn.discordapp.com/avatars/801691645392715787/1ba0e4f36742eafd92a086df0a1de7b1.webp?size=80
-// Reaper_17
+
+
+const handleCreateSquad=()=>{
+  if(squadName.value.trim().length===0) {
+    ElMessage({
+      showClose: true,
+      message: "队名不能为空",
+      type: 'error',
+    })
+    return
+  }
+  create_squad(squadName.value)
+  createSquadState.value=!createSquadState.value
+}
 </script>
 
 <template>
@@ -185,7 +201,13 @@ const onMortarRoundsChange = (value) => {
 
           />
           <el-button @click="dialogFeature=true" type="warning" :icon="Briefcase">功能</el-button>
-
+          <div class="flex flex-row">
+            <el-input v-model="squadName" placeholder="输入队名" maxlength="10">
+              <template #append>
+                <el-button @click="handleCreateSquad" >{{ createSquadState?"停止":"建队" }}</el-button>
+              </template>
+            </el-input>
+          </div>
         </div>
         <el-dialog
           title="功能"

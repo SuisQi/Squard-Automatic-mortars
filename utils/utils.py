@@ -1,4 +1,7 @@
 import json
+import os
+import socket
+import time
 from datetime import datetime
 
 import numpy as np
@@ -118,6 +121,7 @@ def get_resolution_case():
     res = list(filter(lambda f: f['name'] == f'{WIDTH}*{HEIGHT}', resolution_cases))
     if not res:
         print(f'{WIDTH}*{HEIGHT}分辨率未做适配')
+        input()
         return False
 
     res = res[0]
@@ -215,3 +219,80 @@ def log(msg):
     t = now.strftime("%H:%M:%S.") + str(now.microsecond)[:3]
     print(msg)
     pubsub_msgs.append(f'{t}  :{msg}')
+
+
+
+def is_auto_fire():
+    state = redis_cli.get("squad:fire_data:control:auto_fire")
+    state = int(state)
+    if state == 1:
+        return True
+    return False
+
+
+def is_stop():
+    state = redis_cli.get("squad:fire_data:control:state")
+    state = int(state)
+    if state == 1:
+        return False
+    return True
+
+def save_num(img, name, save_err):
+    if not save_err:
+        return
+    if not name:
+        return
+    file_path = f"./imgs/orientation/{name}"
+    if not os.path.exists(file_path):
+        os.mkdir(file_path)
+
+    cv2.imwrite(file_path + f"/{name}_{time.time() * 1000}.png", img)
+
+
+def shortest_angle_distance(angle_a, angle_b):
+    """
+    计算在圆上从角度A到角度B的最短角度距离。
+
+    参数:
+    angle_a - 当前方位
+    angle_b - 目标方位
+
+    返回:
+    最短角度距离（顺时针为正，逆时针为负）
+    """
+    # 规范化角度到 [0, 360) 范围
+    angle_a %= 360
+    angle_b %= 360
+
+    # 计算两种可能的角度差：顺时针和逆时针
+    distance_clockwise = (angle_b - angle_a) % 360
+    distance_counterclockwise = (angle_a - angle_b) % 360
+
+    # 选择最短的角度距离，并确定是顺时针还是逆时针
+    if distance_clockwise <= distance_counterclockwise:
+        return distance_clockwise
+    else:
+        return -distance_counterclockwise
+
+def filter_lines_by_y1(coords, y1_threshold):
+    filtered_coords = []
+    for coord in coords:
+        # 检查当前坐标与已过滤坐标的 y1 值之差
+        if all(abs(coord[1] - c[1]) >= y1_threshold for c in filtered_coords) and all(
+                abs(coord[3] - c[3]) >= y1_threshold for c in filtered_coords) and coord[2] - coord[0] > 10:
+            filtered_coords.append((int(coord[0]), int(coord[1]), int(coord[2]), int(coord[3])))
+    return filtered_coords
+
+
+def press_key(key, seconds=0.5):
+    # log(f"按住{key} {seconds}s")
+    pyautogui.keyDown(key)
+
+    # 等待 10 毫秒
+    time.sleep(seconds)
+
+    # 松开 'W' 键
+    pyautogui.keyUp(key)
+
+
+

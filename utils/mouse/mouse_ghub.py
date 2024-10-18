@@ -16,14 +16,14 @@ INPUT_HARDWARE = 2  # 硬件输入事件
 LONG = c_long
 DWORD = c_ulong
 ULONG_PTR = POINTER(DWORD)
-
-gmok = 0
+dlldir = path.join(basedir, 'ghub_mouse.dll')
+gm = CDLL(dlldir)
+gmok = gm.mouse_open()
 # ↓↓↓↓↓↓↓↓↓ 简易鼠标行为模拟,使用SendInput函数或者调用ghub驱动 ↓↓↓↓↓↓↓↓↓
 LONG = c_long
 DWORD = c_ulong
 ULONG_PTR = POINTER(DWORD)
 # gm = CDLL(dlldir)
-gmok = 0
 """
 MouseInput
 """
@@ -152,16 +152,16 @@ class Mouse_ghub():
 
 
     def mouse_down(self, key=1):  # for import
-        if gmok:
-            return gm.press(key)
+        # if gmok:
+        #     return gm.press(key)
         if key == 1:
             return self._sendInput(self._m(0x0002))
         elif key == 2:
             return self._sendInput(self._m(0x0008))
 
     def mouse_up(self, key=1):  # for import
-        if gmok:
-            return gm.release()
+        # if gmok:
+        #     return gm.release()
         if key == 1:
             return self._sendInput(self._m(0x0004))
         elif key == 2:
