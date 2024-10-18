@@ -16,7 +16,8 @@ a = Analysis(
     ("./resolution_case.json","."),
     ("./Redis-x64-5.0.14.1","./Redis-x64-5.0.14.1"),
     ("./model","./model"),
-    ("./lib","./lib")
+    ("./lib","./lib"),
+    ("./utils/mouse/ghub_mouse.dll","./utils/mouse")
     ],
     hiddenimports=['engineio.async_drivers.threading','torch','pytorch'],
     hookspath=[],
