@@ -323,7 +323,7 @@ const drawMortarTarget = (ctx: any, camera:Camera, userSettings: UserSettings, h
     weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
     const targetTranslation = getTranslation(target.transform);
     const targetHeight = getHeight(heightmap, targetTranslation)
-    debugger
+    // debugger
     targetTranslation[2] = targetHeight;
     const solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
     const lineHeight = userSettings.fontSize * (userSettings.targetCompactMode ? 1 : 1.7)

@@ -41,6 +41,7 @@ class MapRanging():
         self._resolution_case = get_resolution_case()
         self._screen = screen_shot()
         self._imgsz = 1280
+        log("加载模型...")
         try:
             # n = 5 / 0
             self._detector = DetectorTRT(b"./model/map.engine", "./lib/yolov5.dll")
@@ -48,11 +49,12 @@ class MapRanging():
         except Exception as e:
             self._detector = Detector("./model/map.onnx", self._imgsz, 0.25)
             log("使用onnx推理")
+        log("模型加载完毕")
         warm_up_image = np.random.rand(self._imgsz, self._imgsz, 3).astype(np.float32)
-        log("开始模型预热")
-        for i in tqdm(range(100), desc="模型预热进度"):
-            self._detector.detect(warm_up_image, loged=False)
-        log("模型预热完毕")
+        # log("开始模型预热")
+        # for i in tqdm(range(100), desc="模型预热进度"):
+        #     self._detector.detect(warm_up_image, loged=False)
+        # log("模型预热完毕")
         self._type = "light-launcher"
         self._current_timer = None
 
