@@ -1,0 +1,9 @@
+{
+    "diagnostics.globals": [
+        "ClearLog",
+        "GetMousePosition",
+        "EnablePrimaryMouseButtonEvents",
+        "Sleep",
+        "OutputLogMessage"
+    ]
+}
