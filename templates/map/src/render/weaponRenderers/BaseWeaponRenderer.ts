@@ -6,7 +6,6 @@ import { FiringSolution } from "../../world/projectilePhysics";
 import { UserSettings } from "../../ui/types";
 import { DirDataComponent } from "../../world/components/dirData";
 import { User } from "../../replication_ws/types";
-import { canvasScaleTransform } from "../canvas";
 import { applyTransform } from "../../world/transformations";
 
 /**
@@ -82,6 +81,8 @@ export abstract class BaseWeaponRenderer {
   drawTargetIcon(ctx: CanvasRenderingContext2D, camera: Camera, targetTransform: Transform): void {
     ctx.save();
     applyTransform(ctx, targetTransform);
+    // 动态导入canvasScaleTransform以避免循环依赖
+    const { canvasScaleTransform } = require("../canvas");
     applyTransform(ctx, canvasScaleTransform(camera));
 
     // 绘制黑色外边框

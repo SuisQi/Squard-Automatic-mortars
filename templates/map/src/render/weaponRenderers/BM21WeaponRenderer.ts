@@ -9,7 +9,6 @@ import { UserSettings } from "../../ui/types";
 import { DirDataComponent } from "../../world/components/dirData";
 import { User } from "../../replication_ws/types";
 import { 
-  canvasScaleTransform, 
   drawSpreadEllipse, 
   outlineText 
 } from "../canvas";
@@ -91,6 +90,8 @@ export class BM21WeaponRenderer extends BaseWeaponRenderer {
   }
 
   drawTarget(ctx: any, camera: Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target, dirdatas?: Map<number, DirDataComponent>, userId?: User['id']): void {
+    // 动态导入canvasScaleTransform以避免循环依赖
+    const { canvasScaleTransform } = require("../canvas");
     const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0];
     canonicalEntitySort(weapons);
     const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
@@ -118,6 +119,8 @@ export class BM21WeaponRenderer extends BaseWeaponRenderer {
         this.drawSpread(ctx, solution, canvasSizeFactor, userSettings.targetSplash);
       }
       
+            // 动态导入canvasScaleTransform以避免循环依赖
+      const { canvasScaleTransform } = require("../canvas");
       applyTransform(ctx, canvasScaleTransform(camera));
       const angleValue = this.getAngleValue(solution, userSettings);
       const angleLowValue = solution.lowArc.angle / Math.PI * 180;
