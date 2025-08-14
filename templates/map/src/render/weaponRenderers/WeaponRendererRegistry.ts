@@ -1,0 +1,1 @@
+// 此文件已被删除，功能已迁移到 weaponFactory.ts

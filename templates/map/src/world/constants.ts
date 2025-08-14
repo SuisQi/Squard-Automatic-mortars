@@ -65,14 +65,14 @@ export const M121_25_DAMAGE_RANGE = 4200; // cm
 
 //MK19
 
-export const MK19_MOA = 50
+export const MK19_MOA = 35
 export const MK19_DEVIATION = MK19_MOA / 60 * Math.PI / 180/2
-export const MK19_VELOCITY = 23800;
-export const MK19_MAX_RANGE = 580000
-export const MK19_MIN_RANGE = 20000;
+export const MK19_VELOCITY = 23600;
+export const MK19_MAX_RANGE = 340000
+export const MK19_MIN_RANGE = 3000;
 
 
 
-export const MK19_100_DAMAGE_RANGE = 500; // cm
-export const MK19_25_DAMAGE_RANGE = 800; // cm
-export const MK19_GRAVITY = GRAVITY*0.95;
+export const MK19_100_DAMAGE_RANGE = 100; // cm
+export const MK19_25_DAMAGE_RANGE = 150; // cm
+export const MK19_GRAVITY = GRAVITY;

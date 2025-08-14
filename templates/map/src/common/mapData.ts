@@ -3,8 +3,9 @@ import {Target, Weapon} from "../world/types";
 import {getEntitiesByType} from "../world/world";
 import {getTranslation} from "../world/transformations";
 import {getHeight} from "../heightmap/heightmap";
-import {getM121FiringSolution, getMortarFiringSolution} from "../world/projectilePhysics";
-import {US_MIL} from "../world/constants";
+import {getProjectileSolutionPair} from "../world/projectilePhysics";
+import {US_MIL} from "../render/weaponRenderers/WeaponConstants";
+import {weaponRenderers} from "../render/weaponRenderers";
 import {vec3} from "gl-matrix";
 
 export const maps = {
@@ -460,14 +461,35 @@ export const getSolution = (state: StoreState, target: any,targetPos?:any) => {
     const targetTranslation = getTranslation(target?.transform||targetPos);
     const targetHeight = getHeight(state.heightmap, targetTranslation)
     targetTranslation[2] = targetHeight;
-    let solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
-    let angleValue = 0
-    if(userSettings.weaponType=="M121"){
-        solution = getM121FiringSolution(weaponTranslation, targetTranslation).highArc;
-        angleValue = solution.angle / Math.PI * 180+0.1
-    }else if(userSettings.weaponType=="standardMortar"){
-        solution = getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
-        angleValue = solution.angle * US_MIL
+    // 使用武器渲染器获取射击解决方案
+    const weaponRenderer = weaponRenderers[userSettings.weaponType]();
+    let solution: any;
+    let angleValue = 0;
+    
+    if (!weaponRenderer) {
+        // 回退到默认迫击炮
+        const mortarRenderer = weaponRenderers.standardMortar();
+        solution = getProjectileSolutionPair(weaponTranslation, targetTranslation, 
+            mortarRenderer.getVelocity(), mortarRenderer.getGravity(), mortarRenderer.getDeviation()).highArc;
+        angleValue = solution.angle * US_MIL;
+    } else {
+        // 根据武器类型获取解决方案
+        if(userSettings.weaponType === "MK19"){
+            // MK19使用低弧
+            solution = getProjectileSolutionPair(weaponTranslation, targetTranslation,
+                weaponRenderer.getVelocity(), weaponRenderer.getGravity(), weaponRenderer.getDeviation()).lowArc;
+            angleValue = solution.angle / Math.PI * 180;
+        } else if(userSettings.weaponType === "M121"){
+            // M121使用高弧
+            solution = getProjectileSolutionPair(weaponTranslation, targetTranslation,
+                weaponRenderer.getVelocity(), weaponRenderer.getGravity(), weaponRenderer.getDeviation(), weaponRenderer.getDrag()).highArc;
+            angleValue = solution.angle / Math.PI * 180 + 0.1;
+        } else {
+            // 其他武器使用高弧
+            solution = getProjectileSolutionPair(weaponTranslation, targetTranslation,
+                weaponRenderer.getVelocity(), weaponRenderer.getGravity(), weaponRenderer.getDeviation()).highArc;
+            angleValue = solution.angle * US_MIL;
+        }
     }
     let dist = solution.dist;
 

@@ -70,7 +70,7 @@ const weaponOptions = [
     ["ub32", "UB32/S5 rockets", "options/s5rocket2.png"],
     ["hellCannon", "Hell Cannon", "options/mortarRound10.png"],
     ["bm21", "BM-21 Grad", "options/s5rocket2.png"],
-    // ["MK19", "RWS MK19", "options/s5rocket2.png"],
+    ["MK19", "MK19", "options/s5rocket2.png"],
 ]
 
 const mapOption: (label: string, imagePath: string) => any =

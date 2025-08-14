@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run build:*)",
+      "Bash(rm:*)",
+      "Bash(del:*)"
+    ],
+    "defaultMode": "acceptEdits",
+    "additionalDirectories": [
+      "E:\\code\\py\\Squard-Automatic-mortars\\templates\\map"
+    ]
+  }
+}

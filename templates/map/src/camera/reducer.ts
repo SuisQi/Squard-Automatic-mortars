@@ -4,7 +4,7 @@ import { mat4, vec3, quat } from 'gl-matrix';
 import { changeZoom, moveToWorldLocation } from './camera';
 import { UserSettingsActionType } from '../ui/types';
 import { maps } from '../common/mapData';
-import { MAPSCALE } from '../world/constants';
+import { MAPSCALE } from '../render/weaponRenderers/WeaponConstants';
 import { Reducer } from 'redux';
 import { StoreAction } from '../store';
 

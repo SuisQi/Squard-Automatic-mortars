@@ -2,13 +2,7 @@ import {Camera} from "../camera/types"
 import {applyTransform, newTranslation} from "../world/transformations";
 import {canvasScaleTransform, outlineText} from "./canvas";
 import {Heightmap} from "../heightmap/types";
-import {
-    MORTAR_MIN_RANGE,
-    MORTAR_MAX_RANGE,
-    HELL_CANNON_MAX_RANGE,
-    M121_MAX_RANGE,
-    M121_MIN_RANGE, MK19_MAX_RANGE, MK19_MIN_RANGE
-} from "../world/constants";
+import { weaponRenderers } from "./weaponRenderers";
 import {mat4, vec3} from "gl-matrix";
 import {EntityId, Weapon} from "../world/types";
 import {TEXT_BLACK, TEXT_GREEN, TEXT_WHITE} from "./constants";
@@ -18,36 +12,29 @@ import {WeaponType} from "../world/components/weapon";
 
 
 const drawMaxRangeCircle = (ctx: CanvasRenderingContext2D, weaponType: WeaponType, scale: number): void => {
+    const weaponRenderer = weaponRenderers[weaponType]();
+    if (!weaponRenderer) return;
+    
     ctx.beginPath();
-
     ctx.lineWidth = 1 * scale;
     ctx.strokeStyle = '#0f0';
-    if (weaponType == "hellCannon") {
-        ctx.arc(0, 0, HELL_CANNON_MAX_RANGE, 0, 2 * Math.PI);
-    } else if (weaponType == "standardMortar" || weaponType == "technicalMortar") {
-        ctx.arc(0, 0, MORTAR_MAX_RANGE, 0, 2 * Math.PI);
-    } else if (weaponType == "M121") {
-        ctx.arc(0, 0, M121_MAX_RANGE, 0, 2 * Math.PI);
-    } else if (weaponType === "MK19") {
-        ctx.arc(0, 0, MK19_MAX_RANGE, 0, 2 * Math.PI);
-    }
+    ctx.arc(0, 0, weaponRenderer.getMaxRange(), 0, 2 * Math.PI);
     ctx.stroke();
 }
 
 
 const drawMinRangeCircle = (ctx: CanvasRenderingContext2D, weaponType: WeaponType, scale: number): void => {
-    ctx.beginPath();
-    ctx.beginPath();
-    ctx.lineWidth = 1 * scale;
-    ctx.strokeStyle = '#ff002f';
-    if (weaponType == "M121") {
-        ctx.arc(0, 0, M121_MIN_RANGE, 0, 2 * Math.PI);
-    } else if (weaponType === "MK19") {
-        ctx.arc(0, 0, MK19_MIN_RANGE, 0, 2 * Math.PI);
-    } else {
-        ctx.arc(0, 0, MORTAR_MIN_RANGE, 0, 2 * Math.PI);
+    const weaponRenderer = weaponRenderers[weaponType]();
+    if (!weaponRenderer) return;
+    
+    const minRange = weaponRenderer.getMinRange();
+    if (minRange > 0) {
+        ctx.beginPath();
+        ctx.lineWidth = 1 * scale;
+        ctx.strokeStyle = '#ff002f';
+        ctx.arc(0, 0, minRange, 0, 2 * Math.PI);
+        ctx.stroke();
     }
-    ctx.stroke();
 }
 export const drawWeapons = (ctx: CanvasRenderingContext2D, userSettings: UserSettings, camera: Camera, weapons: Array<Weapon>): void => {
 

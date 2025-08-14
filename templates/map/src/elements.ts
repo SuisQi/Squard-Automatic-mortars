@@ -1,6 +1,11 @@
 import { SVGBuffer } from "./common/svgBuffer";
-import { BM21_DEVIATION, BM21_VELOCITY, S5_ACCELERATION, S5_ACCELERATION_TIME, UB32_DEVIATION, UB32_VELOCITY } from "./world/constants";
 import { FiringSolutionTable } from "./world/rocketTables";
+import { 
+  UB32_DEVIATION, 
+  UB32_VELOCITY, 
+  S5_ACCELERATION, 
+  S5_ACCELERATION_TIME 
+} from "./render/weaponRenderers/RocketPodWeaponRenderer";
 
 export const $tooltip = document.getElementById('dbg');
 export const $map_name = document.getElementById('map-name');

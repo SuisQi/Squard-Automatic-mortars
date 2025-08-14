@@ -1,18 +1,7 @@
 import {vec3} from "gl-matrix";
 import {$s5map} from "../elements";
 import {FiringSolutionTable} from "./rocketTables";
-import {
-    BM21_DEVIATION,
-    BM21_GRAVITY,
-    BM21_VELOCITY,
-    GRAVITY,
-    HELL_CANNON_DEVIATION,
-    HELL_CANNON_VELOCITY, M121_DEVIATION, M121_DRAG, M121_GRAVITY,
-    M121_VELOCITY, MK19_DEVIATION, MK19_GRAVITY, MK19_VELOCITY,
-    MORTAR_DEVIATION,
-    MORTAR_VELOCITY,
-    US_MIL
-} from "./constants";
+import { US_MIL, GRAVITY } from "./constants"; // 保留通用常量
 
 
 export function calcAngleHigh(x: number, startHeightOffset: number, v: number, g: number, dragCoefficient: number = 0) {
@@ -177,27 +166,54 @@ const getProjectileSolution = (weaponTranslation: vec3, targetTranslation: vec3,
     })
 }
 
-const getProjectileSolutionPair = (weaponTranslation: vec3, targetTranslation: vec3, velocity: number, gravity: number, deviation: number, dragCoefficient: number = 0): FiringSolutionPair => {
+export const getProjectileSolutionPair = (weaponTranslation: vec3, targetTranslation: vec3, velocity: number, gravity: number, deviation: number, dragCoefficient: number = 0): FiringSolutionPair => {
     return Object.freeze({
         lowArc: getProjectileSolution(weaponTranslation, targetTranslation, velocity, gravity, deviation, lowArcSolver, dragCoefficient),
         highArc: getProjectileSolution(weaponTranslation, targetTranslation, velocity, gravity, deviation, highArcSolver,dragCoefficient),
     })
 }
 
-export const getMortarFiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
-    getProjectileSolutionPair(weaponTranslation, targetTranslation, MORTAR_VELOCITY, GRAVITY, MORTAR_DEVIATION);
+// 迫击炮常量
+const MORTAR_VELOCITY = 10989; // cm/s
+const MORTAR_DEVIATION = 50 / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
 
-export const getM121FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
-    getProjectileSolutionPair(weaponTranslation, targetTranslation, M121_VELOCITY, M121_GRAVITY, M121_DEVIATION,M121_DRAG);
+export const getMortarFiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair => {
+    return getProjectileSolutionPair(weaponTranslation, targetTranslation, MORTAR_VELOCITY, GRAVITY, MORTAR_DEVIATION);
+};
 
-export const getMK19FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
-    getProjectileSolutionPair(weaponTranslation, targetTranslation, MK19_VELOCITY, MK19_GRAVITY,MK19_DEVIATION);
-export const getHellCannonFiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
-    getProjectileSolutionPair(weaponTranslation, targetTranslation, HELL_CANNON_VELOCITY, GRAVITY, HELL_CANNON_DEVIATION);
+// M121迫击炮常量
+const M121_VELOCITY = 14200; // cm/s
+const M121_DRAG = 0;
+const M121_DEVIATION = 40 / 60 * Math.PI / 180 / 2;
 
+export const getM121FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair => {
+    return getProjectileSolutionPair(weaponTranslation, targetTranslation, M121_VELOCITY, GRAVITY, M121_DEVIATION, M121_DRAG);
+};
 
-export const getBM21FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair =>
-    getProjectileSolutionPair(weaponTranslation, targetTranslation, BM21_VELOCITY, BM21_GRAVITY, BM21_DEVIATION);
+// MK19常量
+const MK19_VELOCITY = 23600; // cm/s
+const MK19_DEVIATION = 35 / 60 * Math.PI / 180 / 2;
+
+export const getMK19FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair => {
+    return getProjectileSolutionPair(weaponTranslation, targetTranslation, MK19_VELOCITY, GRAVITY, MK19_DEVIATION);
+};
+
+// 地狱大炮常量
+const HELL_CANNON_VELOCITY = 9500; // cm/s
+const HELL_CANNON_DEVIATION = 100 / 60 * Math.PI / 180 / 2;
+
+export const getHellCannonFiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair => {
+    return getProjectileSolutionPair(weaponTranslation, targetTranslation, HELL_CANNON_VELOCITY, GRAVITY, HELL_CANNON_DEVIATION);
+};
+
+// BM21常量
+const BM21_VELOCITY = 20000; // cm/s
+const BM21_GRAVITY = 2 * GRAVITY; // cm/s^2
+const BM21_DEVIATION = 200 / 60 * Math.PI / 180 / 2;
+
+export const getBM21FiringSolution = (weaponTranslation: vec3, targetTranslation: vec3): FiringSolutionPair => {
+    return getProjectileSolutionPair(weaponTranslation, targetTranslation, BM21_VELOCITY, BM21_GRAVITY, BM21_DEVIATION);
+};
 
 
 const getTableFiringSolution = (table: FiringSolutionTable, weaponTranslation: vec3, targetTranslation: vec3): FiringSolution => {

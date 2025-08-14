@@ -3,8 +3,8 @@ import {getEntitiesByType} from "../world/world";
 import {Target, Weapon} from "../world/types";
 import {getTranslation} from "../world/transformations";
 import {getHeight} from "../heightmap/heightmap";
-import {getMortarFiringSolution} from "../world/projectilePhysics";
-import {US_MIL} from "../world/constants";
+// getMortarFiringSolution 已被移除，现在使用 getSolution 从 mapData
+import {US_MIL} from "../render/weaponRenderers/WeaponConstants";
 import {state} from "sucrase/dist/types/parser/traverser/base";
 import {getSolution} from "../common/mapData";
 import {notification} from "antd";
