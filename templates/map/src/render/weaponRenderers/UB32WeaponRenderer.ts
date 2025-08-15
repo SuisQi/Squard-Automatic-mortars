@@ -90,54 +90,8 @@ export class UB32WeaponRenderer extends BaseWeaponRenderer {
   }
 
   drawTarget(ctx: any, camera: Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target, dirdatas?: Map<number, DirDataComponent>, userId?: User['id']): void {
-    // 动态导入canvasScaleTransform以避免循环依赖
-    const { canvasScaleTransform } = require("../canvas");
-    const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0];
-    canonicalEntitySort(weapons);
-    const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
-    const allWeaponsIndex: any = {};
-    weapons.forEach((w: Weapon, index: number) => {
-      if (w.isActive) {
-        allWeaponsIndex[w.entityId] = index;
-      }
-    });
-
-    activeWeapons.forEach((weapon: Weapon, activeWeaponIndex: number) => {
-      const weaponTranslation = getTranslation(weapon.transform);
-      const weaponHeight = getHeight(heightmap, weaponTranslation);
-      weaponTranslation[2] = weaponHeight + weapon.heightOverGround;
-      const targetTranslation = getTranslation(target.transform);
-      const targetHeight = getHeight(heightmap, targetTranslation);
-      targetTranslation[2] = targetHeight;
-
-      const solution = this.getFiringSolution(weaponTranslation, targetTranslation);
-      const lineHeight = userSettings.fontSize * 1.7;
-
-      ctx.save();
-      applyTransform(ctx, target.transform);
-      if (userSettings.targetSpread && solution.angle && solution.time) {
-        this.drawSpread(ctx, solution, canvasSizeFactor, userSettings.targetSplash);
-      }
-
-            // 动态导入canvasScaleTransform以避免循环依赖
-      const { canvasScaleTransform } = require("../canvas");
-      applyTransform(ctx, canvasScaleTransform(camera));
-      applyTransform(ctx, newTranslation(10, activeWeaponIndex * lineHeight, 0));
-
-      const angleText = activeWeapons.length > 1 ?
-        (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + this.getAngleText(this.getAngleValue(solution, userSettings), solution) :
-        this.getAngleText(this.getAngleValue(solution, userSettings), solution);
-
-      outlineText(ctx, angleText, "bottom", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true);
-
-      const bottomText = userSettings.targetDistance ?
-        `${solution.dir.toFixed(1)}° ${(solution.dist * MAPSCALE).toFixed(0)}m` :
-        `${solution.dir.toFixed(1)}°`;
-      outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true);
-      ctx.restore();
-
-      this.drawTargetIcon(ctx, camera, target.transform);
-    });
+    // UB32有特殊的渲染逻辑，使用通用配置
+    this.drawTargetWithConfig(ctx, camera, userSettings, heightmap, weapons, target, dirdatas, userId);
   }
 
   supportsGrid(): boolean {

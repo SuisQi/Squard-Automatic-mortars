@@ -7,6 +7,13 @@ import { UserSettings } from "../../ui/types";
 import { DirDataComponent } from "../../world/components/dirData";
 import { User } from "../../replication_ws/types";
 import { applyTransform } from "../../world/transformations";
+import { 
+  drawStandardSplash, 
+  drawStandardSpread, 
+  drawWeaponTarget, 
+  getCanvasScaleTransform,
+  WeaponTargetRenderConfig
+} from "./WeaponRenderUtils";
 
 /**
  * 武器渲染器基类
@@ -81,9 +88,7 @@ export abstract class BaseWeaponRenderer {
   drawTargetIcon(ctx: CanvasRenderingContext2D, camera: Camera, targetTransform: Transform): void {
     ctx.save();
     applyTransform(ctx, targetTransform);
-    // 动态导入canvasScaleTransform以避免循环依赖
-    const { canvasScaleTransform } = require("../canvas");
-    applyTransform(ctx, canvasScaleTransform(camera));
+    applyTransform(ctx, getCanvasScaleTransform(camera));
 
     // 绘制黑色外边框
     ctx.beginPath();
@@ -102,7 +107,66 @@ export abstract class BaseWeaponRenderer {
   }
   
   /**
-   * 绘制目标（基类实现，子类可以重写）
+   * 绘制标准爆炸伤害范围（通用实现）
+   * @param ctx Canvas绘制上下文
+   * @param lineWidthFactor 线宽因子
+   */
+  drawStandardSplash(ctx: CanvasRenderingContext2D, lineWidthFactor: number): void {
+    drawStandardSplash(ctx, lineWidthFactor, this.get100DamageRange(), this.get25DamageRange());
+  }
+
+  /**
+   * 绘制标准精度椭圆（通用实现）
+   * @param ctx Canvas绘制上下文
+   * @param firingSolution 射击解决方案
+   * @param lineWidthFactor 线宽因子
+   * @param withSplash 是否显示爆炸范围
+   * @param selected 是否选中状态
+   */
+  drawStandardSpread(ctx: CanvasRenderingContext2D, firingSolution: any, lineWidthFactor: number, withSplash: boolean, selected: boolean = false): void {
+    drawStandardSpread(ctx, firingSolution, lineWidthFactor, withSplash, selected, this.get100DamageRange(), this.get25DamageRange());
+  }
+
+  /**
+   * 通用目标绘制方法
+   * 使用标准化的绘制流程，子类只需提供配置即可
+   * @param ctx Canvas绘制上下文
+   * @param camera 相机对象
+   * @param userSettings 用户设置
+   * @param heightmap 高度图
+   * @param weapons 武器数组
+   * @param target 目标对象
+   * @param dirdatas 方向数据映射
+   * @param userId 用户ID
+   */
+  drawTargetWithConfig(
+    ctx: any,
+    camera: Camera,
+    userSettings: UserSettings,
+    heightmap: Heightmap,
+    weapons: Array<Weapon>,
+    target: Target,
+    dirdatas?: Map<number, DirDataComponent>,
+    userId?: User['id']
+  ): void {
+    const config: WeaponTargetRenderConfig = {
+      supportsGrid: this.supportsGrid(),
+      getAngleValue: this.getAngleValue.bind(this),
+      getAngleText: this.getAngleText.bind(this),
+      getAnglePrecision: this.getAnglePrecision.bind(this),
+      getFiringSolution: this.getFiringSolution.bind(this),
+      drawSpread: this.drawSpread.bind(this),
+      drawSplash: this.drawSplash.bind(this),
+      drawTargetGrid: this.supportsGrid() ? this.drawTargetGrid.bind(this) : undefined
+    };
+    
+    drawWeaponTarget(ctx, camera, userSettings, heightmap, weapons, target, config, dirdatas, userId);
+    this.drawTargetIcon(ctx, camera, target.transform);
+  }
+
+  /**
+   * 绘制目标（抽象方法，子类必须实现）
+   * 子类可以选择使用 drawTargetWithConfig 或自定义实现
    * @param ctx Canvas绘制上下文
    * @param camera 相机对象
    * @param userSettings 用户设置

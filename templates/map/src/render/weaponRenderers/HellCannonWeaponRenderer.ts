@@ -49,18 +49,7 @@ export class HellCannonWeaponRenderer extends BaseWeaponRenderer {
   }
   
   drawSplash(ctx: CanvasRenderingContext2D, lineWidthFactor: number): void {
-    ctx.lineWidth = 1 * lineWidthFactor;
-    ctx.strokeStyle = '#f00';
-    
-    // 绘制100%伤害范围
-    ctx.beginPath();
-    ctx.arc(0, 0, DAMAGE_100_RANGE, 0, 2 * Math.PI);
-    ctx.stroke();
-    
-    // 绘制25%伤害范围
-    ctx.beginPath();
-    ctx.arc(0, 0, DAMAGE_25_RANGE, 0, 2 * Math.PI);
-    ctx.stroke();
+    this.drawStandardSplash(ctx, lineWidthFactor);
   }
   
   drawSpread(ctx: CanvasRenderingContext2D, firingSolution: any, lineWidthFactor: number, withSplash: boolean, selected: boolean = false): void {
@@ -120,73 +109,8 @@ export class HellCannonWeaponRenderer extends BaseWeaponRenderer {
   }
 
   drawTarget(ctx: any, camera: Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target, dirdatas?: Map<number, DirDataComponent>, userId?: User['id']): void {
-    // 动态导入canvasScaleTransform以避免循环依赖
-    const { canvasScaleTransform } = require("../canvas");
-    const canvasSizeFactor = mat4.getScaling(vec3.create(), canvasScaleTransform(camera))[0];
-    canonicalEntitySort(weapons);
-    const activeWeapons = weapons.filter((w: Weapon) => w.isActive);
-    const allWeaponsIndex: any = {};
-    weapons.forEach((w: Weapon, index: number) => {
-      if (w.isActive) {
-        allWeaponsIndex[w.entityId] = index;
-      }
-    });
-    
-    activeWeapons.forEach((weapon: Weapon, activeWeaponIndex: number) => {
-      const weaponTranslation = getTranslation(weapon.transform);
-      const weaponHeight = getHeight(heightmap, weaponTranslation);
-      weaponTranslation[2] = weaponHeight + weapon.heightOverGround;
-      const targetTranslation = getTranslation(target.transform);
-      const targetHeight = getHeight(heightmap, targetTranslation);
-      targetTranslation[2] = targetHeight;
-      
-      const solution = this.getFiringSolution(weaponTranslation, targetTranslation);
-      const lineHeight = userSettings.fontSize * (userSettings.targetCompactMode ? 1 : 1.7);
-
-      ctx.save();
-      applyTransform(ctx, target.transform);
-      if (userSettings.targetSpread) {
-        this.drawSpread(ctx, solution, canvasSizeFactor, userSettings.targetSplash);
-      } else if (userSettings.targetSplash) {
-        this.drawSplash(ctx, canvasSizeFactor);
-      }
-      
-            // 动态导入canvasScaleTransform以避免循环依赖
-      const { canvasScaleTransform } = require("../canvas");
-      applyTransform(ctx, canvasScaleTransform(camera));
-      const angleValue = this.getAngleValue(solution, userSettings);
-      applyTransform(ctx, newTranslation(10, activeWeaponIndex * lineHeight, 0));
-      
-      if (userSettings.targetCompactMode) {
-        let angleText = "-----";
-        const precision = 1;
-        if (solution.highArc.angle && angleValue >= 1000) {
-          angleText = angleValue.toFixed(precision).toString().substr(1, 4 + precision);
-        } else if (solution.highArc.angle) {
-          angleText = angleValue.toFixed(precision).toString().substr(0, 3 + precision);
-        }
-        if (activeWeapons.length > 1) {
-          angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
-        }
-        outlineText(ctx, angleText, "middle", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true);
-      } else {
-        let angleText = this.getAngleText(angleValue, solution);
-        if (activeWeapons.length > 1) {
-          angleText = (allWeaponsIndex[weapon.entityId] + 1).toString() + ": " + angleText;
-        }
-        outlineText(ctx, angleText, "bottom", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true);
-        const bottomTextComponents = [
-          `${solution.highArc.dir.toFixed(1)}°`,
-          `${solution.highArc.time ? solution.highArc.time.toFixed(1) : "-"}s | ${solution.lowArc.time ? solution.lowArc.time.toFixed(1) : "-"}s`,
-          userSettings.targetDistance ? `${(solution.highArc.dist * WORLD_MAPSCALE).toFixed(0)}m` : "",
-        ];
-        const bottomText = bottomTextComponents.join(' ');
-        outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true);
-      }
-      ctx.restore();
-    });
-    
-    this.drawTargetIcon(ctx, camera, target.transform);
+    // 地狱火炮有特殊的高弧/低弧逻辑，所以使用通用配置
+    this.drawTargetWithConfig(ctx, camera, userSettings, heightmap, weapons, target, dirdatas, userId);
   }
   
   supportsGrid(): boolean {
