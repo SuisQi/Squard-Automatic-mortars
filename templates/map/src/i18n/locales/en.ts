@@ -67,8 +67,8 @@ const enTranslations: LanguagePack = {
   },
 
   labels: {
-    target: 'Target',
-    weapon: 'Weapon'
+    target: 'T',
+    weapon: 'W'
   },
 
   buttons: {

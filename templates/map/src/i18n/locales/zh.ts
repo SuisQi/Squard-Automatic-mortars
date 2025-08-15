@@ -67,8 +67,8 @@ const zhTranslations: LanguagePack = {
   },
 
   labels: {
-    target: '目标',
-    weapon: '武器'
+    target: 'T',
+    weapon: 'W'
   },
 
   buttons: {

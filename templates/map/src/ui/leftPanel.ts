@@ -109,10 +109,10 @@ const leftPanel: (props: { userSettings: UserSettings } & any) => any
     = props => {
     const { t } = useTranslation();
     const mapOptions = getMapOptions(t);
-    
+
     return h("div", {className: "leftPanel flexItem"}, [
         props.userSettings.leftPanelCollapsed
-            ? div({className: "flexColumn", style: {"padding": "2px"}}, [
+            ? div({className: "flexColumn", style: {"padding": "2px", "minHeight": "30px"}}, [
                 div({className: "flexRow"}, [
                     h(Dropdown, {
                         className: "flexItem fill",
@@ -135,8 +135,10 @@ const leftPanel: (props: { userSettings: UserSettings } & any) => any
                 div({className: "flexRow"}, [
                     div({className: "settingsLabel small"}, [t("common.language")]),
                     div({className: "h2"}, []),
-                    h(ConnectedLanguageSwitcher, {className: "languageSwitcherCompact"}),
+                    h(ConnectedLanguageSwitcher, {}),
                 ]),
+                // 隐藏sessionComponent但保持Hook调用以避免React错误
+                div({style: {display: "none"}}, [sessionComponent(props)]),
             ])
             : div({style: {padding: "2px"}}, collapsibleleftPanelSettings(props, t)),
 
@@ -207,29 +209,32 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                 div({className: "flexRow"}, [
                     div({className: "separator"})
                 ]),
+                div({className: "flexRow"}, [
+                    div({className: "separator"})
+                ]),
                 sessionComponent(props),
-                div({className: "flexRow"}, [
-                    div({className: "separator"})
-                ]),
                 // 底部信息和设置区域
+                // div({className: "flexRow"}, [
+                //     div({className: "separator"})
+                // ]),
+                // div({className: "flexRow hint"}, [
+                //     t("common.checkTooltips"), div({className: "h5"}, []), h("a", {
+                //         className: "link",
+                //         href: "https://gitlab.com/squadstrat/squadmortar"
+                //     }, [t("common.gitlab")]),
+                // ]),
+
                 div({className: "flexRow"}, [
                     div({className: "separator"})
-                ]),
-                div({className: "flexRow hint"}, [
-                    t("common.checkTooltips"), div({className: "h5"}, []), h("a", {
-                        className: "link",
-                        href: "https://gitlab.com/squadstrat/squadmortar"
-                    }, [t("common.gitlab")]),
                 ]),
                 div({className: "v2"}, []),
                 // 语言切换器在底部单独一行
                 div({className: "flexRow"}, [
                     div({className: "settingsLabel"}, [t("common.language") || "Language:"]),
                     div({className: "h5"}, []),
-                    h(ConnectedLanguageSwitcher, {className: "languageSwitcherCompact"}),
+                    h(ConnectedLanguageSwitcher, {}),
                 ]),
-                div({className: "v2"}, [])
-
+                div({className: "v2"}, []),
             ])
         ]
     }

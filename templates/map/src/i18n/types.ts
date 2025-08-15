@@ -63,6 +63,7 @@ export interface TranslationKeys {
     noFiringSolution: string;
     checkTooltips: string;
     gitlab: string;
+    language: string;
   };
 }
 
