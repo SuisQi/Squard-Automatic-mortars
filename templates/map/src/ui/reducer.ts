@@ -9,6 +9,7 @@ import {
     UIStateAction,
     ICONToolState, IconToolAction, ImageState, ImageStateAction,
 } from './types';
+import { DEFAULT_LANGUAGE } from '../i18n/constants';
 import { basicReducer, newSingleActionReducer, immerUpdateTransition } from '../common/reducer';
 import { vec3 } from 'gl-matrix';
 import { Reducer } from 'redux';
@@ -37,7 +38,8 @@ const defaultUserSettings = (): UserSettings => ({
 
     targetCompactMode: false,
     leftPanelCollapsed: false,
-    terrainmap:false
+    terrainmap: false,
+    language: DEFAULT_LANGUAGE
 });
 
 

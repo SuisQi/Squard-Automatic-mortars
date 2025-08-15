@@ -6,7 +6,7 @@ import {changeMap, newUIStateWriteAction, settingsToActions} from "./ui/actions"
 import {drawAll} from './render/canvas';
 import * as React from "react";
 import * as ReactDOM from 'react-dom'
-import {makeLeftPanel, mapOptions} from './ui/leftPanel';
+import {makeLeftPanel, mapBaseOptions} from './ui/leftPanel';
 import {makeTooltip} from "./ui/tooltip";
 import {loadUserSettings} from "./ui/persistence";
 import {enableMapSet} from "immer";
@@ -19,6 +19,8 @@ import {vec3} from "gl-matrix";
 import {getEntitiesByType} from "./world/world";
 import {Target} from "./world/types";
 import {getSolution} from "./common/mapData";
+// 初始化国际化系统
+import "./i18n";
 
 M.glMatrix.setMatrixArrayType(Array)
 enableMapSet()
@@ -42,8 +44,8 @@ setupEventsAndInit(store, perfRef)
 store.subscribe(() => drawAll(store))
 
 var fragment = new DocumentFragment();
-mapOptions.forEach(o => {
-    const imageLoc = o[2];
+mapBaseOptions.forEach(o => {
+    const imageLoc = o[1];
     var link = document.createElement('link')
     link.rel = "prefetch";
     link.as = "image";

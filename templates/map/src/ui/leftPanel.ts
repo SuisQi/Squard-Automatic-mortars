@@ -28,50 +28,70 @@ import {User} from "../replication_ws/types";
 import {StoreState} from "../store";
 import {set_map, set_weapon} from "../api/standard";
 import {maps} from "../common/mapData";
+import {useTranslation} from "../i18n/hooks";
+import ConnectedLanguageSwitcher from "./LanguageSwitcher";
 
 const h = React.createElement
 // @ts-ignore
 const div = <P, C>(props: P, children?: C) => h("div", props as any, children)
 
-export const mapOptions = [
-    ["albasrah", "巴士拉", "options/albasrah_option.png"],
-    ["anvil", "铁砧行动", "options/anvil_option.png"],
-    ["belaya", "贝拉亚关隘", "options/belaya_option.png"],
-    ["blackcoast", "黑色海岸", "options/blackcoast_option.png"],
-    ["chora", "乔拉", "options/chora_option.png"],
-    ["fallujah", "费卢杰", "options/fallujah_option.png"],
-    ["foolsroad", "愚者之路", "options/foolsroad_option.png"],
-    ["goosebay", "鹅湾", "options/goosebay_option.png"],
-    ["gorodok", "格罗多克", "options/gorodok_option.png"],
-    ["harju", "哈留", "options/harju_option.png"],
-    ["jensensrange", "训练营", "options/jensensrange_option.png"],
-    ["kamdesh", "卡姆德什高地", "options/kamdesh_option.png"],
-    ["kohat", "科哈特", "options/kohat_option.png"],
-    ["kokan", "寇坎", "options/kokan_option.png"],
-    ["logar", "洛加尔山谷", "options/logar_option.png"],
-    ["lashkar", "拉什卡河谷", "options/lashkar_option.png"],
-    //["manic", "Manic-5", "options/manic_option.png"],
-    ["manicouagan", "曼尼古根", "options/manic_option.png"],
-    ["mestia", "梅斯蒂亚", "options/mestia_option.png"],
-    ["mutaha", "穆塔哈", "options/mutaha_option.png"],
-    ["narva", "纳尔瓦", "options/narva_option.png"],
-    // ["skorpo", "Skorpo (Town)", "options/skorpo_option.png"],
-    ["skorpoFull", "斯科普", "options/skorpo_option.png"],
-    ["sumari", "苏玛瑞", "options/sumari_option.png"],
-    ["tallil", "塔利尔", "options/tallil_option.png"],
-    ["yehorivka", "叶城", "options/yehorivka_option.png"],
-    // ["yehorivka_skirmish_v1", "Yehorivka (Sk_v1)", "options/yehorivka_option.png"],
-    ["sanxianislands", "三仙岛", "options/sanxianislands_option.png"]
-]
-const weaponOptions = [
-    ["standardMortar", "Standard mortar", "options/mortarRound10.png"],
-    ["M121", "120mm mortar", "options/mortarRound10.png"],
-    ["technicalMortar", "Technical mortar", "options/mortarRound10.png"],
-    ["ub32", "UB32/S5 rockets", "options/s5rocket2.png"],
-    ["hellCannon", "Hell Cannon", "options/mortarRound10.png"],
-    ["bm21", "BM-21 Grad", "options/s5rocket2.png"],
-    ["MK19", "MK19", "options/s5rocket2.png"],
-]
+// 地图基础数据（不包含显示名称）
+export const mapBaseOptions = [
+    ["albasrah", "options/albasrah_option.png"],
+    ["anvil", "options/anvil_option.png"],
+    ["belaya", "options/belaya_option.png"],
+    ["blackcoast", "options/blackcoast_option.png"],
+    ["chora", "options/chora_option.png"],
+    ["fallujah", "options/fallujah_option.png"],
+    ["foolsroad", "options/foolsroad_option.png"],
+    ["goosebay", "options/goosebay_option.png"],
+    ["gorodok", "options/gorodok_option.png"],
+    ["harju", "options/harju_option.png"],
+    ["jensensrange", "options/jensensrange_option.png"],
+    ["kamdesh", "options/kamdesh_option.png"],
+    ["kohat", "options/kohat_option.png"],
+    ["kokan", "options/kokan_option.png"],
+    ["logar", "options/logar_option.png"],
+    ["lashkar", "options/lashkar_option.png"],
+    ["manicouagan", "options/manic_option.png"],
+    ["mestia", "options/mestia_option.png"],
+    ["mutaha", "options/mutaha_option.png"],
+    ["narva", "options/narva_option.png"],
+    ["skorpoFull", "options/skorpo_option.png"],
+    ["sumari", "options/sumari_option.png"],
+    ["tallil", "options/tallil_option.png"],
+    ["yehorivka", "options/yehorivka_option.png"],
+    ["sanxianislands", "options/sanxianislands_option.png"]
+];
+
+// 武器基础数据（不包含显示名称）
+const weaponBaseOptions = [
+    ["standardMortar", "options/mortarRound10.png"],
+    ["M121", "options/mortarRound10.png"],
+    ["technicalMortar", "options/mortarRound10.png"],
+    ["ub32", "options/s5rocket2.png"],
+    ["hellCannon", "options/mortarRound10.png"],
+    ["bm21", "options/s5rocket2.png"],
+    ["MK19", "options/s5rocket2.png"],
+];
+
+// 获取本地化地图选项的函数
+const getMapOptions = (t: (key: string) => string) => {
+    return mapBaseOptions.map(([mapId, imagePath]) => [
+        mapId,
+        t(`maps.${mapId}`),
+        imagePath
+    ]);
+};
+
+// 获取本地化武器选项的函数
+const getWeaponOptions = (t: (key: string) => string) => {
+    return weaponBaseOptions.map(([weaponType, imagePath]) => [
+        weaponType,
+        t(`weapons.${weaponType}`),
+        imagePath
+    ]);
+};
 
 const mapOption: (label: string, imagePath: string) => any =
     (label, imagePath) => div({className: "flexRow mapOption"}, [
@@ -87,6 +107,9 @@ const weaponOption: (label: string, imagePath: string) => any =
 
 const leftPanel: (props: { userSettings: UserSettings } & any) => any
     = props => {
+    const { t } = useTranslation();
+    const mapOptions = getMapOptions(t);
+    
     return h("div", {className: "leftPanel flexItem"}, [
         props.userSettings.leftPanelCollapsed
             ? div({className: "flexColumn", style: {"padding": "2px"}}, [
@@ -104,11 +127,18 @@ const leftPanel: (props: { userSettings: UserSettings } & any) => any
                 props.userSettings.extraButtonsAlwaysShown
                     ? h(React.Fragment, {}, [
                         div({className: "v2"}, []),
-                        ...extraButtons(props),
+                        ...extraButtons(props, t),
                     ])
                     : null,
+                // 语言切换器放在底部
+                div({className: "v5"}, []),
+                div({className: "flexRow"}, [
+                    div({className: "settingsLabel small"}, [t("common.language")]),
+                    div({className: "h2"}, []),
+                    h(ConnectedLanguageSwitcher, {className: "languageSwitcherCompact"}),
+                ]),
             ])
-            : div({style: {padding: "2px"}}, collapsibleleftPanelSettings(props)),
+            : div({style: {padding: "2px"}}, collapsibleleftPanelSettings(props, t)),
 
         unstyledToggleButton({
             value: props.userSettings.leftPanelCollapsed,
@@ -120,8 +150,9 @@ const leftPanel: (props: { userSettings: UserSettings } & any) => any
     ])
 }
 
-const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any) => any =
-    props => {
+const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any, t: (key: string) => string) => any =
+    (props, t) => {
+        const mapOptions = getMapOptions(t);
         return [
             div({className: "flexColumn"}, [
                 div({className: "flexRow",}, [
@@ -144,7 +175,7 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                             classNameTrue: "toggleButton black",
                             classNameFalse: "toggleButton",
                             styleFalse: {color: "grey"},
-                            tooltip: "Show map grid",
+                            tooltip: t("tooltips.showMapGrid"),
                         }
                     ),
                     //div({className:"h2"}),
@@ -161,18 +192,18 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                 div({className: "flexRow"}, [
                     div({className: "separator"})
                 ]),
-                ...weaponSettings(props),
+                ...weaponSettings(props, t),
                 div({className: "flexRow"}, [
                     div({className: "separator"})
                 ]),
 
-                ...targetSettings(props),
+                ...targetSettings(props, t),
                 div({className: "v2"}, []),
 
                 div({className: "flexRow"}, [
                     div({className: "separator"})
                 ]),
-                ...extraButtons(props),
+                ...extraButtons(props, t),
                 div({className: "flexRow"}, [
                     div({className: "separator"})
                 ]),
@@ -180,11 +211,22 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                 div({className: "flexRow"}, [
                     div({className: "separator"})
                 ]),
+                // 底部信息和设置区域
+                div({className: "flexRow"}, [
+                    div({className: "separator"})
+                ]),
                 div({className: "flexRow hint"}, [
-                    "Check tooltips or the ReadMe on", div({className: "h5"}, []), h("a", {
+                    t("common.checkTooltips"), div({className: "h5"}, []), h("a", {
                         className: "link",
                         href: "https://gitlab.com/squadstrat/squadmortar"
-                    }, ["gitlab"]),
+                    }, [t("common.gitlab")]),
+                ]),
+                div({className: "v2"}, []),
+                // 语言切换器在底部单独一行
+                div({className: "flexRow"}, [
+                    div({className: "settingsLabel"}, [t("common.language") || "Language:"]),
+                    div({className: "h5"}, []),
+                    h(ConnectedLanguageSwitcher, {className: "languageSwitcherCompact"}),
                 ]),
                 div({className: "v2"}, [])
 
@@ -192,44 +234,47 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
         ]
     }
 
-const weaponSettings = (props: { userSettings: UserSettings } & any) => [
-    div({className: "flexRow",}, [
-        h(Dropdown, {
-            className: "flexItemFill",
-            value: props.userSettings.weaponType,
-            onChange: props.onChangeWeapon,
-            options: weaponOptions.map(valueLabel => ({
-                value: valueLabel[0],
-                elem: weaponOption(valueLabel[1], valueLabel[2])
-            }))
-        })
-    ]),
-    div({className: "v2"}, []),
-    div({className: "flexRow"}, [
-        toggleButton({
-            value: props.userSettings.weaponPlacementHelper,
-            onChange: props.onChangeWeaponPlacementHelper,
-            tooltip: "Show keypads while moving weapon",
-            label: "#?",
-            className: "",
-            classNameTrue: " green",
-            styleFalse: {color: "grey"},
-        }),
-        div({className: "h2"}, []),
-        toggleButton({
-            value: props.userSettings.weaponPlacementLabel,
-            onChange: props.onChangeWeaponPlacementLabel,
-            tooltip: "Show keypad label while moving weapon",
-            label: "A1",
-            className: "",
-            classNameTrue: " green",
-            styleFalse: {color: "grey"},
-        }),
-    ]),
-    weaponTable(props)
-]
+const weaponSettings = (props: { userSettings: UserSettings } & any, t: (key: string) => string) => {
+    const weaponOptions = getWeaponOptions(t);
+    return [
+        div({className: "flexRow",}, [
+            h(Dropdown, {
+                className: "flexItemFill",
+                value: props.userSettings.weaponType,
+                onChange: props.onChangeWeapon,
+                options: weaponOptions.map(valueLabel => ({
+                    value: valueLabel[0],
+                    elem: weaponOption(valueLabel[1], valueLabel[2])
+                }))
+            })
+        ]),
+        div({className: "v2"}, []),
+        div({className: "flexRow"}, [
+            toggleButton({
+                value: props.userSettings.weaponPlacementHelper,
+                onChange: props.onChangeWeaponPlacementHelper,
+                tooltip: t("tooltips.showKeypadsWhileMovingWeapon"),
+                label: "#?",
+                className: "",
+                classNameTrue: " green",
+                styleFalse: {color: "grey"},
+            }),
+            div({className: "h2"}, []),
+            toggleButton({
+                value: props.userSettings.weaponPlacementLabel,
+                onChange: props.onChangeWeaponPlacementLabel,
+                tooltip: t("tooltips.showKeypadLabelWhileMovingWeapon"),
+                label: "A1",
+                className: "",
+                classNameTrue: " green",
+                styleFalse: {color: "grey"},
+            }),
+        ]),
+        weaponTable(props, t)
+    ];
+}
 
-const weaponTable = (props: { world: World, minimap: Minimap } & any) => {
+const weaponTable = (props: { world: World, minimap: Minimap } & any, t: (key: string) => string) => {
     let weapons = getEntitiesByType<Weapon>(props.world, "Weapon");
     canonicalEntitySort(weapons);
     return div({className: "flexRow",}, [
@@ -261,13 +306,13 @@ const weaponTable = (props: { world: World, minimap: Minimap } & any) => {
                                 className: "textInput numberInput",
                                 value: Math.floor(weapon.heightOverGround / 100),
                                 onChange: props.onChangeWeaponHeightOverGround(weapon.entityId),
-                                title: "weapon height over ground (tall buildings, bridges, ...)",
+                                title: t("tooltips.weaponHeightOverGround"),
                             }),
                         ]),
                         h("td", {}, [
                             div({
                                 className: "divButton ",
-                                title: "activate only this weapon",
+                                title: t("tooltips.activateThisWeapon"),
                                 onClick: () => props.pickActiveWeapon(weapon.entityId),
                             }, "^"),
                         ]),
@@ -275,7 +320,7 @@ const weaponTable = (props: { world: World, minimap: Minimap } & any) => {
                             toggleButton({
                                 value: weapon.isActive,
                                 onChange: () => props.setWeaponActive(weapon.entityId, !weapon.isActive),
-                                tooltip: "激活/取消 武器",
+                                tooltip: t("tooltips.activateDeactivateWeapon"),
                                 label: "o",
                                 className: "",
                                 classNameTrue: " green",
@@ -289,12 +334,12 @@ const weaponTable = (props: { world: World, minimap: Minimap } & any) => {
     ])
 }
 
-const targetSettings = (props: { userSettings: UserSettings } & any) => [
+const targetSettings = (props: { userSettings: UserSettings } & any, t: (key: string) => string) => [
     div({className: "flexRow"}, [
         toggleButton({
             value: props.userSettings.targetGrid,
             onChange: props.onChangeTargetGrid,
-            tooltip: "Targeting grid: 5mil elevation arcs, 1° bearing lines",
+            tooltip: t("tooltips.targetingGrid"),
             label: "#",
             className: "",
             classNameTrue: " green",
@@ -304,7 +349,7 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
         toggleButton({
             value: props.userSettings.targetSpread,
             onChange: props.onChangeTargetSpread,
-            tooltip: "Projectile spread",
+            tooltip: t("tooltips.projectileSpread"),
             label: "O",
             className: "",
             classNameTrue: " blue",
@@ -315,7 +360,7 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
         toggleButton({
             value: props.userSettings.targetSplash,
             onChange: props.onChangeTargetSplash,
-            tooltip: "Splash radius for 100 and 25 damage",
+            tooltip: t("tooltips.splashRadius"),
             label: "(O)",
             className: "",
             classNameTrue: " red",
@@ -325,7 +370,7 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
         toggleButton({
             value: props.userSettings.targetDistance,
             onChange: props.onChangeTargetDistance,
-            tooltip: "Weapon-target distance",
+            tooltip: t("tooltips.weaponTargetDistance"),
             label: "m",
             className: "",
             classNameTrue: " black",
@@ -337,7 +382,7 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
         toggleButton({
             value: props.userSettings.targetCompactMode,
             onChange: props.onChangeTargetCompactMode,
-            tooltip: "Compact target text: last three elevation digits",
+            tooltip: t("tooltips.compactTargetText"),
             label: "c",
             className: "",
             classNameTrue: "pink",
@@ -348,7 +393,7 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
         toggleButton({
             value: props.userSettings.targetPlacementHelper,
             onChange: props.onChangeTargetPlacementHelper,
-            tooltip: "Show keypads while moving target",
+            tooltip: t("tooltips.showKeypadsWhileMovingTarget"),
             label: "#?",
             className: "",
             classNameTrue: "red",
@@ -359,7 +404,7 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
         toggleButton({
             value: props.userSettings.targetPlacementLabel,
             onChange: props.onChangeTargetPlacementLabel,
-            tooltip: "Show keypad label while moving target",
+            tooltip: t("tooltips.showKeypadLabelWhileMovingTarget"),
             label: "A1",
             className: "",
             classNameTrue: "red",
@@ -372,17 +417,17 @@ const targetSettings = (props: { userSettings: UserSettings } & any) => [
             className: "textInput numberInput",
             value: props.userSettings.fontSize,
             onChange: props.onChangeFontSize,
-            title: "font size",
+            title: t("tooltips.fontSize"),
         }),
     ])
 ]
 
-const extraButtons = (props: { userSettings: UserSettings, uiState: UIState } & any) => [
+const extraButtons = (props: { userSettings: UserSettings, uiState: UIState } & any, t: (key: string) => string) => [
     div({className: "flexRow",}, [
         toggleButton({
             value: props.userSettings.extraButtonsAlwaysShown,
             onChange: props.onChangeExtraButtons,
-            tooltip: "Show extra buttons in collapsed mode",
+            tooltip: t("tooltips.showExtraButtonsInCollapsedMode"),
             label: "m.",
             className: "",
             classNameTrue: "yellow",
@@ -392,7 +437,7 @@ const extraButtons = (props: { userSettings: UserSettings, uiState: UIState } & 
         toggleButton({
             value: props.userSettings.deleteMode,
             onChange: props.onChangeDeleteMode,
-            tooltip: "Delete items with single click/touch",
+            tooltip: t("tooltips.deleteItemsWithSingleClick"),
             label: "-I",
             className: "",
             classNameTrue: "red",
@@ -402,17 +447,17 @@ const extraButtons = (props: { userSettings: UserSettings, uiState: UIState } & 
         toggleButton({
             value: props.uiState.weaponCreationMode,
             onChange: props.onChangeWeaponCreationMode,
-            tooltip: "Place target or weapon markers by default (shift + double click always places weapons)",
+            tooltip: t("tooltips.placeTargetOrWeaponMarkers"),
             label: [
-                h("span", {className: props.uiState.weaponCreationMode ? "grey" : "red"}, ["T "]),
-                h("span", {className: props.uiState.weaponCreationMode ? "green" : "grey"}, ["W"])
+                h("span", {className: props.uiState.weaponCreationMode ? "grey" : "red"}, [t("labels.target") + " "]),
+                h("span", {className: props.uiState.weaponCreationMode ? "green" : "grey"}, [t("labels.weapon")])
             ],
         }),
         div({className: "h2"}),
         toggleButton({
             value: props.userSettings.terrainmap,
             onChange: props.onChangeMapMode,
-            tooltip: "是否显示地形地图",
+            tooltip: t("tooltips.showTerrainMap"),
             label: "-T",
             className: "",
             classNameTrue: " red",
@@ -422,7 +467,7 @@ const extraButtons = (props: { userSettings: UserSettings, uiState: UIState } & 
         div({className: "v10"}, []),
         div({
             className: "divButton ",
-            title: "Remove all targets",
+            title: t("tooltips.removeAllTargets"),
             onClick: props.onClickRemoveAllTargets
         }, "-∀T"),
     ]),

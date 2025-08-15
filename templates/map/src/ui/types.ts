@@ -2,6 +2,7 @@ import { Get, Maybe, WriteAction } from '../common/types';
 import { vec3 } from 'gl-matrix';
 import { EntityId } from '../world/types';
 import { WeaponType } from '../world/components/weapon';
+import { Language } from '../i18n/types';
 
 export enum UserActionType{
   removeAllTargets = "USER_REMOVE_ALL_TARGETS"
@@ -38,7 +39,8 @@ export type UserSettings = {
 
     leftPanelCollapsed: boolean;
 
-    terrainmap:boolean
+    terrainmap: boolean;
+    language: Language;
 }
 
 export enum UIStateActionType {
