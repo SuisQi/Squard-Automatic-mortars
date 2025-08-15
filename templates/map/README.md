@@ -4,14 +4,14 @@
 
 ## 系统架构概述
 
-武器渲染器系统基于策略模式设计，每种武器类型都有对应的渲染器类。所有渲染器继承自基础的`WeaponRenderer`类，并实现特定武器的渲染逻辑。
+武器渲染器系统基于策略模式设计，每种武器类型都有对应的渲染器类。所有渲染器都实现统一的渲染接口，并提供特定武器的渲染逻辑。
 
 ### 核心组件
 
-1. **WeaponRenderer.ts** - 基础渲染器类，定义通用接口和方法
+1. **BaseWeaponRenderer.ts** - 基础渲染器类，定义通用接口和方法
 2. **具体武器渲染器** - 如`MortarWeaponRenderer.ts`、`M121WeaponRenderer.ts`等
-3. **WeaponType** - 枚举定义支持的武器类型
-4. **武器渲染器工厂** - 根据武器类型返回对应的渲染器实例
+3. **WeaponType** - 字符串字面量类型定义支持的武器类型
+4. **weaponFactory.ts** - 武器渲染器工厂，使用回调函数避免循环依赖
 
 ## 添加新武器的步骤
 
@@ -20,11 +20,11 @@
 首先在`src/render/weaponRenderers/`目录下创建新的渲染器文件，例如`NewWeaponRenderer.ts`：
 
 ```typescript
-import { WeaponRenderer } from './WeaponRenderer';
+import { BaseWeaponRenderer } from './BaseWeaponRenderer';
 import { Weapon } from '../../world/types';
 import { vec3 } from 'gl-matrix';
 
-export class NewWeaponRenderer extends WeaponRenderer {
+export class NewWeaponRenderer extends BaseWeaponRenderer {
     // 实现武器特定的渲染逻辑
     drawWeapon(ctx: CanvasRenderingContext2D, weapon: Weapon, screenTransform: (pos: vec3) => vec3 | null): void {
         // 调用父类方法获取屏幕坐标
@@ -78,17 +78,7 @@ export class NewWeaponRenderer extends WeaponRenderer {
 在`src/world/components/weapon.ts`文件中添加新的武器类型：
 
 ```typescript
-export enum WeaponType {
-    // 现有武器类型...
-    standardMortar = "standardMortar",
-    M121 = "M121",
-    technicalMortar = "technicalMortar",
-    ub32 = "ub32",
-    hellCannon = "hellCannon",
-    bm21 = "bm21",
-    MK19 = "MK19",
-    newWeapon = "newWeapon" // 添加新武器类型
-}
+export type WeaponType = "standardMortar" | "technicalMortar" | "ub32" | "hellCannon" | "bm21"|"M121"|"MK19" | "newWeapon"; // 添加新武器类型
 ```
 
 ### 3. 更新武器渲染器工厂
@@ -96,38 +86,26 @@ export enum WeaponType {
 在`src/render/weaponRenderers/index.ts`中导入并注册新的渲染器：
 
 ```typescript
-import { MortarWeaponRenderer } from './MortarWeaponRenderer';
-import { M121WeaponRenderer } from './M121WeaponRenderer';
-import { TechnicalMortarWeaponRenderer } from './TechnicalMortarWeaponRenderer';
-import { UB32WeaponRenderer } from './UB32WeaponRenderer';
-import { HellCannonWeaponRenderer } from './HellCannonWeaponRenderer';
-import { BM21WeaponRenderer } from './BM21WeaponRenderer';
-import { MK19WeaponRenderer } from './MK19WeaponRenderer';
-import { NewWeaponRenderer } from './NewWeaponRenderer'; // 导入新渲染器
-
-import { WeaponType } from '../../world/components/weapon';
-import { WeaponRenderer } from './WeaponRenderer';
-
-// 创建渲染器实例映射
-const rendererMap: Map<WeaponType, WeaponRenderer> = new Map([
-    [WeaponType.standardMortar, new MortarWeaponRenderer()],
-    [WeaponType.M121, new M121WeaponRenderer()],
-    [WeaponType.technicalMortar, new TechnicalMortarWeaponRenderer()],
-    [WeaponType.ub32, new UB32WeaponRenderer()],
-    [WeaponType.hellCannon, new HellCannonWeaponRenderer()],
-    [WeaponType.bm21, new BM21WeaponRenderer()],
-    [WeaponType.MK19, new MK19WeaponRenderer()],
-    [WeaponType.newWeapon, new NewWeaponRenderer()] // 注册新渲染器
-]);
-
-// 获取武器渲染器的工厂函数
-export function getWeaponRenderer(weaponType: WeaponType): WeaponRenderer {
-    const renderer = rendererMap.get(weaponType);
-    if (!renderer) {
-        throw new Error(`No renderer found for weapon type: ${weaponType}`);
+// 在weaponRenderers对象中添加新武器的渲染器回调函数
+export const weaponRenderers = {
+  // ... 现有武器渲染器
+  "standardMortar": () => {
+    // ... 现有实现
+  },
+  "M121": () => {
+    // ... 现有实现
+  },
+  // ... 其他现有武器渲染器
+  
+  // 添加新武器渲染器
+  "newWeapon": () => {
+    if (!weaponRendererInstances["newWeapon"]) {
+      const { NewWeaponRenderer } = require('./NewWeaponRenderer');
+      weaponRendererInstances["newWeapon"] = new NewWeaponRenderer();
     }
-    return renderer;
-}
+    return weaponRendererInstances["newWeapon"];
+  }
+} as const;
 ```
 
 ### 4. 添加国际化支持
