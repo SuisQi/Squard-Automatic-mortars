@@ -17,16 +17,16 @@ import { getTranslation, newTranslation } from "../../world/transformations";
 import { canonicalEntitySort } from "../../world/world";
 import { TEXT_RED, TEXT_WHITE } from "../constants";
 
-// 地狱火炮相关常量
-export const MAPSCALE = 0.01;
+// 导入通用常量
+import { GRAVITY as WORLD_GRAVITY, MAPSCALE as WORLD_MAPSCALE } from "../../world/constants";
 
 // 地狱火炮特有常量
-export const HELL_CANNON_VELOCITY = 9500; // cm/s
-export const HELL_CANNON_MOA = 100;
-export const HELL_CANNON_DEVIATION = HELL_CANNON_MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
-export const HELL_CANNON_MAX_RANGE = 92400; // cm, approx
-export const HELL_CANNON_100_DAMAGE_RANGE = 1000; // cm
-export const HELL_CANNON_25_DAMAGE_RANGE = 4000; // cm
+export const VELOCITY = 9500; // cm/s
+export const MOA = 100;
+export const DEVIATION = MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
+export const MAX_RANGE = 92400; // cm, approx
+export const DAMAGE_100_RANGE = 1000; // cm
+export const DAMAGE_25_RANGE = 4000; // cm
 
 /**
  * 地狱火炮武器渲染器
@@ -36,13 +36,13 @@ export class HellCannonWeaponRenderer extends BaseWeaponRenderer {
   weaponType = "hellCannon";
   
   // 实现基类抽象方法 - 武器常量
-  getVelocity(): number { return HELL_CANNON_VELOCITY; }
+  getVelocity(): number { return VELOCITY; }
   getGravity(): number { return 980; } // 使用标准重力
-  getDeviation(): number { return HELL_CANNON_DEVIATION; }
+  getDeviation(): number { return DEVIATION; }
   getMinRange(): number { return 0; } // 地狱火炮无最小射程限制
-  getMaxRange(): number { return HELL_CANNON_MAX_RANGE; }
-  get100DamageRange(): number { return HELL_CANNON_100_DAMAGE_RANGE; }
-  get25DamageRange(): number { return HELL_CANNON_25_DAMAGE_RANGE; }
+  getMaxRange(): number { return MAX_RANGE; }
+  get100DamageRange(): number { return DAMAGE_100_RANGE; }
+  get25DamageRange(): number { return DAMAGE_25_RANGE; }
   
   getFiringSolution(weaponTranslation: vec3, targetTranslation: vec3) {
     return getHellCannonFiringSolution(weaponTranslation, targetTranslation);
@@ -54,12 +54,12 @@ export class HellCannonWeaponRenderer extends BaseWeaponRenderer {
     
     // 绘制100%伤害范围
     ctx.beginPath();
-    ctx.arc(0, 0, HELL_CANNON_100_DAMAGE_RANGE, 0, 2 * Math.PI);
+    ctx.arc(0, 0, DAMAGE_100_RANGE, 0, 2 * Math.PI);
     ctx.stroke();
     
     // 绘制25%伤害范围
     ctx.beginPath();
-    ctx.arc(0, 0, HELL_CANNON_25_DAMAGE_RANGE, 0, 2 * Math.PI);
+    ctx.arc(0, 0, DAMAGE_25_RANGE, 0, 2 * Math.PI);
     ctx.stroke();
   }
   
@@ -93,18 +93,18 @@ export class HellCannonWeaponRenderer extends BaseWeaponRenderer {
       drawSpreadEllipse(
         ctx,
         highArc.weaponToTargetVec,
-        highArc.horizontalSpread + HELL_CANNON_100_DAMAGE_RANGE,
-        highArc.closeSpread + HELL_CANNON_100_DAMAGE_RANGE,
-        highArc.closeSpread + HELL_CANNON_100_DAMAGE_RANGE
+        highArc.horizontalSpread + DAMAGE_100_RANGE,
+        highArc.closeSpread + DAMAGE_100_RANGE,
+        highArc.closeSpread + DAMAGE_100_RANGE
       );
       
       // 绘制高弧25%伤害范围椭圆
       drawSpreadEllipse(
         ctx,
         highArc.weaponToTargetVec,
-        highArc.horizontalSpread + HELL_CANNON_25_DAMAGE_RANGE,
-        highArc.closeSpread + HELL_CANNON_25_DAMAGE_RANGE,
-        highArc.closeSpread + HELL_CANNON_25_DAMAGE_RANGE
+        highArc.horizontalSpread + DAMAGE_25_RANGE,
+        highArc.closeSpread + DAMAGE_25_RANGE,
+        highArc.closeSpread + DAMAGE_25_RANGE
       );
     }
   }
@@ -178,7 +178,7 @@ export class HellCannonWeaponRenderer extends BaseWeaponRenderer {
         const bottomTextComponents = [
           `${solution.highArc.dir.toFixed(1)}°`,
           `${solution.highArc.time ? solution.highArc.time.toFixed(1) : "-"}s | ${solution.lowArc.time ? solution.lowArc.time.toFixed(1) : "-"}s`,
-          userSettings.targetDistance ? `${(solution.highArc.dist * MAPSCALE).toFixed(0)}m` : "",
+          userSettings.targetDistance ? `${(solution.highArc.dist * WORLD_MAPSCALE).toFixed(0)}m` : "",
         ];
         const bottomText = bottomTextComponents.join(' ');
         outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true);

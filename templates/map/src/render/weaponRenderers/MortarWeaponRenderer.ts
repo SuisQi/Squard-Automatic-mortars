@@ -18,18 +18,18 @@ import { getTranslation, newTranslation } from "../../world/transformations";
 import { canonicalEntitySort } from "../../world/world";
 import { TEXT_RED, TEXT_WHITE } from "../constants";
 
-// 迫击炮相关常量
-export const MAPSCALE = 0.01;
-export const GRAVITY = 980; // cm/s^2
-export const US_MIL = 1018.59;
-export const MORTAR_VELOCITY = 10989; // cm/s
-export const MORTAR_MOA = 50;
-export const MORTAR_DEVIATION = MORTAR_MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
-export const MORTAR_MIN_RANGE = 5000; // cm
-export const MORTAR_MAX_RANGE = 123096.963; // cm
-export const MORTAR_100_DAMAGE_RANGE = 650; // cm
-export const MORTAR_25_DAMAGE_RANGE = 1200; // cm
-export const MORTAR_10_DAMAGE_RANGE = 1500; // cm
+// 导入通用常量
+import { GRAVITY as WORLD_GRAVITY, US_MIL as WORLD_US_MIL, MAPSCALE as WORLD_MAPSCALE } from "../../world/constants";
+
+// 迫击炮特有常量
+export const VELOCITY = 10989; // cm/s
+export const MOA = 50;
+export const DEVIATION = MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
+export const MIN_RANGE = 5000; // cm
+export const MAX_RANGE = 123096.963; // cm
+export const DAMAGE_100_RANGE = 650; // cm
+export const DAMAGE_25_RANGE = 1200; // cm
+export const DAMAGE_10_RANGE = 1500; // cm
 
 /**
  * 绘制迫击炮网格线
@@ -61,13 +61,13 @@ export class MortarWeaponRenderer extends BaseWeaponRenderer {
   weaponType = "standardMortar";
   
   // 实现基类抽象方法 - 武器常量
-  getVelocity(): number { return MORTAR_VELOCITY; }
-  getGravity(): number { return GRAVITY; }
-  getDeviation(): number { return MORTAR_DEVIATION; }
-  getMinRange(): number { return MORTAR_MIN_RANGE; }
-  getMaxRange(): number { return MORTAR_MAX_RANGE; }
-  get100DamageRange(): number { return MORTAR_100_DAMAGE_RANGE; }
-  get25DamageRange(): number { return MORTAR_25_DAMAGE_RANGE; }
+  getVelocity(): number { return VELOCITY; }
+  getGravity(): number { return WORLD_GRAVITY; }
+  getDeviation(): number { return DEVIATION; }
+  getMinRange(): number { return MIN_RANGE; }
+  getMaxRange(): number { return MAX_RANGE; }
+  get100DamageRange(): number { return DAMAGE_100_RANGE; }
+  get25DamageRange(): number { return DAMAGE_25_RANGE; }
   
   getFiringSolution(weaponTranslation: vec3, targetTranslation: vec3) {
     return getMortarFiringSolution(weaponTranslation, targetTranslation).highArc;
@@ -79,12 +79,12 @@ export class MortarWeaponRenderer extends BaseWeaponRenderer {
     
     // 绘制100%伤害范围
     ctx.beginPath();
-    ctx.arc(0, 0, MORTAR_100_DAMAGE_RANGE, 0, 2 * Math.PI);
+    ctx.arc(0, 0, DAMAGE_100_RANGE, 0, 2 * Math.PI);
     ctx.stroke();
     
     // 绘制25%伤害范围
     ctx.beginPath();
-    ctx.arc(0, 0, MORTAR_25_DAMAGE_RANGE, 0, 2 * Math.PI);
+    ctx.arc(0, 0, DAMAGE_25_RANGE, 0, 2 * Math.PI);
     ctx.stroke();
   }
   
@@ -112,18 +112,18 @@ export class MortarWeaponRenderer extends BaseWeaponRenderer {
       drawSpreadEllipse(
         ctx,
         firingSolution.weaponToTargetVec,
-        firingSolution.horizontalSpread + MORTAR_100_DAMAGE_RANGE,
-        firingSolution.closeSpread + MORTAR_100_DAMAGE_RANGE,
-        firingSolution.closeSpread + MORTAR_100_DAMAGE_RANGE
+        firingSolution.horizontalSpread + DAMAGE_100_RANGE,
+        firingSolution.closeSpread + DAMAGE_100_RANGE,
+        firingSolution.closeSpread + DAMAGE_100_RANGE
       );
       
       // 绘制25%伤害范围椭圆
       drawSpreadEllipse(
         ctx,
         firingSolution.weaponToTargetVec,
-        firingSolution.horizontalSpread + MORTAR_25_DAMAGE_RANGE,
-        firingSolution.closeSpread + MORTAR_25_DAMAGE_RANGE,
-        firingSolution.closeSpread + MORTAR_25_DAMAGE_RANGE
+        firingSolution.horizontalSpread + DAMAGE_25_RANGE,
+        firingSolution.closeSpread + DAMAGE_25_RANGE,
+        firingSolution.closeSpread + DAMAGE_25_RANGE
       );
     }
   }
@@ -131,7 +131,7 @@ export class MortarWeaponRenderer extends BaseWeaponRenderer {
   getAngleValue(solution: any, userSettings: UserSettings): number {
     return userSettings.weaponType === "technicalMortar" ? 
       solution.angle / Math.PI * 180 : 
-      solution.angle * US_MIL;
+      solution.angle * WORLD_US_MIL;
   }
   
   getAngleText(angleValue: number, solution: any): string {
@@ -150,12 +150,12 @@ export class MortarWeaponRenderer extends BaseWeaponRenderer {
     ctx.save();
     applyTransform(ctx, weaponTransform);
     const gridDir = Math.floor(firingSolution.dir);
-    const mil5 = Math.floor(firingSolution.angle * US_MIL / 5) * 5;
+    const mil5 = Math.floor(firingSolution.angle * WORLD_US_MIL / 5) * 5;
     ctx.strokeStyle = '#0f0';
     ctx.lineWidth = 1 * lineWidthFactor;
 
     const arcRadii = [-10, -5, 0, 5, 10, 15].map(
-      x => angle2groundDistance((mil5 + x)/US_MIL, firingSolution.startHeightOffset, MORTAR_VELOCITY, GRAVITY)
+      x => angle2groundDistance((mil5 + x)/WORLD_US_MIL, firingSolution.startHeightOffset, VELOCITY, WORLD_GRAVITY)
     );
     const [ra, r0, r1, r2, r3, rb] = arcRadii;
     
@@ -241,7 +241,7 @@ export class MortarWeaponRenderer extends BaseWeaponRenderer {
         }
         outlineText(ctx, angleText, "bottom", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true);
         const bottomText = userSettings.targetDistance ? 
-          `${solution.dir.toFixed(1)}° ${(solution.dist * MAPSCALE).toFixed(0)}m` : 
+          `${solution.dir.toFixed(1)}° ${(solution.dist * WORLD_MAPSCALE).toFixed(0)}m` : 
           `${solution.dir.toFixed(1)}°`;
         outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true);
       }

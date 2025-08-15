@@ -3,11 +3,16 @@
     "allow": [
       "Bash(npm run build:*)",
       "Bash(rm:*)",
-      "Bash(del:*)"
+      "Bash(del:*)",
+      "Bash(cat:*)",
+      "Bash(npm run dev:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
     ],
     "defaultMode": "acceptEdits",
     "additionalDirectories": [
-      "E:\\code\\py\\Squard-Automatic-mortars\\templates\\map"
+      "E:\\code\\py\\Squard-Automatic-mortars\\templates\\map",
+      "E:\\e\\code\\py\\Squard-Automatic-mortars\\templates\\map"
     ]
   }
 }

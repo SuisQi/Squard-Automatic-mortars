@@ -17,19 +17,18 @@ import { getTranslation, newTranslation } from "../../world/transformations";
 import { canonicalEntitySort } from "../../world/world";
 import { TEXT_RED, TEXT_WHITE } from "../constants";
 
-// MK19榴弹发射器相关常量
-export const MAPSCALE = 0.01;
-export const GRAVITY = 980; // cm/s^2
+// 导入通用常量
+import { GRAVITY as WORLD_GRAVITY, MAPSCALE as WORLD_MAPSCALE } from "../../world/constants";
 
 // MK19 40mm榴弹发射器特有常量
-export const MK19_MOA = 35;
-export const MK19_DEVIATION = MK19_MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
-export const MK19_VELOCITY = 23600; // cm/s
-export const MK19_MAX_RANGE = 340000; // cm
-export const MK19_MIN_RANGE = 3000; // cm
-export const MK19_100_DAMAGE_RANGE = 100; // cm
-export const MK19_25_DAMAGE_RANGE = 150; // cm
-export const MK19_GRAVITY = GRAVITY; // cm/s^2
+export const MOA = 35;
+export const DEVIATION = MOA / 60 * Math.PI / 180 / 2; // cone angle from center ~ "radius angle"
+export const VELOCITY = 23600; // cm/s
+export const MAX_RANGE = 340000; // cm
+export const MIN_RANGE = 3000; // cm
+export const DAMAGE_100_RANGE = 100; // cm
+export const DAMAGE_25_RANGE = 150; // cm
+export const MK19_GRAVITY = WORLD_GRAVITY; // cm/s^2
 
 /**
  * MK19 40mm自动榴弹发射器武器渲染器
@@ -39,13 +38,13 @@ export class MK19WeaponRenderer extends BaseWeaponRenderer {
   weaponType = "MK19";
   
   // 实现基类抽象方法 - 武器常量
-  getVelocity(): number { return MK19_VELOCITY; }
+  getVelocity(): number { return VELOCITY; }
   getGravity(): number { return MK19_GRAVITY; }
-  getDeviation(): number { return MK19_DEVIATION; }
-  getMinRange(): number { return MK19_MIN_RANGE; }
-  getMaxRange(): number { return MK19_MAX_RANGE; }
-  get100DamageRange(): number { return MK19_100_DAMAGE_RANGE; }
-  get25DamageRange(): number { return MK19_25_DAMAGE_RANGE; }
+  getDeviation(): number { return DEVIATION; }
+  getMinRange(): number { return MIN_RANGE; }
+  getMaxRange(): number { return MAX_RANGE; }
+  get100DamageRange(): number { return DAMAGE_100_RANGE; }
+  get25DamageRange(): number { return DAMAGE_25_RANGE; }
   
   getFiringSolution(weaponTranslation: vec3, targetTranslation: vec3) {
     return getMK19FiringSolution(weaponTranslation, targetTranslation).lowArc;
@@ -57,12 +56,12 @@ export class MK19WeaponRenderer extends BaseWeaponRenderer {
     
     // 绘制100%伤害范围
     ctx.beginPath();
-    ctx.arc(0, 0, MK19_100_DAMAGE_RANGE, 0, 2 * Math.PI);
+    ctx.arc(0, 0, DAMAGE_100_RANGE, 0, 2 * Math.PI);
     ctx.stroke();
     
     // 绘制25%伤害范围
     ctx.beginPath();
-    ctx.arc(0, 0, MK19_25_DAMAGE_RANGE, 0, 2 * Math.PI);
+    ctx.arc(0, 0, DAMAGE_25_RANGE, 0, 2 * Math.PI);
     ctx.stroke();
   }
   
@@ -90,18 +89,18 @@ export class MK19WeaponRenderer extends BaseWeaponRenderer {
       drawSpreadEllipse(
         ctx,
         firingSolution.weaponToTargetVec,
-        firingSolution.horizontalSpread + MK19_100_DAMAGE_RANGE,
-        firingSolution.closeSpread + MK19_100_DAMAGE_RANGE,
-        firingSolution.closeSpread + MK19_100_DAMAGE_RANGE
+        firingSolution.horizontalSpread + DAMAGE_100_RANGE,
+        firingSolution.closeSpread + DAMAGE_100_RANGE,
+        firingSolution.closeSpread + DAMAGE_100_RANGE
       );
       
       // 绘制25%伤害范围椭圆
       drawSpreadEllipse(
         ctx,
         firingSolution.weaponToTargetVec,
-        firingSolution.horizontalSpread + MK19_25_DAMAGE_RANGE,
-        firingSolution.closeSpread + MK19_25_DAMAGE_RANGE,
-        firingSolution.closeSpread + MK19_25_DAMAGE_RANGE
+        firingSolution.horizontalSpread + DAMAGE_25_RANGE,
+        firingSolution.closeSpread + DAMAGE_25_RANGE,
+        firingSolution.closeSpread + DAMAGE_25_RANGE
       );
     }
   }
@@ -187,7 +186,7 @@ export class MK19WeaponRenderer extends BaseWeaponRenderer {
         }
         outlineText(ctx, angleText, "bottom", TEXT_RED, TEXT_WHITE, userSettings.fontSize, true);
         const bottomText = userSettings.targetDistance ? 
-          `${solution.dir.toFixed(1)}° ${(solution.dist * MAPSCALE).toFixed(0)}m` : 
+          `${solution.dir.toFixed(1)}° ${(solution.dist * WORLD_MAPSCALE).toFixed(0)}m` : 
           `${solution.dir.toFixed(1)}°`;
         outlineText(ctx, bottomText, "top", TEXT_RED, TEXT_WHITE, userSettings.fontSize * 2 / 3, true);
       }

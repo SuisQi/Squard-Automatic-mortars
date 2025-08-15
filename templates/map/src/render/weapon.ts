@@ -15,10 +15,13 @@ const drawMaxRangeCircle = (ctx: CanvasRenderingContext2D, weaponType: WeaponTyp
     const weaponRenderer = weaponRenderers[weaponType]();
     if (!weaponRenderer) return;
     
+    const maxRange = weaponRenderer.getMaxRange();
+    if (maxRange <= 0) return; // maxRange为0或负数时不渲染
+    
     ctx.beginPath();
     ctx.lineWidth = 1 * scale;
     ctx.strokeStyle = '#0f0';
-    ctx.arc(0, 0, weaponRenderer.getMaxRange(), 0, 2 * Math.PI);
+    ctx.arc(0, 0, maxRange, 0, 2 * Math.PI);
     ctx.stroke();
 }
 

@@ -37,8 +37,8 @@ export const weaponRenderers = {
   },
   "ub32": () => {
     if (!weaponRendererInstances["ub32"]) {
-      const { RocketPodWeaponRenderer } = require('./RocketPodWeaponRenderer');
-      weaponRendererInstances["ub32"] = new RocketPodWeaponRenderer();
+      const { UB32WeaponRenderer } = require('./UB32WeaponRenderer');
+      weaponRendererInstances["ub32"] = new UB32WeaponRenderer();
     }
     return weaponRendererInstances["ub32"];
   },
