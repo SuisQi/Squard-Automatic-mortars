@@ -23,8 +23,34 @@
 import { BaseWeaponRenderer } from './BaseWeaponRenderer';
 import { Weapon } from '../../world/types';
 import { vec3 } from 'gl-matrix';
+import { FiringSolution } from '../../world/projectilePhysics';
+import { UserSettings } from '../../ui/types';
+import { DirDataComponent } from '../../world/components/dirData';
+import { User } from '../../replication_ws/types';
+import { Heightmap } from '../../heightmap/types';
+import { Camera } from '../../camera/types';
+
+// 定义武器常量
+const VELOCITY = 10000; // cm/s
+const GRAVITY = 981; // cm/s^2
+const DEVIATION = 0.01; // 弧度
+const MIN_RANGE = 1000; // cm
+const MAX_RANGE = 50000; // cm
+const EXPLOSIVE_INNER_RADIUS = 100; // cm
+const EXPLOSIVE_OUTER_RADIUS = 1000; // cm
 
 export class NewWeaponRenderer extends BaseWeaponRenderer {
+    weaponType = "newWeapon";
+    
+    // 实现武器常量方法
+    getVelocity(): number { return VELOCITY; }
+    getGravity(): number { return GRAVITY; }
+    getDeviation(): number { return DEVIATION; }
+    getMinRange(): number { return MIN_RANGE; }
+    getMaxRange(): number { return MAX_RANGE; }
+    get100DamageRange(): number { return EXPLOSIVE_INNER_RADIUS; }
+    get25DamageRange(): number { return EXPLOSIVE_OUTER_RADIUS; }
+    
     // 实现武器特定的渲染逻辑
     drawWeapon(ctx: CanvasRenderingContext2D, weapon: Weapon, screenTransform: (pos: vec3) => vec3 | null): void {
         // 调用父类方法获取屏幕坐标
@@ -50,7 +76,7 @@ export class NewWeaponRenderer extends BaseWeaponRenderer {
         if (!screenPos) return;
 
         // 获取武器射程参数
-        const range = this.getWeaponRange(weapon);
+        const maxRange = this.getMaxRange();
         
         ctx.save();
         ctx.translate(screenPos[0], screenPos[1]);
@@ -59,16 +85,52 @@ export class NewWeaponRenderer extends BaseWeaponRenderer {
         ctx.strokeStyle = '#00ff00';
         ctx.lineWidth = 1;
         ctx.beginPath();
-        ctx.arc(0, 0, range, 0, Math.PI * 2);
+        ctx.arc(0, 0, maxRange, 0, Math.PI * 2);
         ctx.stroke();
         
         ctx.restore();
     }
-
-    // 获取武器射程（需要根据具体武器实现）
-    private getWeaponRange(weapon: Weapon): number {
-        // 根据武器属性计算射程
-        return 100; // 示例值
+    
+    // 实现射击解决方案方法
+    getFiringSolution(weaponTranslation: vec3, targetTranslation: vec3): FiringSolution | {highArc: FiringSolution, lowArc: FiringSolution} {
+        // 实现武器特定的射击解决方案计算
+        // 这里需要根据具体武器的弹道物理来实现
+        return {
+            angle: 0,
+            time: 0,
+            weaponToTargetVec: vec3.create(),
+            horizontalSpread: 0,
+            closeSpread: 0,
+            farSpread: 0
+        };
+    }
+    
+    // 实现爆炸范围绘制方法
+    drawSplash(ctx: CanvasRenderingContext2D, lineWidthFactor: number): void {
+        // 实现武器特定的爆炸范围绘制
+    }
+    
+    // 实现精度椭圆绘制方法
+    drawSpread(ctx: CanvasRenderingContext2D, firingSolution: any, lineWidthFactor: number, withSplash: boolean, selected?: boolean): void {
+        // 实现武器特定的精度椭圆绘制
+    }
+    
+    // 实现角度值获取方法
+    getAngleValue(solution: any, userSettings: UserSettings): number {
+        // 实现角度值计算
+        return 0;
+    }
+    
+    // 实现角度文本获取方法
+    getAngleText(angleValue: number, solution: any, precision?: number): string {
+        // 实现角度文本格式化
+        return angleValue.toFixed(precision || 1);
+    }
+    
+    // 实现目标绘制方法
+    drawTarget(ctx: any, camera: Camera, userSettings: UserSettings, heightmap: Heightmap, weapons: Array<Weapon>, target: Target, dirdatas?: Map<number, DirDataComponent>, userId?: User['id']): void {
+        // 实现目标绘制逻辑
+        this.drawTargetWithConfig(ctx, camera, userSettings, heightmap, weapons, target, dirdatas, userId);
     }
 }
 ```
