@@ -1,5 +1,6 @@
 from utils.redis_connect import redis_cli
 from weapons.m121 import M121
+from weapons.mk19 import MK19
 from weapons.mortar import Mortar
 
 
@@ -30,7 +31,8 @@ class Weapon():
             self._type = "standardMortar"
         self._weapons = {
             "standardMortar": Mortar(),
-            "M121": M121()
+            "M121": M121(),
+            # "MK19": MK19()
         }
 
     def fire(self, count, dir, angle):

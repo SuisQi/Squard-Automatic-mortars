@@ -26,7 +26,7 @@ from flask import Flask, jsonify
 
 from show_info import root, topmost_mail, topmost_orientation
 from utils.key_mouse_listener import KeyMouseListener
-from utils.map_raning import MapRanging
+# from utils.map_raning import MapRanging
 from utils.redis_connect import check_redis_service, redis_cli, is_port_in_use
 from utils.utils import get_settings, pubsub_msgs, is_stop, is_auto_fire, log
 from weapons.m121 import M121
@@ -202,10 +202,10 @@ def set_fire_state():
 
 
 def listener_click():
-    m = MapRanging()
+    # m = MapRanging()
     threading.Thread(target=start_map).start()
     threading.Thread(target=start_control).start()
-    k = KeyMouseListener(ctrl_action=set_fire_state, alt_action=m.start)
+    k = KeyMouseListener(ctrl_action=set_fire_state)
     k.start()
 
 
