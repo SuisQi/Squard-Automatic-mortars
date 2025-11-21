@@ -8,18 +8,26 @@
 import { maps } from '../common/mapData';
 
 /**
- * 从地图配置获取网格间距
+ * 从用户设置或地图配置获取网格间距
  * @param mapId 地图ID
+ * @param userGridSpacing 用户设置的网格间距（可选），如果提供则优先使用
  * @returns 网格间距常量对象
  */
-export function getGridConstants(mapId: string) {
-  const mapConfig = maps[mapId];
-  if (!mapConfig) {
-    console.warn(`未找到地图配置: ${mapId}，使用默认值`);
-    return getDefaultGridConstants();
-  }
+export function getGridConstants(mapId: string, userGridSpacing?: number) {
+  // 优先使用用户设置的值
+  let gridSpacing: number;
 
-  const gridSpacing = mapConfig.grid_spacing || 10000 / 3;
+  if (userGridSpacing !== undefined && userGridSpacing > 0) {
+    gridSpacing = userGridSpacing;
+  } else {
+    // 否则从地图配置获取
+    const mapConfig = maps[mapId];
+    if (!mapConfig) {
+      console.warn(`未找到地图配置: ${mapId}，使用默认值`);
+      return getDefaultGridConstants();
+    }
+    gridSpacing = mapConfig.grid_spacing || 10000 / 3;
+  }
 
   return {
     /**

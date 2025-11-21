@@ -10,17 +10,17 @@ import { canvasScaleTransform, outlineText, setOutlineTextStyles, text } from ".
 import { TEXT_BLACK, TEXT_GREEN, TEXT_RED } from "./constants";
 import { getGridConstants } from "../constants/grid";
 
-export const drawKeypadIndicator: (ctx: CanvasRenderingContext2D, minimap: Minimap, location: vec3, fillColor: string, camera: Camera, mapId: string) => void =
-(ctx, minimap, location, fillColor, camera, mapId) => {
+export const drawKeypadIndicator: (ctx: CanvasRenderingContext2D, minimap: Minimap, location: vec3, fillColor: string, camera: Camera, mapId: string, userGridSpacing: number) => void =
+(ctx, minimap, location, fillColor, camera, mapId, userGridSpacing) => {
   if (location === null){
     return;
   }
 
   // 获取当前地图的网格常量
-  const gridConstants = getGridConstants(mapId);
+  const gridConstants = getGridConstants(mapId, userGridSpacing);
   const { GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
 
-  const keypad: Array<number> = world2keypad(minimap, location, mapId);
+  const keypad: Array<number> = world2keypad(minimap, location, mapId, userGridSpacing);
   //console.log("keypad", keypad)
   if (keypad[0] !== -1 && keypad[1] !== -1){
     const outerX = keypad[0] * QUADRANT_SIZE
@@ -86,11 +86,11 @@ export const drawKeypadIndicator: (ctx: CanvasRenderingContext2D, minimap: Minim
   }
 }
 
-export const drawKeypadLabel = (ctx: CanvasRenderingContext2D, minimap: Minimap, location: vec3, fillColor: string, camera: Camera, fontSize: number, mapId: string): void => {
+export const drawKeypadLabel = (ctx: CanvasRenderingContext2D, minimap: Minimap, location: vec3, fillColor: string, camera: Camera, fontSize: number, mapId: string, userGridSpacing: number): void => {
   if (location === null){
     return;
   }
-  const keypad: Array<string> = world2keypadStrings(minimap, location, mapId);
+  const keypad: Array<string> = world2keypadStrings(minimap, location, mapId, userGridSpacing);
   ctx.save();
   applyTransform(ctx, newTranslation(location[0], location[1], location[2]))
   applyTransform(ctx, canvasScaleTransform(camera))

@@ -180,6 +180,23 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                             tooltip: t("tooltips.showMapGrid"),
                         }
                     ),
+                    div({className: "h2"}),
+                    h("input", {
+                        type: "range",
+                        className: "gridSpacingSlider",
+                        min: 1000,
+                        max: 5000,
+                        step: 10,
+                        value: props.userSettings.gridSpacing,
+                        onChange: props.onChangeGridSpacing,
+                        title: t("tooltips.gridSpacing"),
+                        style: {width: "80px"}
+                    }),
+                    div({className: "h1"}),
+                    div({
+                        className: "gridSpacingValue",
+                        style: {fontSize: "12px", color: "#aaa"}
+                    }, Math.round(props.userSettings.gridSpacing).toString()),
                     //div({className:"h2"}),
                     //toggleButton({
                     //  value: props.userSettings.contourmap,
@@ -506,6 +523,9 @@ const mapDispatchToProps = (dispatch: any) => ({
 
     onChangeMapGrid: (e: any) => {
         dispatch(writeUserSettings("mapGrid", e.target.value))
+    },
+    onChangeGridSpacing: (e: any) => {
+        dispatch(writeUserSettings("gridSpacing", parseFloat(e.target.value)))
     },
     onChangeTargetSpread: (e: any) => dispatch(writeUserSettings("targetSpread", e.target.value)),
     onChangeTargetSplash: (e: any) => dispatch(writeUserSettings("targetSplash", e.target.value)),

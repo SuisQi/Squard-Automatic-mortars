@@ -19,6 +19,7 @@ import {icons} from "../common/iconDdata";
 const defaultUserSettings = (): UserSettings => ({
     mapId: "albasrah",
     mapGrid: true,
+    gridSpacing: 10000 / 3,  // 默认网格间距
     contourmap: false,
 
     weaponType: "standardMortar",

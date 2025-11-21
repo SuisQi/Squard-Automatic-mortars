@@ -85,9 +85,9 @@ export const world2heightmap: (heightmap: Heightmap, location: vec3) => vec3
   return out;
 }
 
-export const world2keypadStrings: (minimap: Minimap, location: vec3, mapId: string) => Array<string>
-= (minimap, location, mapId) => {
-  const kp = world2keypad(minimap, location, mapId);
+export const world2keypadStrings: (minimap: Minimap, location: vec3, mapId: string, userGridSpacing?: number) => Array<string>
+= (minimap, location, mapId, userGridSpacing) => {
+  const kp = world2keypad(minimap, location, mapId, userGridSpacing);
   if (kp[0] < 0 || kp[0]  > 23 || kp[1]  < 0){
     return ["--", "-", "-"]
   }
@@ -96,10 +96,10 @@ export const world2keypadStrings: (minimap: Minimap, location: vec3, mapId: stri
 
 export const standardFormatKeypad = (keypad: Array<string>): string => `${keypad[0]}-${keypad[1]}-${keypad[2]}`
 
-export const world2keypad: (minimap: Minimap, location: vec3, mapId: string) => Array<number>
-= (minimap, location, mapId) => {
+export const world2keypad: (minimap: Minimap, location: vec3, mapId: string, userGridSpacing?: number) => Array<number>
+= (minimap, location, mapId, userGridSpacing) => {
   // 获取当前地图的网格常量
-  const gridConstants = getGridConstants(mapId);
+  const gridConstants = getGridConstants(mapId, userGridSpacing);
   const { GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
 
   const topleft = mat4.getTranslation(vec3.create(), minimap.transform);

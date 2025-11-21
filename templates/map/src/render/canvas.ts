@@ -124,9 +124,9 @@ export const drawTexture = (ctx: CanvasRenderingContext2D, transform: Transform,
  * @param mapSize 地图尺寸
  * @param mapId 地图ID，用于获取该地图的网格间距
  */
-function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3, mapId: string) {
+function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3, mapId: string, userGridSpacing: number) {
   // 获取当前地图的网格常量
-  const gridConstants = getGridConstants(mapId);
+  const gridConstants = getGridConstants(mapId, userGridSpacing);
   const GRID_SPACING = gridConstants.GRID_SPACING;
 
   const start_x = 0;
@@ -198,7 +198,7 @@ const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number
 
     // 如果启用网格显示
     if(settings.mapGrid){
-      drawGrid(ctx, zoom, minimap.size, settings.mapId)
+      drawGrid(ctx, zoom, minimap.size, settings.mapId, settings.gridSpacing)
     }
     ctx.restore();
   }
@@ -221,7 +221,7 @@ const drawTerrainmap: (ctx: CanvasRenderingContext2D, terrainmap: Terrainmap, zo
 
         // 如果启用网格显示
         if(settings.mapGrid){
-            drawGrid(ctx, zoom, terrainmap.size, settings.mapId)
+            drawGrid(ctx, zoom, terrainmap.size, settings.mapId, settings.gridSpacing)
         }
         ctx.restore();
     }
@@ -297,18 +297,18 @@ const drawPlacementHelpers = (ctx: CanvasRenderingContext2D, camera:Camera, user
         if (entity?.entityType === "Weapon"){
           // 武器放置辅助器（绿色）
           if (userSettings.weaponPlacementHelper){
-            drawKeypadIndicator(ctx, minimap, location, TEXT_GREEN, camera, userSettings.mapId);
+            drawKeypadIndicator(ctx, minimap, location, TEXT_GREEN, camera, userSettings.mapId, userSettings.gridSpacing);
           }
           if (userSettings.weaponPlacementLabel){
-            drawKeypadLabel(ctx, minimap, location, TEXT_GREEN, camera, userSettings.fontSize, userSettings.mapId)
+            drawKeypadLabel(ctx, minimap, location, TEXT_GREEN, camera, userSettings.fontSize, userSettings.mapId, userSettings.gridSpacing)
           }
         } else if (entity?.entityType === "Target"){
           // 目标放置辅助器（红色）
           if (userSettings.targetPlacementHelper){
-            drawKeypadIndicator(ctx, minimap, location, TEXT_RED, camera, userSettings.mapId);
+            drawKeypadIndicator(ctx, minimap, location, TEXT_RED, camera, userSettings.mapId, userSettings.gridSpacing);
           }
           if (userSettings.targetPlacementLabel){
-            drawKeypadLabel(ctx, minimap, location, TEXT_RED, camera, userSettings.fontSize, userSettings.mapId)
+            drawKeypadLabel(ctx, minimap, location, TEXT_RED, camera, userSettings.fontSize, userSettings.mapId, userSettings.gridSpacing)
           }
         }
       }

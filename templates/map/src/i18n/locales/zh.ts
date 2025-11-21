@@ -46,6 +46,7 @@ const zhTranslations: LanguagePack = {
 
   tooltips: {
     showMapGrid: '显示地图网格',
+    gridSpacing: '网格间距',
     showKeypadsWhileMovingWeapon: '移动武器时显示坐标',
     showKeypadLabelWhileMovingWeapon: '移动武器时显示坐标标签',
     targetingGrid: '瞄准网格：5密位仰角弧线，1°方位线',

@@ -19,6 +19,7 @@ export type IconToolAction = WriteAction<IconToolActionType.write, ICONToolState
 export type UserSettings = {
     mapId: string;
     mapGrid: boolean;
+    gridSpacing: number;  // 网格间距（范围：1000-5000）
     contourmap: boolean;
 
     weaponType: WeaponType;
