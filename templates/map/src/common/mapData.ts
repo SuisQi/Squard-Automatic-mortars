@@ -24,7 +24,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -152000.0, "loc_y": -152000.0},
         "mapTextureCorner1": {"loc_x": 152000.0, "loc_y": 152000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3.85
+        "grid_spacing": 2598
     },
     "anvil": {
         "reference": "AAS_v1",
@@ -40,7 +40,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -204000.0, "loc_y": -204000.0},
         "mapTextureCorner1": {"loc_x": 102000.0, "loc_y": 102000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.94
+        "grid_spacing": 3400
     },
     "belaya": {
         "reference": "AAS_v1",
@@ -56,7 +56,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -195400.0, "loc_y": 182500.0},
         "mapTextureCorner1": {"loc_x": 195000.0, "loc_y": -208000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.997
+        "grid_spacing": 3336
     },
     "blackcoast": {
         "reference": "AAS_v1",
@@ -72,7 +72,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -229999.515625, "loc_y": -212746.78125},
         "mapTextureCorner1": {"loc_x": 229998.46875, "loc_y": 247251.0625},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.935
+        "grid_spacing": 3407
     },
     "chora": {
         "reference": "AAS_v1",
@@ -88,7 +88,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -246400.0, "loc_y": -266400.0},
         "mapTextureCorner1": {"loc_x": 159990.0, "loc_y": 140000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3.1
+        "grid_spacing": 3225
     },
     "fallujah": {
         "reference": "AAS_v1",
@@ -104,7 +104,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -131500.0, "loc_y": -154500.0},
         "mapTextureCorner1": {"loc_x": 169000.0, "loc_y": 146000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.995
+        "grid_spacing": 3338
     },
     "foolsroad": {
         "reference": "AAS_v1",
@@ -120,7 +120,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 44805.078125, "loc_y": 44805.078125},
         "mapTextureCorner1": {"loc_x": -132576.921875, "loc_y": -132576.921875},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3.043
+        "grid_spacing": 3284
     },
     "goosebay": {
         "reference": "AAS_v1",
@@ -137,7 +137,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -201657.890625, "loc_y": -201674.84375},
         "mapTextureCorner1": {"loc_x": 201523.078125, "loc_y": 201503.078125},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.9015
+        "grid_spacing": 3445
     },
     "gorodok": {
         "reference": "AAS_v1",
@@ -153,7 +153,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -203199.0, "loc_y": 203200.0},
         "mapTextureCorner1": {"loc_x": 203201.0, "loc_y": -203200.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3.1
+        "grid_spacing": 3225
     },
     "harju": {
         "reference": "AAS_v1",
@@ -169,7 +169,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -201600.0, "loc_y": -201600.0},
         "mapTextureCorner1": {"loc_x": 201600.0, "loc_y": 201600.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.9015
+        "grid_spacing": 3446
     },
     "jensensrange": {
         "reference": "v2",
@@ -185,7 +185,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 200400.0, "loc_y":-200400.0},
         "mapTextureCorner1": {"loc_x": -200400.0, "loc_y": 200400.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3425
     },
     "kamdesh": {
         "reference": "AAS_v1",
@@ -201,7 +201,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -201600.0, "loc_y": -201600.0},
         "mapTextureCorner1": {"loc_x": 201600.0, "loc_y": 201600.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.9015
+        "grid_spacing": 3446
     },
     "kohat": {
         "reference": "AAS_v1",
@@ -217,7 +217,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -230000.0, "loc_y": -230000.0},
         "mapTextureCorner1": {"loc_x": 231700.0, "loc_y": 231700.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.923
+        "grid_spacing": 3420
     },
     "kokan": {
         "reference": "AAS_v1",
@@ -234,7 +234,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 142013.671875, "loc_y": 142013.671875},
         "mapTextureCorner1": {"loc_x": -107634.9375, "loc_y": -107566.75},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.88
+        "grid_spacing": 3467
     },
     "lashkar": {
         "reference": "AAS_v1",
@@ -250,7 +250,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 216700.0, "loc_y": 216700.0},
         "mapTextureCorner1": {"loc_x": -216700.0, "loc_y": -216700.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 2.93
+        "grid_spacing": 3439
     },
     "logar": {
         "reference": "AAS_v1",
@@ -266,7 +266,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 87978.328125, "loc_y": 62921.710938},
         "mapTextureCorner1": {"loc_x": -88145.140625, "loc_y": -113238.757812},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3261
     },
     "manic": {
         "reference": "AAS_v1",
@@ -282,7 +282,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -201657.890625, "loc_y": -201674.84375},
         "mapTextureCorner1": {"loc_x": 201523.078125, "loc_y": 201503.078125},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3445
     },
     "manicouagan": {
         "reference": "AAS_v1",
@@ -298,7 +298,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -201657.890625, "loc_y": -201674.84375},
         "mapTextureCorner1": {"loc_x": 201523.078125, "loc_y": 201503.078125},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3445
     },
     "mestia": {
         "reference": "AAS_v1",
@@ -314,7 +314,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 120000.0, "loc_y": 130000.0},
         "mapTextureCorner1": {"loc_x": -120000.0, "loc_y": -110000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3401
     },
     "mutaha": {
         "reference": "AAS_v1",
@@ -330,7 +330,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -93500.0, "loc_y": 161500.0},
         "mapTextureCorner1": {"loc_x": 182000.0, "loc_y": -114000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3401
     },
     "narva": {
         "reference": "AAS_v1",
@@ -346,7 +346,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -138970.6875, "loc_y": 139792.515625},
         "mapTextureCorner1": {"loc_x": 141029.375, "loc_y": -140207.4375},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3456
     },
     "skorpo": {
         "reference": "AAS_v1",
@@ -367,7 +367,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": 326758, "loc_y": 380000.0 - 22392},
         "mapTextureCorner1": {"loc_x": -380000.0 + 19850, "loc_y": -380000.0 + 50700},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3309
     },
     "skorpoFull": {
         "reference": "RAAS_v1",
@@ -406,7 +406,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -63973.925781, "loc_y": -44728.078125},
         "mapTextureCorner1": {"loc_x": 66033.578125, "loc_y": 85297.234375},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3611
     },
     "tallil": {
         "reference": "AAS_v1",
@@ -422,7 +422,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -234000.015625, "loc_y": -234000.0},
         "mapTextureCorner1": {"loc_x": 234000.0, "loc_y": 234000.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3250
     },
     "yehorivka": {
         "reference": "AAS_v1",
@@ -438,7 +438,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -330197.40625, "loc_y": -330199.5},
         "mapTextureCorner1": {"loc_x": 304803.0, "loc_y": 304800.0},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3359
     },
     "yehorivka_skirmish_v1": {
         "reference": "Skirmish_v1",
@@ -472,7 +472,7 @@ export const maps = {
         "mapTextureCorner0": {"loc_x": -230000, "loc_y": -205000},
         "mapTextureCorner1": {"loc_x": 230000, "loc_y": 255000},
         "compression": {"z_translate": 0},
-        "grid_spacing": 10000 / 3
+        "grid_spacing": 3407
     }
 }
 

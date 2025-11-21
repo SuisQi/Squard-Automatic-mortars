@@ -20,7 +20,7 @@ import { drawTargets } from "./target";
 import { drawKeypadIndicator, drawKeypadLabel } from "./common";
 import { ZOOM_LEVEL_2, ZOOM_LEVEL_3 } from "../camera/constants";
 import { getZoom } from "../camera/camera";
-import { TEXT_GREEN, TEXT_RED } from "./constants";
+import { TEXT_GREEN, TEXT_RED, TEXT_BLACK } from "./constants";
 import { Contourmap } from "../contourmap/types";
 import { getComponent, getEntitiesByType, getEntity } from "../world/world";
 import { EntityComponent } from "../world/components/entity";
@@ -204,6 +204,66 @@ const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number
   }
 
 /**
+ * 绘制坐标轴
+ * 在地图顶部绘制横坐标（A-Z字母），在左侧绘制纵坐标（数字）
+ * @param ctx Canvas绘制上下文
+ * @param minimap 小地图对象
+ * @param camera 相机对象
+ * @param settings 用户设置
+ */
+const drawCoordinateAxes: (ctx: CanvasRenderingContext2D, minimap: Minimap, camera: Camera, settings: UserSettings) => void =
+  (ctx, minimap, camera, settings) => {
+    // 获取网格常量
+    const gridConstants = getGridConstants(settings.mapId, settings.gridSpacing);
+    const { QUADRANT_SIZE } = gridConstants;
+
+    // 获取地图左上角位置
+    const topleft = mat4.getTranslation(vec3.create(), minimap.transform);
+    const mapWidth = minimap.size[0];
+    const mapHeight = minimap.size[1];
+
+    // 计算实际在地图范围内的象限数量
+    const numQuadrantsX = Math.floor(mapWidth / QUADRANT_SIZE);
+    const numQuadrantsY = Math.floor(mapHeight / QUADRANT_SIZE);
+
+    ctx.save();
+
+    // 绘制横坐标（A-Z）在地图顶部
+    for (let i = 0; i < numQuadrantsX && i < 26; i++) {
+      const x = topleft[0] + i * QUADRANT_SIZE + QUADRANT_SIZE / 2;
+      const y = topleft[1];
+
+      ctx.save();
+      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(x, y, 0)));
+      applyTransform(ctx, canvasScaleTransform(camera));
+      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(0, -20, 0)));
+
+      // 绘制字母（A=65），使用白色
+      const letter = String.fromCharCode(65 + i);
+      outlineText(ctx, letter, "bottom", "rgb(255, 255, 255)", TEXT_BLACK, 12, true);
+      ctx.restore();
+    }
+
+    // 绘制纵坐标（数字）在地图左侧
+    for (let j = 0; j < numQuadrantsY; j++) {
+      const x = topleft[0];
+      const y = topleft[1] + j * QUADRANT_SIZE + QUADRANT_SIZE / 2;
+
+      ctx.save();
+      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(x, y, 0)));
+      applyTransform(ctx, canvasScaleTransform(camera));
+      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(-30, 0, 0)));
+
+      // 绘制数字（从1开始），使用白色，字体更小
+      const number = (j + 1).toString();
+      outlineText(ctx, number, "middle", "rgb(255, 255, 255)", TEXT_BLACK, 12, true);
+      ctx.restore();
+    }
+
+    ctx.restore();
+  }
+
+/**
  * 绘制地形图
  * @param ctx Canvas绘制上下文
  * @param terrainmap 地形图对象
@@ -347,8 +407,9 @@ export const drawAll = (store: Store0) => {
     drawBackground(ctx)                    // 1. 背景
     applyTransform(ctx, state.camera.transform)
     drawMinimap(ctx, state.minimap, zoom, state.userSettings);        // 2. 小地图
-    drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);  // 3. 地形图
-    drawContourmap(ctx, state.contourmap, state.userSettings);        // 4. 等高线图
+    drawCoordinateAxes(ctx, state.minimap, state.camera, state.userSettings); // 3. 坐标轴
+    drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);  // 4. 地形图
+    drawContourmap(ctx, state.contourmap, state.userSettings);        // 5. 等高线图
     // drawHeightmap(ctx, state.heightmap, state.userSettings);       // 5. 高度图（已禁用）
     drawWeapons(ctx, state.userSettings, state.camera, weapons);      // 6. 武器
     drawTargets(ctx, weapons, targets,state,dirDatas,state.session?.userId??"0"); // 7. 目标

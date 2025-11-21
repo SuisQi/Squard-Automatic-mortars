@@ -181,22 +181,22 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                         }
                     ),
                     div({className: "h2"}),
-                    h("input", {
-                        type: "range",
-                        className: "gridSpacingSlider",
-                        min: 1000,
-                        max: 5000,
-                        step: 10,
-                        value: props.userSettings.gridSpacing,
-                        onChange: props.onChangeGridSpacing,
-                        title: t("tooltips.gridSpacing"),
-                        style: {width: "80px"}
-                    }),
-                    div({className: "h1"}),
-                    div({
-                        className: "gridSpacingValue",
-                        style: {fontSize: "12px", color: "#aaa"}
-                    }, Math.round(props.userSettings.gridSpacing).toString()),
+                    // h("input", {
+                    //     type: "range",
+                    //     className: "gridSpacingSlider",
+                    //     min: 1000,
+                    //     max: 5000,
+                    //     step: 1,
+                    //     value: props.userSettings.gridSpacing,
+                    //     onChange: props.onChangeGridSpacing,
+                    //     title: t("tooltips.gridSpacing"),
+                    //     style: {width: "80px"}
+                    // }),
+                    // div({className: "h1"}),
+                    // div({
+                    //     className: "gridSpacingValue",
+                    //     style: {fontSize: "12px", color: "#aaa"}
+                    // }, Math.round(props.userSettings.gridSpacing).toString()),
                     //div({className:"h2"}),
                     //toggleButton({
                     //  value: props.userSettings.contourmap,

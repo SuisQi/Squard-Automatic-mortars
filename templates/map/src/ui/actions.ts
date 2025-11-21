@@ -53,8 +53,20 @@ export const settingsToActions: (settings: Partial<UserSettings>) => Array<UISta
 export const changeMap = (new_map_id: keyof (typeof maps)) => (dispatch: any, getState:any) => {
   const contourmap_active = getState().userSettings.contourmap;
 
+  // 获取新地图的默认网格间距
+  const newMapConfig = maps[new_map_id];
+  const newGridSpacing = newMapConfig?.grid_spacing || 10000 / 3;
+
+  // 先更新地图ID
   return dispatch(newUserSettingsWriteAction("mapId", new_map_id)).then(
-    () => contourmap_active ? $contourmap.set_image_source((maps[new_map_id] as any)?.contourmap_image_src || "") : null
+    () => {
+      // 更新网格间距为新地图的默认值
+      dispatch(newUserSettingsWriteAction("gridSpacing", newGridSpacing));
+      // 如果等高线图处于激活状态，更新等高线图源
+      if (contourmap_active) {
+        $contourmap.set_image_source((maps[new_map_id] as any)?.contourmap_image_src || "");
+      }
+    }
   );
 }
 
