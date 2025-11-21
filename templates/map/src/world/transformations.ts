@@ -3,6 +3,7 @@ import { mat4, quat, vec3 } from 'gl-matrix';
 import { Camera } from '../camera/types';
 import { Heightmap } from '../heightmap/types';
 import { Minimap } from '../minimap/types';
+import { getGridConstants } from '../constants/grid';
 
 
 
@@ -84,9 +85,9 @@ export const world2heightmap: (heightmap: Heightmap, location: vec3) => vec3
   return out;
 }
 
-export const world2keypadStrings: (minimap: Minimap, location: vec3) => Array<string>
-= (minimap, location) => {
-  const kp = world2keypad(minimap, location);
+export const world2keypadStrings: (minimap: Minimap, location: vec3, mapId: string) => Array<string>
+= (minimap, location, mapId) => {
+  const kp = world2keypad(minimap, location, mapId);
   if (kp[0] < 0 || kp[0]  > 23 || kp[1]  < 0){
     return ["--", "-", "-"]
   }
@@ -95,15 +96,19 @@ export const world2keypadStrings: (minimap: Minimap, location: vec3) => Array<st
 
 export const standardFormatKeypad = (keypad: Array<string>): string => `${keypad[0]}-${keypad[1]}-${keypad[2]}`
 
-export const world2keypad: (minimap: Minimap, location: vec3) => Array<number>
-= (minimap, location) => {
+export const world2keypad: (minimap: Minimap, location: vec3, mapId: string) => Array<number>
+= (minimap, location, mapId) => {
+  // 获取当前地图的网格常量
+  const gridConstants = getGridConstants(mapId);
+  const { GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
+
   const topleft = mat4.getTranslation(vec3.create(), minimap.transform);
   const x = location[0] - topleft[0];
   const y = location[1] - topleft[1];
-  const quadrantX = Math.floor(x/30000)
-  const quadrantY = Math.floor(y/30000);
-  const KP1 =  7 + Math.floor((x % 30000) / 10000) - 3 * Math.floor((y % 30000) / 10000)
-  const KP2 =  7 + Math.floor((x % 10000) / 3334) - 3 * Math.floor((y % 10000) / 3334)
+  const quadrantX = Math.floor(x / QUADRANT_SIZE)
+  const quadrantY = Math.floor(y / QUADRANT_SIZE);
+  const KP1 =  7 + Math.floor((x % QUADRANT_SIZE) / LARGE_GRID_SPACING) - 3 * Math.floor((y % QUADRANT_SIZE) / LARGE_GRID_SPACING)
+  const KP2 =  7 + Math.floor((x % LARGE_GRID_SPACING) / GRID_SPACING) - 3 * Math.floor((y % LARGE_GRID_SPACING) / GRID_SPACING)
   if (quadrantX < 0 || quadrantX > 23 || quadrantY < 0){
     return [-1, -1, -1, -1]
   }

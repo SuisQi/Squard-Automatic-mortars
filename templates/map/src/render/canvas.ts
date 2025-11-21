@@ -30,6 +30,7 @@ import {drawIcons} from "./icon";
 import {drawSquare} from "./selection/square";
 import {drawLineSelection} from "./selection/line";
 import {Terrainmap} from "../terrainmap/types";
+import { getGridConstants } from "../constants/grid";
 
 /**
  * 绘制直线
@@ -121,8 +122,13 @@ export const drawTexture = (ctx: CanvasRenderingContext2D, transform: Transform,
  * @param ctx Canvas绘制上下文
  * @param zoom 缩放级别
  * @param mapSize 地图尺寸
+ * @param mapId 地图ID，用于获取该地图的网格间距
  */
-function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3) {
+function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3, mapId: string) {
+  // 获取当前地图的网格常量
+  const gridConstants = getGridConstants(mapId);
+  const GRID_SPACING = gridConstants.GRID_SPACING;
+
   const start_x = 0;
   const start_y = 0;
   const end_x = mapSize[0];
@@ -138,26 +144,26 @@ function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3) {
    */
   //@ts-ignore
   const halfGrid = (start, end, bound1, bound2, drawLine) => {
-    for (let i = 1; start_x + i * 10000/3 < end ; i++){
+    for (let i = 1; start_x + i * GRID_SPACING < end ; i++){
       if (i % 9 == 0){
         // 主要网格线（粗黑线）
         ctx.strokeStyle = 'black';
         ctx.lineWidth = zoom > ZOOM_LEVEL_2 ? 2 : 1;
-        drawLine(ctx, start + i * 10000/3, bound1, start + i * 10000/3, bound2)
+        drawLine(ctx, start + i * GRID_SPACING, bound1, start + i * GRID_SPACING, bound2)
       } else if (zoom > ZOOM_LEVEL_2 && i % 3 == 0){
         // 中等网格线（细黑线）
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
-        drawLine(ctx, start + i * 10000/3, bound1, start + i * 10000/3, bound2)
+        drawLine(ctx, start + i * GRID_SPACING, bound1, start + i * GRID_SPACING, bound2)
       } else if (zoom > ZOOM_LEVEL_3){
         // 细网格线（灰色）
         ctx.strokeStyle = '#bbb';
         ctx.lineWidth = 1;
-        drawLine(ctx, start + i * 10000/3, bound1, start + i * 10000/3, bound2)
+        drawLine(ctx, start + i * GRID_SPACING, bound1, start + i * GRID_SPACING, bound2)
       }
     }
   }
-  
+
   // 绘制垂直网格线
   halfGrid(start_x, end_x, start_y, end_y, drawLineScreenWidth)
   // 绘制水平网格线（参数顺序交换）
@@ -189,10 +195,10 @@ const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number
     ctx.save()
     applyTransform(ctx, minimap.transform)
     drawTexture(ctx, minimap.transform, minimap.texture);
-    
+
     // 如果启用网格显示
     if(settings.mapGrid){
-      drawGrid(ctx, zoom, minimap.size)
+      drawGrid(ctx, zoom, minimap.size, settings.mapId)
     }
     ctx.restore();
   }
@@ -212,10 +218,10 @@ const drawTerrainmap: (ctx: CanvasRenderingContext2D, terrainmap: Terrainmap, zo
         ctx.save()
         applyTransform(ctx, terrainmap.transform)
         drawTexture(ctx, terrainmap.transform, terrainmap.texture);
-        
+
         // 如果启用网格显示
         if(settings.mapGrid){
-            drawGrid(ctx, zoom, terrainmap.size)
+            drawGrid(ctx, zoom, terrainmap.size, settings.mapId)
         }
         ctx.restore();
     }
@@ -291,18 +297,18 @@ const drawPlacementHelpers = (ctx: CanvasRenderingContext2D, camera:Camera, user
         if (entity?.entityType === "Weapon"){
           // 武器放置辅助器（绿色）
           if (userSettings.weaponPlacementHelper){
-            drawKeypadIndicator(ctx, minimap, location, TEXT_GREEN, camera);
+            drawKeypadIndicator(ctx, minimap, location, TEXT_GREEN, camera, userSettings.mapId);
           }
           if (userSettings.weaponPlacementLabel){
-            drawKeypadLabel(ctx, minimap, location, TEXT_GREEN, camera, userSettings.fontSize)
+            drawKeypadLabel(ctx, minimap, location, TEXT_GREEN, camera, userSettings.fontSize, userSettings.mapId)
           }
         } else if (entity?.entityType === "Target"){
           // 目标放置辅助器（红色）
           if (userSettings.targetPlacementHelper){
-            drawKeypadIndicator(ctx, minimap, location, TEXT_RED, camera);
+            drawKeypadIndicator(ctx, minimap, location, TEXT_RED, camera, userSettings.mapId);
           }
           if (userSettings.targetPlacementLabel){
-            drawKeypadLabel(ctx, minimap, location, TEXT_RED, camera, userSettings.fontSize)
+            drawKeypadLabel(ctx, minimap, location, TEXT_RED, camera, userSettings.fontSize, userSettings.mapId)
           }
         }
       }
