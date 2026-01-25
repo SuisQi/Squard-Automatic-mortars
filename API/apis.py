@@ -1,3 +1,45 @@
+"""
+迫击炮计算器 API 接口模块
+
+接口列表:
+============================================================================
+火力点管理:
+    POST /save              - 保存火力点数据
+    POST /update            - 更新火力点数据
+    POST /remove            - 删除单个火力点
+    GET  /remove_all        - 清除所有火力点
+    GET  /listFires         - 获取火力点列表
+    POST /set_dir_data      - 设置火力点方向数据（废弃）
+
+开火控制:
+    POST /setControl        - 设置开火控制参数
+    POST /getControl        - 获取开火控制参数
+    GET  /setMortarRounds   - 设置迫击炮弹数量
+
+联机会话管理:
+    GET  /set_session_userId - 设置当前会话用户ID
+    GET  /set_sessionId      - 设置联机会话ID
+    GET  /set_server_ip      - 设置联机服务器IP
+
+地图与武器设置:
+    GET  /set_map           - 设置当前地图
+    GET  /set_weapon        - 设置当前武器类型
+    POST /add_marker        - 通过网格坐标添加标记
+
+鼠标移动轨迹配置:
+    POST /get_bezier_points - 计算贝塞尔曲线轨迹点
+    GET  /list_trajectories - 获取轨迹配置列表
+    POST /reset_trajectory  - 重置轨迹配置
+
+应用设置:
+    POST /update_settings   - 更新应用设置
+    GET  /get_settings      - 获取应用设置
+
+游戏辅助:
+    GET  /create_squad      - 创建战术小队
+============================================================================
+"""
+
 import json
 import re
 import threading
@@ -14,10 +56,17 @@ from utils.redis_connect import redis_cli
 from utils.utils import generate_bezier_points, calculate_nonuniform_x_coords, log
 from weapons.weapon import Weapon
 
-# 创建一个名为'user'的蓝图
+# 创建一个名为'mortar'的蓝图
 mortar_blueprint = Blueprint('mortar', __name__)
 
+# 线程锁，用于火力点数据的并发安全
 redis_remove = threading.Lock()
+
+
+# ============================================================================
+# 火力点管理接口
+# ============================================================================
+
 @mortar_blueprint.route('/save', methods=['POST'])
 def save():
     """
@@ -98,6 +147,196 @@ def update():
     return R(0)
 
 
+@mortar_blueprint.route('/remove', methods=['POST'])
+def remove():
+    """
+    删除单个火力点
+
+    从Redis中删除指定的火力点数据。
+    如果处于联机模式，会同步删除远程服务器上的数据。
+    使用线程锁确保并发安全。
+
+    请求体:
+        {
+            "entityId": int  # 要删除的目标点实体ID
+        }
+
+    返回:
+        R(0) 成功
+    """
+    try:
+        data = request.get_json()
+        with redis_remove:
+            redis_cli.hdel('squad:fire_data:standard', data['entityId'])
+        sessionId = redis_cli.get("squad:session:sessionId")
+        if sessionId:
+            sessionId = sessionId.decode()
+            ip = redis_cli.get("squad:session:ip").decode()
+            requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}", proxies={})
+        return R(0)
+    except Exception as e:
+        print(e)
+
+
+@mortar_blueprint.route("/remove_all")
+def remove_all():
+    """
+    清除所有火力点
+
+    删除Redis中存储的所有火力点数据。
+    如果处于联机模式，会同步清除远程服务器上的数据。
+
+    返回:
+        R(0) 成功
+    """
+    redis_cli.delete('squad:fire_data:standard')
+    sessionId = redis_cli.get("squad:session:sessionId")
+    if sessionId:
+        sessionId = sessionId.decode()
+        ip = redis_cli.get("squad:session:ip").decode()
+        requests.get(f"http://{ip}:8081/remove_all?sessionId={sessionId}", proxies={})
+    return R(0)
+
+
+@mortar_blueprint.route("/listFires", methods=["GET"])
+def list_fires():
+    """
+    获取火力点列表
+
+    返回当前所有已标记的火力点数据。
+    可通过flag参数过滤只显示当前用户标记的火力点。
+
+    查询参数:
+        flag: str  # 可选，"1"表示只显示当前用户标记的火力点
+
+    返回:
+        R(0, data=list) 火力点列表，每项包含entityId、dir、angle、userIds等
+    """
+    userId = redis_cli.get("squad:session:userId").decode()
+    if redis_cli.exists('squad:fire_data:standard'):
+        list_items = list(redis_cli.hvals('squad:fire_data:standard'))
+        list_items = list(map(lambda f: json.loads(f), list_items))
+        show_only_self = request.args.get("flag")
+        if show_only_self == "1":
+            list_items = list(filter(lambda f: userId in f['userIds'], list_items))
+        return R(0, data=list_items)
+    return R(200, data=[])
+
+
+@mortar_blueprint.route("/set_dir_data", methods=["POST"])
+def set_dir_data():
+    """
+    设置火力点方向数据（未完成/废弃）
+
+    注意: 此接口当前未被任何地方调用，且实现不完整
+    （读取并修改数据后未写回Redis）。
+
+    请求体:
+        {
+            "id": int,      # 火力点实体ID
+            "dir": float,   # 方位角（度）
+            "angle": float  # 仰角（密位）
+        }
+
+    返回:
+        R(200) 成功
+    """
+    data = request.get_json()
+    dir_data = json.loads(redis_cli.hget("squad:fire_data:standard", data['id']))
+    dir_data['dir'] = data['dir']
+    dir_data['angle'] = data['angle']
+    return R(200)
+
+
+# ============================================================================
+# 开火控制接口
+# ============================================================================
+
+@mortar_blueprint.route("/setControl", methods=["POST"])
+def set_control():
+    """
+    设置开火控制参数
+
+    更新迫击炮的控制状态，包括开火状态、协同模式、自动开火等。
+    非联机模式下不允许开启协同开火。
+
+    请求体:
+        {
+            "state": int,      # 可选，开火状态 (0=停止, 1=开火)
+            "synergy": int,    # 可选，协同开火 (0=关闭, 1=开启)
+            "auto_fire": int,  # 可选，自动开火 (0=关闭, 1=开启)
+            "mortarRounds": int  # 可选，迫击炮弹数
+        }
+
+    返回:
+        R(200, data=params) 成功，返回设置的参数
+        R(500, data={"msg": "非联机模式不能协同开火"}) 非联机模式下尝试开启协同
+    """
+    params = request.get_json()
+    for k, v in params.items():
+        if k == "synergy" and redis_cli.get("squad:session:userId").decode() == "0":
+            params['synergy'] = 0
+            return R(500, data={"msg": "非联机模式不能协同开火"})
+        redis_cli.set(f'squad:fire_data:control:{k}', v)
+
+    return R(200, data=params)
+
+
+@mortar_blueprint.route("/getControl", methods=["POST"])
+def get_control():
+    """
+    获取开火控制参数
+
+    根据请求类型返回对应的控制参数值。
+
+    请求体:
+        {
+            "type": str  # 参数类型: "mortarRounds" | "state" | "synergy" | "auto_fire"
+        }
+
+    返回:
+        R(200, data=int) 对应参数的当前值
+    """
+    # 从Redis获取状态信息
+    param = request.get_json()
+    mortarRounds = redis_cli.get('squad:fire_data:control:mortarRounds').decode()
+    state = redis_cli.get('squad:fire_data:control:state').decode()
+    synergy = redis_cli.get('squad:fire_data:control:synergy').decode()
+    auto_fire = redis_cli.get('squad:fire_data:control:auto_fire').decode()
+    if "mortarRounds" == param['type']:
+        return R(200, data=int(mortarRounds))
+    elif "state" == param['type']:
+        return R(200, data=int(state))
+    elif "auto_fire" == param['type']:
+        return R(200, data=int(auto_fire))
+
+    else:
+        return R(200, data=int(synergy))
+
+
+@mortar_blueprint.route('/setMortarRounds', methods=["GET"])
+def set_mortarRounds():
+    """
+    设置迫击炮弹数量
+
+    更新每轮开火发射的迫击炮弹数量。
+
+    查询参数:
+        mortarRounds: int  # 迫击炮弹数量
+
+    返回:
+        R(0) 成功
+    """
+    mortarRounds = request.args.get('mortarRounds')
+    # 将mortarRounds的值保存到Redis
+    redis_cli.set('squad:fire_data:control:mortarRounds', mortarRounds)
+    return R(0)
+
+
+# ============================================================================
+# 联机会话管理接口
+# ============================================================================
+
 @mortar_blueprint.route("/set_session_userId", methods=["GET"])
 def set_session_userId():
     """
@@ -162,162 +401,190 @@ def set_server_ip():
     return R(0)
 
 
-@mortar_blueprint.route('/remove', methods=['POST'])
-def remove():
+# ============================================================================
+# 地图与武器设置接口
+# ============================================================================
+
+@mortar_blueprint.route("/set_map", methods=["GET"])
+def set_map():
     """
-    删除单个火力点
+    设置当前地图
 
-    从Redis中删除指定的火力点数据。
-    如果处于联机模式，会同步删除远程服务器上的数据。
-    使用线程锁确保并发安全。
+    加载指定的地图文件用于测距和坐标计算。
 
-    请求体:
-        {
-            "entityId": int  # 要删除的目标点实体ID
-        }
+    查询参数:
+        file_name: str  # 地图文件名（相对于templates/map/public/目录）
 
     返回:
         R(0) 成功
+    """
+    file_name = request.args.get("file_name")
+    m = MapRanging()
+    m.set_map(f"./templates/map/public/{file_name}")
+
+    return R(0)
+
+
+@mortar_blueprint.route("/set_weapon", methods=["GET"])
+def set_weapon():
+    """
+    设置当前武器类型
+
+    切换迫击炮计算器使用的武器类型，影响弹道计算参数。
+
+    查询参数:
+        WeaponType: str  # 武器类型标识 (如 "M121", "MK19" 等)
+
+    返回:
+        R(0) 成功
+    """
+    weapon_type = request.args.get("WeaponType")
+    m = Weapon()
+    m.set_type(weapon_type)
+    redis_cli.set("squad:fire_data:control:weapon", weapon_type)
+    log(f"设置武器{weapon_type}")
+    return R(0)
+
+
+def keypad_to_world(keypad_str: str, grid_spacing: float = 10000 / 3) -> tuple:
+    """
+    将网格坐标字符串转换为世界坐标
+
+    参数:
+        keypad_str: 网格坐标字符串，格式如 "G3-7-7-3"
+        grid_spacing: 基础网格间距，默认 10000/3
+
+    返回:
+        (x, y) 世界坐标元组
+    """
+    # 解析网格坐标字符串
+    # 格式: A1-1-1-1 或 G3-7-7-3
+    pattern = r'^([A-Za-z])(\d+)-(\d)-(\d)-(\d)$'
+    match = re.match(pattern, keypad_str.strip())
+
+    if not match:
+        raise ValueError(f"无效的网格坐标格式: {keypad_str}，正确格式如: G3-7-7-3")
+
+    letter = match.group(1).upper()
+    quadrant_y = int(match.group(2)) - 1  # 从1开始转为从0开始
+    kp1 = int(match.group(3))  # 1-9
+    kp2 = int(match.group(4))  # 1-9
+    kp3 = int(match.group(5))  # 1-9
+
+    # 计算 quadrant_x (A=0, B=1, ..., X=23)
+    quadrant_x = ord(letter) - ord('A')
+
+    # 计算网格常量
+    micro_grid_spacing = grid_spacing / 3
+    large_grid_spacing = grid_spacing * 3
+    quadrant_size = large_grid_spacing * 3
+
+    # 从 keypad 值反推偏移量
+    # KP1 = 7 + floor((x % QUADRANT_SIZE) / LARGE_GRID_SPACING) - 3 * floor((y % QUADRANT_SIZE) / LARGE_GRID_SPACING)
+    # KP 值 1-9 对应的 (dx, dy) 偏移:
+    # 7 8 9    (0,0) (1,0) (2,0)
+    # 4 5 6 => (0,1) (1,1) (2,1)
+    # 1 2 3    (0,2) (1,2) (2,2)
+
+    def kp_to_offset(kp):
+        """将 keypad 值 (1-9) 转换为 (dx, dy) 偏移"""
+        kp = kp - 1  # 转为 0-8
+        dx = kp % 3
+        dy = 2 - (kp // 3)
+        return dx, dy
+
+    kp1_dx, kp1_dy = kp_to_offset(kp1)
+    kp2_dx, kp2_dy = kp_to_offset(kp2)
+    kp3_dx, kp3_dy = kp_to_offset(kp3)
+
+    # 计算世界坐标 (取每个格子的中心点)
+    x = (quadrant_x * quadrant_size +
+         kp1_dx * large_grid_spacing +
+         kp2_dx * grid_spacing +
+         kp3_dx * micro_grid_spacing +
+         micro_grid_spacing / 2)  # 加半格偏移到中心
+
+    y = (quadrant_y * quadrant_size +
+         kp1_dy * large_grid_spacing +
+         kp2_dy * grid_spacing +
+         kp3_dy * micro_grid_spacing +
+         micro_grid_spacing / 2)  # 加半格偏移到中心
+
+    return (x, y)
+
+
+@mortar_blueprint.route("/add_marker", methods=["POST"])
+def add_marker():
+    """
+    通过网格坐标添加火力点或武器标记
+
+    请求体:
+        {
+            "keypad": "G3-7-7-3",  # 网格坐标
+            "type": "target" | "weapon",  # 标记类型
+            "active": true,  # 可选，是否激活火力点，默认 true
+            "grid_spacing": 3333.33  # 可选，网格间距
+        }
+
+    返回:
+        R(0, data={...}) 成功，返回坐标信息
+        R(400) 参数错误
+        R(500) 添加失败
     """
     try:
         data = request.get_json()
-        with redis_remove:
-            redis_cli.hdel('squad:fire_data:standard', data['entityId'])
-        sessionId = redis_cli.get("squad:session:sessionId")
-        if sessionId:
-            sessionId = sessionId.decode()
-            ip = redis_cli.get("squad:session:ip").decode()
-            requests.get(f"http://{ip}:8081/remove_fire?sessionId={sessionId}&targetId={data['entityId']}", proxies={})
-        return R(0)
+        keypad = data.get('keypad')
+        marker_type = data.get('type', 'target')  # 默认为火力点
+        active = data.get('active', True)  # 默认激活
+        grid_spacing = data.get('grid_spacing', 10000 / 3)
+
+        if not keypad:
+            return R(400, message="缺少 keypad 参数")
+
+        # 转换坐标
+        try:
+            x, y = keypad_to_world(keypad, grid_spacing)
+        except ValueError as e:
+            return R(400, message=str(e))
+
+        # 通过 RPC 通知前端添加标记
+        try:
+            import json as json_module
+
+            # 使用与 map_raning.py 相同的 RPC 调用方式
+            rpc_param = json_module.dumps({
+                "x": x,
+                "y": y,
+                "type": marker_type,
+                "active": active
+            })
+
+            rpc_response = requests.post(
+                f"http://127.0.0.1:12080/go?group=map&action=addMarker&param={rpc_param}",
+                timeout=5,
+                proxies={}
+            )
+
+        except Exception as e:
+            # RPC 通知失败不影响返回，将坐标信息返回给调用方
+            print(f"RPC 通知失败: {e}")
+
+        return R(0, data={
+            "keypad": keypad,
+            "type": marker_type,
+            "active": active,
+            "x": x,
+            "y": y,
+            "message": f"标记已添加: {keypad} -> ({x:.2f}, {y:.2f})"
+        })
+
     except Exception as e:
-        print(e)
+        return R(500, message=f"添加标记失败: {str(e)}")
 
 
-@mortar_blueprint.route("/remove_all")
-def remove_all():
-    """
-    清除所有火力点
-
-    删除Redis中存储的所有火力点数据。
-    如果处于联机模式，会同步清除远程服务器上的数据。
-
-    返回:
-        R(0) 成功
-    """
-    redis_cli.delete('squad:fire_data:standard')
-    sessionId = redis_cli.get("squad:session:sessionId")
-    if sessionId:
-        sessionId = sessionId.decode()
-        ip = redis_cli.get("squad:session:ip").decode()
-        requests.get(f"http://{ip}:8081/remove_all?sessionId={sessionId}", proxies={})
-    return R(0)
-
-
-@mortar_blueprint.route("/setControl", methods=["POST"])
-def set_control():
-    """
-    设置开火控制参数
-
-    更新迫击炮的控制状态，包括开火状态、协同模式、自动开火等。
-    非联机模式下不允许开启协同开火。
-
-    请求体:
-        {
-            "state": int,      # 可选，开火状态 (0=停止, 1=开火)
-            "synergy": int,    # 可选，协同开火 (0=关闭, 1=开启)
-            "auto_fire": int,  # 可选，自动开火 (0=关闭, 1=开启)
-            "mortarRounds": int  # 可选，迫击炮弹数
-        }
-
-    返回:
-        R(200, data=params) 成功，返回设置的参数
-        R(500, data={"msg": "非联机模式不能协同开火"}) 非联机模式下尝试开启协同
-    """
-    params = request.get_json()
-    for k, v in params.items():
-        if k == "synergy" and redis_cli.get("squad:session:userId").decode() == "0":
-            params['synergy'] = 0
-            return R(500, data={"msg": "非联机模式不能协同开火"})
-        redis_cli.set(f'squad:fire_data:control:{k}', v)
-
-    return R(200, data=params)
-
-
-@mortar_blueprint.route("/getControl", methods=["POST"])
-def get_control():
-    """
-    获取开火控制参数
-
-    根据请求类型返回对应的控制参数值。
-
-    请求体:
-        {
-            "type": str  # 参数类型: "mortarRounds" | "state" | "synergy" | "auto_fire"
-        }
-
-    返回:
-        R(200, data=int) 对应参数的当前值
-    """
-    # 从Redis获取状态信息
-    param = request.get_json()
-    mortarRounds = redis_cli.get('squad:fire_data:control:mortarRounds').decode()
-    state = redis_cli.get('squad:fire_data:control:state').decode()
-    synergy = redis_cli.get('squad:fire_data:control:synergy').decode()
-    auto_fire = redis_cli.get('squad:fire_data:control:auto_fire').decode()
-    if "mortarRounds" == param['type']:
-        return R(200, data=int(mortarRounds))
-    elif "state" == param['type']:
-        return R(200, data=int(state))
-    elif "auto_fire" == param['type']:
-        return R(200, data=int(auto_fire))
-
-    else:
-        return R(200, data=int(synergy))
-
-
-@mortar_blueprint.route("/listFires", methods=["GET"])
-def list_fires():
-    """
-    获取火力点列表
-
-    返回当前所有已标记的火力点数据。
-    可通过flag参数过滤只显示当前用户标记的火力点。
-
-    查询参数:
-        flag: str  # 可选，"1"表示只显示当前用户标记的火力点
-
-    返回:
-        R(0, data=list) 火力点列表，每项包含entityId、dir、angle、userIds等
-    """
-    userId = redis_cli.get("squad:session:userId").decode()
-    if redis_cli.exists('squad:fire_data:standard'):
-        list_items = list(redis_cli.hvals('squad:fire_data:standard'))
-        list_items = list(map(lambda f: json.loads(f), list_items))
-        show_only_self = request.args.get("flag")
-        if show_only_self == "1":
-            list_items = list(filter(lambda f: userId in f['userIds'], list_items))
-        return R(0, data=list_items)
-    return R(200, data=[])
-
-
-@mortar_blueprint.route('/setMortarRounds', methods=["GET"])
-def set_mortarRounds():
-    """
-    设置迫击炮弹数量
-
-    更新每轮开火发射的迫击炮弹数量。
-
-    查询参数:
-        mortarRounds: int  # 迫击炮弹数量
-
-    返回:
-        R(0) 成功
-    """
-    mortarRounds = request.args.get('mortarRounds')
-    # 将mortarRounds的值保存到Redis
-    redis_cli.set('squad:fire_data:control:mortarRounds', mortarRounds)
-    return R(0)
-
+# ============================================================================
+# 鼠标移动轨迹配置接口
+# ============================================================================
 
 @mortar_blueprint.route("/get_bezier_points", methods=['POST'])
 def get_bezier_points_api():
@@ -454,6 +721,10 @@ def reset_trajectory():
     return R(200, data=c_t)
 
 
+# ============================================================================
+# 应用设置接口
+# ============================================================================
+
 @mortar_blueprint.route("/update_settings", methods=["POST"])
 def update_settings():
     """
@@ -487,71 +758,9 @@ def get_settings_():
     return R(200, settings)
 
 
-@mortar_blueprint.route("/set_dir_data", methods=["POST"])
-def set_dir_data():
-    """
-    设置火力点方向数据（未完成/废弃）
-
-    注意: 此接口当前未被任何地方调用，且实现不完整
-    （读取并修改数据后未写回Redis）。
-
-    请求体:
-        {
-            "id": int,      # 火力点实体ID
-            "dir": float,   # 方位角（度）
-            "angle": float  # 仰角（密位）
-        }
-
-    返回:
-        R(200) 成功
-    """
-    data = request.get_json()
-    dir_data = json.loads(redis_cli.hget("squad:fire_data:standard", data['id']))
-    dir_data['dir'] = data['dir']
-    dir_data['angle'] = data['angle']
-    return R(200)
-
-
-@mortar_blueprint.route("/set_map", methods=["GET"])
-def set_map():
-    """
-    设置当前地图
-
-    加载指定的地图文件用于测距和坐标计算。
-
-    查询参数:
-        file_name: str  # 地图文件名（相对于templates/map/public/目录）
-
-    返回:
-        R(0) 成功
-    """
-    file_name = request.args.get("file_name")
-    m = MapRanging()
-    m.set_map(f"./templates/map/public/{file_name}")
-
-    return R(0)
-
-
-@mortar_blueprint.route("/set_weapon", methods=["GET"])
-def set_weapon():
-    """
-    设置当前武器类型
-
-    切换迫击炮计算器使用的武器类型，影响弹道计算参数。
-
-    查询参数:
-        WeaponType: str  # 武器类型标识 (如 "M121", "MK19" 等)
-
-    返回:
-        R(0) 成功
-    """
-    weapon_type = request.args.get("WeaponType")
-    m = Weapon()
-    m.set_type(weapon_type)
-    redis_cli.set("squad:fire_data:control:weapon", weapon_type)
-    log(f"设置武器{weapon_type}")
-    return R(0)
-
+# ============================================================================
+# 游戏辅助接口
+# ============================================================================
 
 @mortar_blueprint.route("/create_squad", methods=["GET"])
 def create_squad():
@@ -570,136 +779,3 @@ def create_squad():
     squad_name = request.args.get("squad_name")
     pub.set_createsquad_state(squad_name)
     return R(0)
-
-
-def keypad_to_world(keypad_str: str, grid_spacing: float = 10000 / 3) -> tuple:
-    """
-    将网格坐标字符串转换为世界坐标
-
-    参数:
-        keypad_str: 网格坐标字符串，格式如 "G3-7-7-3"
-        grid_spacing: 基础网格间距，默认 10000/3
-
-    返回:
-        (x, y) 世界坐标元组
-    """
-    import re
-
-    # 解析网格坐标字符串
-    # 格式: A1-1-1-1 或 G3-7-7-3
-    pattern = r'^([A-Za-z])(\d+)-(\d)-(\d)-(\d)$'
-    match = re.match(pattern, keypad_str.strip())
-
-    if not match:
-        raise ValueError(f"无效的网格坐标格式: {keypad_str}，正确格式如: G3-7-7-3")
-
-    letter = match.group(1).upper()
-    quadrant_y = int(match.group(2)) - 1  # 从1开始转为从0开始
-    kp1 = int(match.group(3))  # 1-9
-    kp2 = int(match.group(4))  # 1-9
-    kp3 = int(match.group(5))  # 1-9
-
-    # 计算 quadrant_x (A=0, B=1, ..., X=23)
-    quadrant_x = ord(letter) - ord('A')
-
-    # 计算网格常量
-    micro_grid_spacing = grid_spacing / 3
-    large_grid_spacing = grid_spacing * 3
-    quadrant_size = large_grid_spacing * 3
-
-    # 从 keypad 值反推偏移量
-    # KP1 = 7 + floor((x % QUADRANT_SIZE) / LARGE_GRID_SPACING) - 3 * floor((y % QUADRANT_SIZE) / LARGE_GRID_SPACING)
-    # KP 值 1-9 对应的 (dx, dy) 偏移:
-    # 7 8 9    (0,0) (1,0) (2,0)
-    # 4 5 6 => (0,1) (1,1) (2,1)
-    # 1 2 3    (0,2) (1,2) (2,2)
-
-    def kp_to_offset(kp):
-        """将 keypad 值 (1-9) 转换为 (dx, dy) 偏移"""
-        kp = kp - 1  # 转为 0-8
-        dx = kp % 3
-        dy = 2 - (kp // 3)
-        return dx, dy
-
-    kp1_dx, kp1_dy = kp_to_offset(kp1)
-    kp2_dx, kp2_dy = kp_to_offset(kp2)
-    kp3_dx, kp3_dy = kp_to_offset(kp3)
-
-    # 计算世界坐标 (取每个格子的中心点)
-    x = (quadrant_x * quadrant_size +
-         kp1_dx * large_grid_spacing +
-         kp2_dx * grid_spacing +
-         kp3_dx * micro_grid_spacing +
-         micro_grid_spacing / 2)  # 加半格偏移到中心
-
-    y = (quadrant_y * quadrant_size +
-         kp1_dy * large_grid_spacing +
-         kp2_dy * grid_spacing +
-         kp3_dy * micro_grid_spacing +
-         micro_grid_spacing / 2)  # 加半格偏移到中心
-
-    return (x, y)
-
-
-@mortar_blueprint.route("/add_marker", methods=["POST"])
-def add_marker():
-    """
-    通过网格坐标添加火力点或武器标记
-
-    请求体:
-        {
-            "keypad": "G3-7-7-3",  # 网格坐标
-            "type": "target" | "weapon",  # 标记类型
-            "active": true,  # 可选，是否激活火力点，默认 true
-            "grid_spacing": 3333.33  # 可选，网格间距
-        }
-    """
-    try:
-        data = request.get_json()
-        keypad = data.get('keypad')
-        marker_type = data.get('type', 'target')  # 默认为火力点
-        active = data.get('active', True)  # 默认激活
-        grid_spacing = data.get('grid_spacing', 10000 / 3)
-
-        if not keypad:
-            return R(400, message="缺少 keypad 参数")
-
-        # 转换坐标
-        try:
-            x, y = keypad_to_world(keypad, grid_spacing)
-        except ValueError as e:
-            return R(400, message=str(e))
-
-        # 通过 RPC 通知前端添加标记
-        try:
-            import json as json_module
-
-            # 使用与 map_raning.py 相同的 RPC 调用方式
-            rpc_param = json_module.dumps({
-                "x": x,
-                "y": y,
-                "type": marker_type,
-                "active": active
-            })
-
-            rpc_response = requests.post(
-                f"http://127.0.0.1:12080/go?group=map&action=addMarker&param={rpc_param}",
-                timeout=5,
-                proxies={}
-            )
-
-        except Exception as e:
-            # RPC 通知失败不影响返回，将坐标信息返回给调用方
-            print(f"RPC 通知失败: {e}")
-
-        return R(0, data={
-            "keypad": keypad,
-            "type": marker_type,
-            "active": active,
-            "x": x,
-            "y": y,
-            "message": f"标记已添加: {keypad} -> ({x:.2f}, {y:.2f})"
-        })
-
-    except Exception as e:
-        return R(500, message=f"添加标记失败: {str(e)}")
