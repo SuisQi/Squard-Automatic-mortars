@@ -181,6 +181,16 @@ const collapsibleleftPanelSettings: (props: { userSettings: UserSettings } & any
                         }
                     ),
                     div({className: "h2"}),
+                    toggleButton({
+                            value: props.userSettings.microGrid,
+                            onChange: props.onChangeMicroGrid,
+                            label: "##",
+                            classNameTrue: "toggleButton black",
+                            classNameFalse: "toggleButton",
+                            styleFalse: {color: "grey"},
+                            tooltip: t("tooltips.showMicroGrid"),
+                        }
+                    ),
                     // h("input", {
                     //     type: "range",
                     //     className: "gridSpacingSlider",
@@ -523,6 +533,9 @@ const mapDispatchToProps = (dispatch: any) => ({
 
     onChangeMapGrid: (e: any) => {
         dispatch(writeUserSettings("mapGrid", e.target.value))
+    },
+    onChangeMicroGrid: (e: any) => {
+        dispatch(writeUserSettings("microGrid", e.target.value))
     },
     onChangeGridSpacing: (e: any) => {
         dispatch(writeUserSettings("gridSpacing", parseFloat(e.target.value)))

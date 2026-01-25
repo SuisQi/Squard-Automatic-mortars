@@ -1,6 +1,6 @@
 import { vec3 } from "gl-matrix";
 import { getZoom } from "../camera/camera";
-import { ZOOM_LEVEL_2, ZOOM_LEVEL_3 } from "../camera/constants";
+import { ZOOM_LEVEL_2, ZOOM_LEVEL_3, ZOOM_LEVEL_4 } from "../camera/constants";
 import { camera } from "../camera/reducer";
 import { Camera } from "../camera/types";
 import { minimap } from "../minimap/reducer";
@@ -10,15 +10,15 @@ import { canvasScaleTransform, outlineText, setOutlineTextStyles, text } from ".
 import { TEXT_BLACK, TEXT_GREEN, TEXT_RED } from "./constants";
 import { getGridConstants } from "../constants/grid";
 
-export const drawKeypadIndicator: (ctx: CanvasRenderingContext2D, minimap: Minimap, location: vec3, fillColor: string, camera: Camera, mapId: string, userGridSpacing: number) => void =
-(ctx, minimap, location, fillColor, camera, mapId, userGridSpacing) => {
+export const drawKeypadIndicator: (ctx: CanvasRenderingContext2D, minimap: Minimap, location: vec3, fillColor: string, camera: Camera, mapId: string, userGridSpacing: number, microGrid: boolean) => void =
+(ctx, minimap, location, fillColor, camera, mapId, userGridSpacing, microGrid) => {
   if (location === null){
     return;
   }
 
   // 获取当前地图的网格常量
   const gridConstants = getGridConstants(mapId, userGridSpacing);
-  const { GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
+  const { MICRO_GRID_SPACING, GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
 
   const keypad: Array<number> = world2keypad(minimap, location, mapId, userGridSpacing);
   //console.log("keypad", keypad)
@@ -76,6 +76,23 @@ export const drawKeypadIndicator: (ctx: CanvasRenderingContext2D, minimap: Minim
                   applyTransform(ctx, newTranslation(-3, 1, 0))
                   outlineText(ctx, `${coord2index(i2, j2)}`, "middle", fillColor, TEXT_BLACK, 16, true);
                   ctx.restore();
+                } else if (microGrid && zoom > ZOOM_LEVEL_4){
+                  // micro keypad - 在每个微格子中心显示数字（第四级）
+                  for (let i3 = 0; i3 <= 2; i3++) {
+                    for (let j3 = 0; j3 <= 2; j3++) {
+                      if (coord2index(i3, j3) !== keypad[4]){
+                        ctx.save();
+                        applyTransform(ctx, minimap.transform);
+                        applyTransform(ctx, newTranslation(outerX + i * LARGE_GRID_SPACING, outerY + j * LARGE_GRID_SPACING, 0))
+                        applyTransform(ctx, newTranslation(i2 * GRID_SPACING, j2 * GRID_SPACING, 0))
+                        applyTransform(ctx, newTranslation(MICRO_GRID_SPACING / 2 + i3 * MICRO_GRID_SPACING, MICRO_GRID_SPACING / 2 + j3 * MICRO_GRID_SPACING, 0))
+                        applyTransform(ctx, canvasScaleTransform(camera))
+                        applyTransform(ctx, newTranslation(-2, 0, 0))
+                        outlineText(ctx, `${coord2index(i3, j3)}`, "middle", fillColor, TEXT_BLACK, 12, true);
+                        ctx.restore();
+                      }
+                    }
+                  }
                 }
               }
             }

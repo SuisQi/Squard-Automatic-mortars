@@ -46,6 +46,7 @@ const enTranslations: LanguagePack = {
 
   tooltips: {
     showMapGrid: 'Show map grid',
+    showMicroGrid: 'Show micro grid (level 4)',
     gridSpacing: 'Grid spacing',
     showKeypadsWhileMovingWeapon: 'Show keypads while moving weapon',
     showKeypadLabelWhileMovingWeapon: 'Show keypad label while moving weapon',

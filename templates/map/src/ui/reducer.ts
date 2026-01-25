@@ -19,6 +19,7 @@ import {icons} from "../common/iconDdata";
 const defaultUserSettings = (): UserSettings => ({
     mapId: "albasrah",
     mapGrid: true,
+    microGrid: false,  // 默认关闭四级网格
     gridSpacing: 10000 / 3,  // 默认网格间距
     contourmap: false,
 

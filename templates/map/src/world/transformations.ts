@@ -89,18 +89,18 @@ export const world2keypadStrings: (minimap: Minimap, location: vec3, mapId: stri
 = (minimap, location, mapId, userGridSpacing) => {
   const kp = world2keypad(minimap, location, mapId, userGridSpacing);
   if (kp[0] < 0 || kp[0]  > 23 || kp[1]  < 0){
-    return ["--", "-", "-"]
+    return ["--", "-", "-", "-"]
   }
-  return [`${String.fromCharCode(65 + kp[0])}${1 + kp[1]}`, kp[2].toString(), kp[3].toString()];
+  return [`${String.fromCharCode(65 + kp[0])}${1 + kp[1]}`, kp[2].toString(), kp[3].toString(), kp[4].toString()];
 }
 
-export const standardFormatKeypad = (keypad: Array<string>): string => `${keypad[0]}-${keypad[1]}-${keypad[2]}`
+export const standardFormatKeypad = (keypad: Array<string>): string => `${keypad[0]}-${keypad[1]}-${keypad[2]}-${keypad[3]}`
 
 export const world2keypad: (minimap: Minimap, location: vec3, mapId: string, userGridSpacing?: number) => Array<number>
 = (minimap, location, mapId, userGridSpacing) => {
   // 获取当前地图的网格常量
   const gridConstants = getGridConstants(mapId, userGridSpacing);
-  const { GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
+  const { MICRO_GRID_SPACING, GRID_SPACING, LARGE_GRID_SPACING, QUADRANT_SIZE } = gridConstants;
 
   const topleft = mat4.getTranslation(vec3.create(), minimap.transform);
   const x = location[0] - topleft[0];
@@ -109,8 +109,9 @@ export const world2keypad: (minimap: Minimap, location: vec3, mapId: string, use
   const quadrantY = Math.floor(y / QUADRANT_SIZE);
   const KP1 =  7 + Math.floor((x % QUADRANT_SIZE) / LARGE_GRID_SPACING) - 3 * Math.floor((y % QUADRANT_SIZE) / LARGE_GRID_SPACING)
   const KP2 =  7 + Math.floor((x % LARGE_GRID_SPACING) / GRID_SPACING) - 3 * Math.floor((y % LARGE_GRID_SPACING) / GRID_SPACING)
+  const KP3 =  7 + Math.floor((x % GRID_SPACING) / MICRO_GRID_SPACING) - 3 * Math.floor((y % GRID_SPACING) / MICRO_GRID_SPACING)
   if (quadrantX < 0 || quadrantX > 23 || quadrantY < 0){
-    return [-1, -1, -1, -1]
+    return [-1, -1, -1, -1, -1]
   }
-  return [quadrantX, quadrantY, KP1, KP2];
+  return [quadrantX, quadrantY, KP1, KP2, KP3];
 }

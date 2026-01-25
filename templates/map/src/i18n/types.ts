@@ -27,6 +27,7 @@ export interface TranslationKeys {
   // 工具提示
   tooltips: {
     showMapGrid: string;
+    showMicroGrid: string;
     gridSpacing: string;
     showKeypadsWhileMovingWeapon: string;
     showKeypadLabelWhileMovingWeapon: string;

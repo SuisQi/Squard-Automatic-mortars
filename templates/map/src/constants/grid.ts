@@ -32,6 +32,13 @@ export function getGridConstants(mapId: string, userGridSpacing?: number) {
 
   return {
     /**
+     * 微网格间距（游戏单位）
+     * 对应Squad游戏中的第四级keypad（micro-keypad）
+     * 等于 GRID_SPACING / 3，保持3x3结构
+     */
+    MICRO_GRID_SPACING: gridSpacing / 3,
+
+    /**
      * 基础网格间距（游戏单位）
      * 对应Squad游戏中的keypad小格（sub-keypad）
      */
@@ -59,6 +66,7 @@ export function getGridConstants(mapId: string, userGridSpacing?: number) {
 export function getDefaultGridConstants() {
   const defaultGridSpacing = 10000 / 3;
   return {
+    MICRO_GRID_SPACING: defaultGridSpacing / 3,
     GRID_SPACING: defaultGridSpacing,
     LARGE_GRID_SPACING: defaultGridSpacing * 3,
     QUADRANT_SIZE: defaultGridSpacing * 3 * 3

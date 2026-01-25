@@ -18,7 +18,7 @@ import { Heightmap } from "../heightmap/types";
 import { drawWeapons } from "./weapon";
 import { drawTargets } from "./target";
 import { drawKeypadIndicator, drawKeypadLabel } from "./common";
-import { ZOOM_LEVEL_2, ZOOM_LEVEL_3 } from "../camera/constants";
+import { ZOOM_LEVEL_2, ZOOM_LEVEL_3, ZOOM_LEVEL_4 } from "../camera/constants";
 import { getZoom } from "../camera/camera";
 import { TEXT_GREEN, TEXT_RED, TEXT_BLACK } from "./constants";
 import { Contourmap } from "../contourmap/types";
@@ -123,11 +123,13 @@ export const drawTexture = (ctx: CanvasRenderingContext2D, transform: Transform,
  * @param zoom 缩放级别
  * @param mapSize 地图尺寸
  * @param mapId 地图ID，用于获取该地图的网格间距
+ * @param userGridSpacing 用户设置的网格间距
+ * @param microGrid 是否显示四级网格
  */
-function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3, mapId: string, userGridSpacing: number) {
+function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3, mapId: string, userGridSpacing: number, microGrid: boolean) {
   // 获取当前地图的网格常量
   const gridConstants = getGridConstants(mapId, userGridSpacing);
-  const GRID_SPACING = gridConstants.GRID_SPACING;
+  const MICRO_GRID_SPACING = gridConstants.MICRO_GRID_SPACING;
 
   const start_x = 0;
   const start_y = 0;
@@ -144,22 +146,27 @@ function drawGrid(ctx: CanvasRenderingContext2D, zoom: number, mapSize: vec3, ma
    */
   //@ts-ignore
   const halfGrid = (start, end, bound1, bound2, drawLine) => {
-    for (let i = 1; start_x + i * GRID_SPACING < end ; i++){
-      if (i % 9 == 0){
-        // 主要网格线（粗黑线）
+    for (let i = 1; start_x + i * MICRO_GRID_SPACING < end ; i++){
+      if (i % 27 == 0){
+        // 象限网格线（粗黑线）- 每27条
         ctx.strokeStyle = 'black';
         ctx.lineWidth = zoom > ZOOM_LEVEL_2 ? 2 : 1;
-        drawLine(ctx, start + i * GRID_SPACING, bound1, start + i * GRID_SPACING, bound2)
-      } else if (zoom > ZOOM_LEVEL_2 && i % 3 == 0){
-        // 中等网格线（细黑线）
+        drawLine(ctx, start + i * MICRO_GRID_SPACING, bound1, start + i * MICRO_GRID_SPACING, bound2)
+      } else if (zoom > ZOOM_LEVEL_2 && i % 9 == 0){
+        // 大网格线（细黑线）- 每9条
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 1;
-        drawLine(ctx, start + i * GRID_SPACING, bound1, start + i * GRID_SPACING, bound2)
-      } else if (zoom > ZOOM_LEVEL_3){
-        // 细网格线（灰色）
-        ctx.strokeStyle = '#bbb';
+        drawLine(ctx, start + i * MICRO_GRID_SPACING, bound1, start + i * MICRO_GRID_SPACING, bound2)
+      } else if (zoom > ZOOM_LEVEL_3 && i % 3 == 0){
+        // 中网格线（浅灰色）- 每3条
+        ctx.strokeStyle = '#ccc';
         ctx.lineWidth = 1;
-        drawLine(ctx, start + i * GRID_SPACING, bound1, start + i * GRID_SPACING, bound2)
+        drawLine(ctx, start + i * MICRO_GRID_SPACING, bound1, start + i * MICRO_GRID_SPACING, bound2)
+      } else if (microGrid && zoom > ZOOM_LEVEL_4){
+        // 微网格线（深灰色）- 其他（仅当开启四级网格时）
+        ctx.strokeStyle = '#888';
+        ctx.lineWidth = 1;
+        drawLine(ctx, start + i * MICRO_GRID_SPACING, bound1, start + i * MICRO_GRID_SPACING, bound2)
       }
     }
   }
@@ -198,7 +205,7 @@ const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number
 
     // 如果启用网格显示
     if(settings.mapGrid){
-      drawGrid(ctx, zoom, minimap.size, settings.mapId, settings.gridSpacing)
+      drawGrid(ctx, zoom, minimap.size, settings.mapId, settings.gridSpacing, settings.microGrid)
     }
     ctx.restore();
   }
@@ -281,7 +288,7 @@ const drawTerrainmap: (ctx: CanvasRenderingContext2D, terrainmap: Terrainmap, zo
 
         // 如果启用网格显示
         if(settings.mapGrid){
-            drawGrid(ctx, zoom, terrainmap.size, settings.mapId, settings.gridSpacing)
+            drawGrid(ctx, zoom, terrainmap.size, settings.mapId, settings.gridSpacing, settings.microGrid)
         }
         ctx.restore();
     }
@@ -357,7 +364,7 @@ const drawPlacementHelpers = (ctx: CanvasRenderingContext2D, camera:Camera, user
         if (entity?.entityType === "Weapon"){
           // 武器放置辅助器（绿色）
           if (userSettings.weaponPlacementHelper){
-            drawKeypadIndicator(ctx, minimap, location, TEXT_GREEN, camera, userSettings.mapId, userSettings.gridSpacing);
+            drawKeypadIndicator(ctx, minimap, location, TEXT_GREEN, camera, userSettings.mapId, userSettings.gridSpacing, userSettings.microGrid);
           }
           if (userSettings.weaponPlacementLabel){
             drawKeypadLabel(ctx, minimap, location, TEXT_GREEN, camera, userSettings.fontSize, userSettings.mapId, userSettings.gridSpacing)
@@ -365,7 +372,7 @@ const drawPlacementHelpers = (ctx: CanvasRenderingContext2D, camera:Camera, user
         } else if (entity?.entityType === "Target"){
           // 目标放置辅助器（红色）
           if (userSettings.targetPlacementHelper){
-            drawKeypadIndicator(ctx, minimap, location, TEXT_RED, camera, userSettings.mapId, userSettings.gridSpacing);
+            drawKeypadIndicator(ctx, minimap, location, TEXT_RED, camera, userSettings.mapId, userSettings.gridSpacing, userSettings.microGrid);
           }
           if (userSettings.targetPlacementLabel){
             drawKeypadLabel(ctx, minimap, location, TEXT_RED, camera, userSettings.fontSize, userSettings.mapId, userSettings.gridSpacing)
