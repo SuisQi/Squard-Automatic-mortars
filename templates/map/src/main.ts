@@ -10,9 +10,9 @@ import {makeLeftPanel, mapBaseOptions} from './ui/leftPanel';
 import {makeTooltip} from "./ui/tooltip";
 import {loadUserSettings} from "./ui/persistence";
 import {enableMapSet} from "immer";
-import {addTarget, addWeapon, moveEntityTo, removeAllTargets} from "./world/actions";
+import {addTarget, addWeapon, moveEntityTo, removeAllTargets, addDirData} from "./world/actions";
 import {UIStateActionType} from "./ui/types";
-import {remove, remove_all, set_weapon} from "./api/standard";
+import {remove, remove_all, set_weapon, save, update} from "./api/standard";
 import {makeIconTool} from "./ui/iconTool";
 import {hl} from "./common/hlclient";
 import {vec3} from "gl-matrix";
@@ -66,6 +66,63 @@ type Yolov5Detect = {
     "bbox": [number, number]
 }
 setTimeout(() => {
+    // 注册 addMarker action 处理器，用于通过 RPC 添加火力点或武器标记
+    hl.regAction("addMarker", (res, param: { x: number, y: number, type: "target" | "weapon", active?: boolean }) => {
+        console.log("addMarker received:", param)
+        const state = store.getState()
+
+        // 计算世界坐标 (需要加上 minimap 的偏移量)
+        const worldX = param.x + state.minimap.transform[12]
+        const worldY = param.y + state.minimap.transform[13]
+        const pos: vec3 = [worldX, worldY, 0]
+
+        // 默认激活
+        const active = param.active !== false
+
+        if (param.type === "weapon") {
+            // 添加武器标记
+            const id = state.world.nextId
+            dispatch(store, addWeapon(pos, state.userSettings.weaponType, id))
+            res(JSON.stringify({ success: true, entityId: id, type: "weapon", x: worldX, y: worldY }))
+        } else {
+            // 添加火力点（目标）
+            const id = state.world.nextId
+            dispatch(store, addTarget(pos, id))
+
+            // 获取更新后的 state 来计算方位角和密位
+            const newState = store.getState()
+            const target = getEntitiesByType<Target>(newState.world, "Target").filter(e => e.entityId === id)[0]
+
+            if (target) {
+                const {solution, angleValue} = getSolution(newState, target, null)
+
+                // 获取当前用户 ID（协作模式下从 session 获取，单机模式下使用 "0"）
+                const currentUserId = newState.session?.userId || "0"
+
+                // 如果激活，则设置 userIds 为当前用户
+                const userIds = active ? [currentUserId] : []
+
+                // 添加 dirData 到前端状态（用于正确渲染火力点样式）
+                dispatch(store, addDirData({
+                    entityId: id,
+                    userIds: userIds,
+                    dir: solution.dir,
+                    angle: angleValue
+                }))
+
+                // 保存火力点数据到后端
+                save({
+                    entityId: id,
+                    dir: solution.dir,
+                    angle: angleValue,
+                    userIds: userIds
+                })
+            }
+
+            res(JSON.stringify({ success: true, entityId: id, type: "target", active: active, x: worldX, y: worldY }))
+        }
+    })
+
     hl.regAction("handlerData", (res, param: Array<Yolov5Detect>) => {
         console.log(param)
 
