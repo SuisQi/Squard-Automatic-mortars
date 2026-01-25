@@ -321,7 +321,7 @@ const weaponTable = (props: { world: World, minimap: Minimap } & any, t: (key: s
                 ...weapons.map((weapon: Weapon, index: number) =>
                     h("tr", {key: index}, [
                         h("td", {className: "indexCell"}, [(index + 1).toString()]),
-                        h("td", {}, [standardFormatKeypad(world2keypadStrings(props.minimap, mat4.getTranslation(vec3.create(), weapon.transform)))]),
+                        h("td", {}, [standardFormatKeypad(world2keypadStrings(props.minimap, mat4.getTranslation(vec3.create(), weapon.transform), props.userSettings.mapId, props.userSettings.gridSpacing))]),
                         h("td", {}, [
                             h("input", {
                                 type: "number",

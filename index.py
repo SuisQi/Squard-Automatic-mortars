@@ -1,4 +1,8 @@
 # -*- coding : utf-8-*-SocketIO
+import warnings
+warnings.filterwarnings('ignore', category=UserWarning, module='PyInstaller')
+warnings.filterwarnings('ignore', message='pkg_resources is deprecated')
+
 import asyncio
 import json
 import os
@@ -10,6 +14,7 @@ import subprocess
 import time
 import logging
 import traceback
+import webbrowser
 from functools import wraps
 
 import keyboard
@@ -28,6 +33,24 @@ from show_info import root, topmost_mail, topmost_orientation
 from utils.key_mouse_listener import KeyMouseListener
 # from utils.map_raning import MapRanging
 from utils.redis_connect import check_redis_service, redis_cli, is_port_in_use
+
+def check_ports():
+    """检查所有需要的端口是否被占用"""
+    ports = {
+        8000: "地图服务",
+        5173: "控制界面",
+        8080: "主API服务",
+        1234: "WebSocket服务",
+        6379: "Redis服务"
+    }
+    occupied = []
+    for port, name in ports.items():
+        if is_port_in_use(port):
+            occupied.append((port, name))
+            print(f"[端口检测] 端口 {port} ({name}) 已被占用!")
+        else:
+            print(f"[端口检测] 端口 {port} ({name}) 可用")
+    return occupied
 from utils.utils import get_settings, pubsub_msgs, is_stop, is_auto_fire, log
 from weapons.m121 import M121
 from weapons.mortar import Mortar
@@ -72,15 +95,64 @@ if os.path.exists("./v16.9.1"):
     node_path = "v16.9.1\\"
 
 def start_map():
-    subprocess.run(f"{node_path}live-server --host={ip} --port=8000 ./templates/map/public", shell=True,
-                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                   text=True)
+    """使用Flask提供地图静态文件服务"""
+    try:
+        from flask import Flask, send_from_directory
+        import click
 
+        map_app = Flask(__name__, static_folder='templates/map/public')
+        map_app.logger.setLevel(logging.ERROR)
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
+        # 禁用Flask启动信息
+        click.echo = lambda *args, **kwargs: None
+
+        @map_app.route('/', defaults={'path': ''})
+        @map_app.route('/<path:path>')
+        def serve_map(path):
+            if path and os.path.exists(os.path.join(map_app.static_folder, path)):
+                return send_from_directory(map_app.static_folder, path)
+            return send_from_directory(map_app.static_folder, 'index.html')
+
+        # 延迟1秒后打开浏览器，确保服务器已启动
+        threading.Timer(1.0, lambda: webbrowser.open(f'http://{ip}:8000')).start()
+        print(f"[地图服务] 正在启动端口 8000...")
+        map_app.run(host="0.0.0.0", port=8000, debug=False, use_reloader=False)
+    except OSError as e:
+        print(f"[地图服务] 端口 8000 启动失败: {e}")
+        print(f"[地图服务] 错误类型: {type(e).__name__}")
+    except Exception as e:
+        print(f"[地图服务] 启动失败: {e}")
 
 def start_control():
-    subprocess.run(f"{node_path}live-server --host={ip} --port=5173 ./templates/control/dist", shell=True,
-                   stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                   text=True)
+    """使用Flask提供控制界面静态文件服务"""
+    try:
+        from flask import Flask, send_from_directory
+        import click
+
+        control_app = Flask(__name__, static_folder='templates/control/dist')
+        control_app.logger.setLevel(logging.ERROR)
+        logging.getLogger('werkzeug').setLevel(logging.ERROR)
+
+        # 禁用Flask启动信息
+        click.echo = lambda *args, **kwargs: None
+
+        @control_app.route('/', defaults={'path': ''})
+        @control_app.route('/<path:path>')
+        def serve_control(path):
+            if path and os.path.exists(os.path.join(control_app.static_folder, path)):
+                return send_from_directory(control_app.static_folder, path)
+            return send_from_directory(control_app.static_folder, 'index.html')
+
+        # 延迟1秒后打开浏览器，确保服务器已启动
+        threading.Timer(1.0, lambda: webbrowser.open(f'http://{ip}:5173')).start()
+        print(f"[控制界面] 正在启动端口 5173...")
+        control_app.run(host="0.0.0.0", port=5173, debug=False, use_reloader=False)
+    except OSError as e:
+        print(f"[控制界面] 端口 5173 启动失败: {e}")
+        print(f"[控制界面] 错误类型: {type(e).__name__}")
+    except Exception as e:
+        print(f"[控制界面] 启动失败: {e}")
 
 startupinfo = subprocess.STARTUPINFO()
 startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
@@ -313,7 +385,14 @@ def init_settings():
 
 
 def run_server():
-    socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
+    try:
+        print(f"[主API服务] 正在启动端口 8080...")
+        socketio.run(app, port=8080, host='0.0.0.0', debug=False, allow_unsafe_werkzeug=True)
+    except OSError as e:
+        print(f"[主API服务] 端口 8080 启动失败: {e}")
+        print(f"[主API服务] 错误类型: {type(e).__name__}")
+    except Exception as e:
+        print(f"[主API服务] 启动失败: {e}")
 
 
 if __name__ == '__main__':
@@ -322,6 +401,22 @@ if __name__ == '__main__':
     #     exit(0)
     display_rule()
     display_squard()
+
+    # 启动前检测端口占用情况
+    print("=" * 50)
+    print("[启动检测] 检查端口占用情况...")
+    occupied_ports = check_ports()
+    if occupied_ports:
+        print("=" * 50)
+        print("[警告] 以下端口被占用，可能导致启动失败:")
+        for port, name in occupied_ports:
+            print(f"  - {port} ({name})")
+        print("请关闭占用这些端口的程序后重试")
+        print("=" * 50)
+    else:
+        print("[启动检测] 所有端口可用")
+    print("=" * 50)
+
     threading.Thread(target=check_redis_service).start()
     time.sleep(2)
     threading.Thread(target=start_rpc).start()

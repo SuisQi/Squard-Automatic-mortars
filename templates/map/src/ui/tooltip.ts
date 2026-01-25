@@ -11,7 +11,7 @@ const div = <P, C>(props: P, children?: C) => h("div", props, children)
 const tooltip: (props:any) => any
   = props => {
     const worldPos = canvas2world(props.camera, props.uiState.mousePosition);
-    const keypad = world2keypadStrings(props.minimap, worldPos)
+    const keypad = world2keypadStrings(props.minimap, worldPos, props.userSettings.mapId, props.userSettings.gridSpacing)
     const height = getHeight(props.heightmap, worldPos)
     return h("div", {className: ""}, [
       `${standardFormatKeypad(keypad)} |  ${(height/100).toFixed(1)}m`,
@@ -24,7 +24,8 @@ const mapStateToProps = (state: any /*, ownProps*/) => {
     uiState: state.uiState,
     minimap: state.minimap,
     heightmap: state.heightmap,
-    camera: state.camera
+    camera: state.camera,
+    userSettings: state.userSettings
   }
 }
 

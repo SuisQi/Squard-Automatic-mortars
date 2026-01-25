@@ -21,7 +21,8 @@ export function getGridConstants(mapId: string, userGridSpacing?: number) {
     gridSpacing = userGridSpacing;
   } else {
     // 否则从地图配置获取
-    const mapConfig = maps[mapId];
+    // @ts-ignore
+      const mapConfig = maps[mapId];
     if (!mapConfig) {
       console.warn(`未找到地图配置: ${mapId}，使用默认值`);
       return getDefaultGridConstants();
