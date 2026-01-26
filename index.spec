@@ -5,11 +5,11 @@ a = Analysis(
     ['index.py'],
     pathex=[],
     binaries=[],
-    datas=[("./charsets.json","."),("./squard.onnx","."),
+    datas=[
     ('F:\\tool\\miniconda3\\envs\\squad-mortars\\Lib\\site-packages\\onnxruntime\\capi\\onnxruntime_providers_shared.dll', 'onnxruntime\\capi'),
     ("./config.ini","."),
     ("./charsets_orientation.json","."),
-    ("./squard_orientation.onnx","."),
+
     ("./templates/control/dist","./templates/control/dist"),
     ("./templates/map/public","./templates/map/public"),
     ("./resolution_case.json","."),

@@ -8,7 +8,8 @@ import {
   list_trajectories,
   setMortarRounds,
   setControl,
-  update_settings, create_squad
+  update_settings, create_squad,
+  get_ai_api_key, set_ai_api_key, ai_chat
 } from "@/api";
 import QrcodeVue from 'qrcode.vue';
 import {
@@ -18,6 +19,8 @@ import {
   Message,
   Search,
   Star,
+  ChatDotRound,
+  Setting,
 } from '@element-plus/icons-vue'
 import * as d3 from 'd3';
 import BezierCurve from "@/components/BezierCurve.vue";
@@ -35,10 +38,18 @@ const dialogFires = ref(false)
 const dialogSetting = ref(false)
 const dialogOrigentationSetting = ref(false)
 const dialogFeature = ref(false)
+const dialogAI = ref(false)  // AI对话弹窗
 const squadName = ref("pjp")
 const createSquadState=ref(false)
 const mail_trajectories = ref([])
 const origentation_trajectories = ref([])
+// AI 相关状态
+const aiApiKey = ref("")
+const aiApiKeyConfigured = ref(false)
+const aiApiKeyInput = ref("")
+const aiMessage = ref("")
+const aiChatHistory = ref([])
+const aiLoading = ref(false)
 const settings = ref({
   "beforeFire": [0.5,1],
   "afterFire": [0.5,1],
@@ -79,6 +90,8 @@ onMounted(() => {
   list_trajectories("orientation").then(res=>{
     origentation_trajectories.value=res.data.data
   })
+  // 获取 AI API Key 状态
+  loadAiApiKey()
 
   setInterval(init, 500)
 })
@@ -149,6 +162,80 @@ const handleCreateSquad=()=>{
   create_squad(squadName.value)
   createSquadState.value=!createSquadState.value
 }
+
+// AI 相关函数
+const loadAiApiKey = () => {
+  get_ai_api_key().then(res => {
+    if (res.data.success === 0) {
+      aiApiKey.value = res.data.data.api_key
+      aiApiKeyConfigured.value = res.data.data.configured
+    }
+  })
+}
+
+const saveAiApiKey = () => {
+  if (!aiApiKeyInput.value.trim()) {
+    ElMessage({
+      showClose: true,
+      message: "API Key 不能为空",
+      type: 'error',
+    })
+    return
+  }
+  set_ai_api_key(aiApiKeyInput.value).then(res => {
+    if (res.data.success === 0) {
+      ElMessage({
+        showClose: true,
+        message: "API Key 保存成功",
+        type: 'success',
+      })
+      loadAiApiKey()
+      aiApiKeyInput.value = ""
+    }
+  })
+}
+
+const sendAiMessage = () => {
+  if (!aiMessage.value.trim()) {
+    return
+  }
+  if (!aiApiKeyConfigured.value) {
+    ElMessage({
+      showClose: true,
+      message: "请先配置 API Key",
+      type: 'warning',
+    })
+    return
+  }
+
+  const userMsg = aiMessage.value
+  aiChatHistory.value.push({ role: 'user', content: userMsg })
+  aiMessage.value = ""
+  aiLoading.value = true
+
+  ai_chat(userMsg).then(res => {
+    aiLoading.value = false
+    if (res.data.success === 0) {
+      aiChatHistory.value.push({ role: 'assistant', content: res.data.data.response })
+    } else {
+      aiChatHistory.value.push({ role: 'error', content: res.data.data || res.data.message || "请求失败" })
+    }
+    // 滚动到底部
+    nextTick(() => {
+      const container = document.querySelector(".ai-chat-container")
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    })
+  }).catch(err => {
+    aiLoading.value = false
+    aiChatHistory.value.push({ role: 'error', content: "网络错误" })
+  })
+}
+
+const clearAiHistory = () => {
+  aiChatHistory.value = []
+}
 </script>
 
 <template>
@@ -201,6 +288,7 @@ const handleCreateSquad=()=>{
 
           />
           <el-button @click="dialogFeature=true" type="warning" :icon="Briefcase">功能</el-button>
+          <el-button @click="dialogAI=true" type="primary" :icon="ChatDotRound">AI助手</el-button>
           <div class="flex flex-row">
             <el-input v-model="squadName" placeholder="输入队名" maxlength="10">
               <template #append>
@@ -291,6 +379,74 @@ const handleCreateSquad=()=>{
         >
           <div class="w-full flex flex-col items-center" >
             <BezierCurve v-for="(item,index) in origentation_trajectories" type="orientation" :width="viewportWidth*0.9" :height="200" :points="item.points" :name="item.name" :num_points="item.num_points"></BezierCurve>
+          </div>
+        </el-dialog>
+        <!-- AI 助手对话弹窗 -->
+        <el-dialog
+            v-model="dialogAI"
+            title="AI 助手"
+            :width="viewportWidth*0.9>500?500:viewportWidth*0.9"
+        >
+          <div class="flex flex-col gap-4">
+            <!-- API Key 设置 -->
+            <div class="flex flex-col gap-2 p-3 bg-gray-100 rounded-lg">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-medium">API Key:</span>
+                <span v-if="aiApiKeyConfigured" class="text-green-600 text-sm">{{ aiApiKey }}</span>
+                <span v-else class="text-red-500 text-sm">未配置</span>
+              </div>
+              <div class="flex gap-2">
+                <el-input
+                    v-model="aiApiKeyInput"
+                    placeholder="输入智谱 GLM-4 API Key"
+                    type="password"
+                    show-password
+                    size="small"
+                />
+                <el-button type="primary" size="small" @click="saveAiApiKey">保存</el-button>
+              </div>
+            </div>
+
+            <!-- 对话区域 -->
+            <div class="ai-chat-container bg-gray-50 rounded-lg p-3 h-[300px] overflow-auto">
+              <div v-if="aiChatHistory.length === 0" class="text-gray-400 text-center py-10">
+                开始对话，获取战术建议...
+              </div>
+              <div v-for="(msg, index) in aiChatHistory" :key="index" class="mb-3">
+                <div v-if="msg.role === 'user'" class="flex justify-end">
+                  <div class="bg-blue-500 text-white px-3 py-2 rounded-lg max-w-[80%]">
+                    {{ msg.content }}
+                  </div>
+                </div>
+                <div v-else-if="msg.role === 'assistant'" class="flex justify-start">
+                  <div class="bg-white border px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap">
+                    {{ msg.content }}
+                  </div>
+                </div>
+                <div v-else class="flex justify-start">
+                  <div class="bg-red-100 text-red-600 px-3 py-2 rounded-lg max-w-[80%]">
+                    {{ msg.content }}
+                  </div>
+                </div>
+              </div>
+              <div v-if="aiLoading" class="flex justify-start">
+                <div class="bg-gray-200 px-3 py-2 rounded-lg">
+                  <span class="animate-pulse">思考中...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 输入区域 -->
+            <div class="flex gap-2">
+              <el-input
+                  v-model="aiMessage"
+                  placeholder="输入问题..."
+                  @keyup.enter="sendAiMessage"
+                  :disabled="aiLoading"
+              />
+              <el-button type="primary" @click="sendAiMessage" :loading="aiLoading">发送</el-button>
+              <el-button @click="clearAiHistory" :icon="Delete">清空</el-button>
+            </div>
           </div>
         </el-dialog>
         <div

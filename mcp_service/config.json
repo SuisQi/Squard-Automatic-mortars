@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "squad-mortar": {
+      "command": "python",
+      "args": ["mcp_service/server.py"],
+      "cwd": "e:\\code\\Squard-Automatic-mortars",
+      "env": {}
+    },
+    "squad-mortar-ai": {
+      "url": "http://127.0.0.1:8765/sse",
+      "transport": "sse"
+    }
+  }
+}

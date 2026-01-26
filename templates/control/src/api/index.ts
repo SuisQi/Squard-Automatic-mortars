@@ -62,3 +62,14 @@ export const update_settings = (data:any)=>{
         return
     return axios.post(baseURL + "update_settings",data)
 }
+
+// AI 服务接口
+export const get_ai_api_key = ()=>{
+    return axios.get(baseURL + "get_ai_api_key")
+}
+export const set_ai_api_key = (api_key:string)=>{
+    return axios.post(baseURL + "set_ai_api_key", {api_key})
+}
+export const ai_chat = (message:string)=>{
+    return axios.post(baseURL + "ai_chat", {message})
+}

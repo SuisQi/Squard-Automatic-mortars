@@ -66,6 +66,13 @@ type Yolov5Detect = {
     "bbox": [number, number]
 }
 setTimeout(() => {
+    // 注册 changeMap action 处理器，用于通过 RPC 切换地图
+    hl.regAction("changeMap", (res, param: { mapId: string }) => {
+        console.log("changeMap received:", param)
+        dispatch(store, changeMap(param.mapId as any))
+        res(JSON.stringify({ success: true, mapId: param.mapId }))
+    })
+
     // 注册 addMarker action 处理器，用于通过 RPC 添加火力点或武器标记
     hl.regAction("addMarker", (res, param: { x: number, y: number, type: "target" | "weapon", active?: boolean }) => {
         console.log("addMarker received:", param)

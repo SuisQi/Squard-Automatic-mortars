@@ -6,7 +6,7 @@ import time
 from abc import ABC, abstractmethod
 
 import cv2
-import ddddocr
+# import ddddocr
 
 from show_info import topmost_orientation, topmost_mail
 from utils.calculate_press_time import calculate_press_ad_time
@@ -27,8 +27,8 @@ class Super_Weapon(ABC):
         return cls._instance
 
     def __init__(self):
-        self._number_classify = ddddocr.DdddOcr(show_ad=False, import_onnx_path="./squard_orientation.onnx",
-                                                charsets_path="./charsets_orientation.json")
+        # self._number_classify = ddddocr.DdddOcr(show_ad=False, import_onnx_path="./squard_orientation.onnx",
+        #                                         charsets_path="./charsets_orientation.json")
         self._screen = screen_shot()
         self._mouse = Mouse_ghub()
         self._resolution_case = get_resolution_case()

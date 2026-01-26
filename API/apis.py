@@ -35,6 +35,11 @@
     POST /update_settings   - 更新应用设置
     GET  /get_settings      - 获取应用设置
 
+AI 服务:
+    GET  /get_ai_api_key    - 获取 AI API Key（脱敏）
+    POST /set_ai_api_key    - 设置 AI API Key
+    POST /ai_chat           - AI 对话（通过 MCP 协议）
+
 游戏辅助:
     GET  /create_squad      - 创建战术小队
 ============================================================================
@@ -779,3 +784,139 @@ def create_squad():
     squad_name = request.args.get("squad_name")
     pub.set_createsquad_state(squad_name)
     return R(0)
+
+
+# ============================================================================
+# AI 服务接口
+# ============================================================================
+
+@mortar_blueprint.route("/get_ai_api_key", methods=["GET"])
+def get_ai_api_key():
+    """
+    获取 AI API Key（脱敏显示）
+
+    返回已配置的 GLM-4 API Key，中间部分用 * 号替代。
+
+    返回:
+        {
+            "code": 0,
+            "data": {
+                "api_key": "abc***xyz",  # 脱敏后的 API Key
+                "configured": true       # 是否已配置
+            }
+        }
+    """
+    api_key = redis_cli.get("squad:ai:api_key")
+    if api_key:
+        api_key = api_key.decode()
+        if api_key and len(api_key) > 8:
+            # 脱敏处理：显示前4位和后4位
+            masked_key = api_key[:4] + "*" * (len(api_key) - 8) + api_key[-4:]
+            return R(0, {"api_key": masked_key, "configured": True})
+        elif api_key:
+            return R(0, {"api_key": "****", "configured": True})
+    return R(0, {"api_key": "", "configured": False})
+
+
+@mortar_blueprint.route("/set_ai_api_key", methods=["POST"])
+def set_ai_api_key():
+    """
+    设置 AI API Key
+
+    配置 GLM-4 大模型的 API Key，用于 AI 对话功能。
+
+    请求体:
+        {
+            "api_key": str  # GLM-4 API Key
+        }
+
+    返回:
+        R(0) 成功
+        R(-1) 参数缺失
+    """
+    if request.is_json:
+        data = request.get_json()
+        api_key = data.get("api_key", "")
+        redis_cli.set("squad:ai:api_key", api_key)
+        log(f"AI API Key 已更新")
+        return R(0)
+    return R(-1, "缺少 api_key 参数")
+
+
+@mortar_blueprint.route("/ai_chat", methods=["POST"])
+def ai_chat():
+    """
+    AI 对话接口（通过 MCP 协议调用）
+
+    通过 MCP 服务器调用 GLM-4 大模型进行对话，获取战术建议等。
+
+    请求体:
+        {
+            "message": str  # 用户消息
+        }
+
+    返回:
+        {
+            "code": 0,
+            "data": {
+                "response": str  # AI 回复
+            }
+        }
+    """
+    if not request.is_json:
+        return R(-1, "请求格式错误")
+
+    data = request.get_json()
+    message = data.get("message", "")
+    if not message:
+        return R(-1, "消息不能为空")
+
+    # 获取 API Key（检查是否已配置）
+    api_key = redis_cli.get("squad:ai:api_key")
+    if not api_key:
+        return R(-1, "请先配置 AI API Key")
+    api_key = api_key.decode()
+    if not api_key:
+        return R(-1, "请先配置 AI API Key")
+
+    try:
+        # 通过 MCP 客户端调用 ai_chat 工具
+        import asyncio
+        from mcp import ClientSession
+        from mcp.client.sse import sse_client
+
+        async def call_mcp_ai_chat(user_message: str) -> str:
+            """通过 MCP SSE 客户端调用 ai_chat 工具"""
+            mcp_url = "http://127.0.0.1:8765/sse"
+
+            async with sse_client(mcp_url) as (read_stream, write_stream):
+                async with ClientSession(read_stream, write_stream) as session:
+                    # 初始化连接
+                    await session.initialize()
+
+                    # 调用 ai_chat 工具
+                    result = await session.call_tool(
+                        "ai_chat",
+                        arguments={"message": user_message}
+                    )
+
+                    # 提取响应内容
+                    if result.content and len(result.content) > 0:
+                        return result.content[0].text
+                    return "AI 没有返回内容"
+
+        # 运行异步调用
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            ai_response = loop.run_until_complete(call_mcp_ai_chat(message))
+        finally:
+            loop.close()
+
+        return R(0, {"response": ai_response})
+
+    except ConnectionRefusedError:
+        return R(-1, "MCP 服务未启动，请确保 index.py 正在运行")
+    except Exception as e:
+        log(f"AI 对话失败: {e}")
+        return R(-1, f"AI 对话失败: {str(e)}")

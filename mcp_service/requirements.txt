@@ -1,0 +1,9 @@
+# MCP AI 服务额外依赖
+#
+# 如果 AI 对话功能报错，请安装以下依赖：
+#
+# pip install zai-sdk
+#
+# zai-sdk 是智谱 GLM-4 大模型的官方 Python SDK
+
+zai-sdk>=0.2.0

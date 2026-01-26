@@ -41,7 +41,8 @@ def check_ports():
         5173: "控制界面",
         8080: "主API服务",
         1234: "WebSocket服务",
-        6379: "Redis服务"
+        6379: "Redis服务",
+        8765: "MCP AI服务"
     }
     occupied = []
     for port, name in ports.items():
@@ -162,6 +163,16 @@ def start_rpc():
     subprocess.run(f"start  /B ./lib/rpc.exe", shell=True,
                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,startupinfo=startupinfo,
                    text=True)
+
+def start_mcp_ai_server():
+    """启动 MCP + AI 服务"""
+    try:
+        from mcp_service.ai_server import run_server
+        print(f"[MCP AI服务] 正在启动端口 8765...")
+        run_server()
+    except Exception as e:
+        print(f"[MCP AI服务] 启动失败: {e}")
+
 
 def start_socket_server():
     # 运行websocket服务器
@@ -382,6 +393,9 @@ def init_settings():
     redis_cli.set("squad:fire_data:control:auto_fire", 1)
     # 是否开始建队
     redis_cli.set("squad:fire_data:control:createsquad", 0)
+    # GLM-4 API Key（用户通过控制界面配置）
+    if not redis_cli.exists("squad:ai:api_key"):
+        redis_cli.set("squad:ai:api_key", "")
 
 
 def run_server():
@@ -428,6 +442,8 @@ if __name__ == '__main__':
     # 一直从计算器网页端获取方位密位
     # start_dir_server()
     threading.Thread(target=listener_click).start()
+    # 启动 MCP AI 服务
+    threading.Thread(target=start_mcp_ai_server, daemon=True).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址
