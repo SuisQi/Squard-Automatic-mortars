@@ -133,5 +133,5 @@ def resolve_map_name(map_name: str) -> str | None:
 
 
 def get_available_maps_str() -> str:
-    """获取可用地图列表字符串（仅英文）"""
-    return ', '.join(sorted([k for k in MAP_NAME_MAPPING.keys() if ord(k[0]) < 128]))
+    """获取可用地图列表字符串（中文）"""
+    return ', '.join(sorted(MAP_CN_NAMES.values()))

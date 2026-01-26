@@ -9,7 +9,8 @@ import {
   setMortarRounds,
   setControl,
   update_settings, create_squad,
-  get_ai_api_key, set_ai_api_key, ai_chat
+  get_ai_api_key, set_ai_api_key, ai_chat,
+  get_voice_config, set_voice_config
 } from "@/api";
 import QrcodeVue from 'qrcode.vue';
 import {
@@ -21,6 +22,7 @@ import {
   Star,
   ChatDotRound,
   Setting,
+  Microphone,
 } from '@element-plus/icons-vue'
 import * as d3 from 'd3';
 import BezierCurve from "@/components/BezierCurve.vue";
@@ -50,6 +52,21 @@ const aiApiKeyInput = ref("")
 const aiMessage = ref("")
 const aiChatHistory = ref([])
 const aiLoading = ref(false)
+const aiActiveTab = ref("chat")  // 当前选项卡: chat / voice
+// 语音服务配置状态
+const voiceConfig = ref({
+  secret_id: "",
+  secret_key: "",
+  app_id: "",
+  hotword_id: "",
+  configured: false
+})
+const voiceConfigInput = ref({
+  secret_id: "",
+  secret_key: "",
+  app_id: "",
+  hotword_id: ""
+})
 const settings = ref({
   "beforeFire": [0.5,1],
   "afterFire": [0.5,1],
@@ -92,6 +109,8 @@ onMounted(() => {
   })
   // 获取 AI API Key 状态
   loadAiApiKey()
+  // 获取语音服务配置
+  loadVoiceConfig()
 
   setInterval(init, 500)
 })
@@ -235,6 +254,49 @@ const sendAiMessage = () => {
 
 const clearAiHistory = () => {
   aiChatHistory.value = []
+}
+
+// 语音服务配置相关函数
+const loadVoiceConfig = () => {
+  get_voice_config().then(res => {
+    if (res.data.success === 0) {
+      voiceConfig.value = res.data.data
+    }
+  })
+}
+
+const saveVoiceConfig = () => {
+  const { secret_id, secret_key, app_id, hotword_id } = voiceConfigInput.value
+  if (!secret_id.trim() || !secret_key.trim() || !app_id.trim()) {
+    ElMessage({
+      showClose: true,
+      message: "Secret ID、Secret Key、App ID 为必填项",
+      type: 'error',
+    })
+    return
+  }
+  set_voice_config({
+    secret_id: secret_id.trim(),
+    secret_key: secret_key.trim(),
+    app_id: app_id.trim(),
+    hotword_id: hotword_id.trim()
+  }).then(res => {
+    if (res.data.success === 0) {
+      ElMessage({
+        showClose: true,
+        message: "语音服务配置保存成功",
+        type: 'success',
+      })
+      loadVoiceConfig()
+      // 清空输入框
+      voiceConfigInput.value = {
+        secret_id: "",
+        secret_key: "",
+        app_id: "",
+        hotword_id: ""
+      }
+    }
+  })
 }
 </script>
 
@@ -387,67 +449,146 @@ const clearAiHistory = () => {
             title="AI 助手"
             :width="viewportWidth*0.9>500?500:viewportWidth*0.9"
         >
-          <div class="flex flex-col gap-4">
-            <!-- API Key 设置 -->
-            <div class="flex flex-col gap-2 p-3 bg-gray-100 rounded-lg">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium">API Key:</span>
-                <span v-if="aiApiKeyConfigured" class="text-green-600 text-sm">{{ aiApiKey }}</span>
-                <span v-else class="text-red-500 text-sm">未配置</span>
-              </div>
-              <div class="flex gap-2">
-                <el-input
-                    v-model="aiApiKeyInput"
-                    placeholder="输入智谱 GLM-4 API Key"
-                    type="password"
-                    show-password
-                    size="small"
-                />
-                <el-button type="primary" size="small" @click="saveAiApiKey">保存</el-button>
-              </div>
-            </div>
+          <el-tabs v-model="aiActiveTab">
+            <!-- AI 对话选项卡 -->
+            <el-tab-pane label="AI 对话" name="chat">
+              <div class="flex flex-col gap-4">
+                <!-- API Key 设置 -->
+                <div class="flex flex-col gap-2 p-3 bg-gray-100 rounded-lg">
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm font-medium">GLM-4 API Key:</span>
+                    <span v-if="aiApiKeyConfigured" class="text-green-600 text-sm">{{ aiApiKey }}</span>
+                    <span v-else class="text-red-500 text-sm">未配置</span>
+                  </div>
+                  <div class="flex gap-2">
+                    <el-input
+                        v-model="aiApiKeyInput"
+                        placeholder="输入智谱 GLM-4 API Key"
+                        type="password"
+                        show-password
+                        size="small"
+                    />
+                    <el-button type="primary" size="small" @click="saveAiApiKey">保存</el-button>
+                  </div>
+                </div>
 
-            <!-- 对话区域 -->
-            <div class="ai-chat-container bg-gray-50 rounded-lg p-3 h-[300px] overflow-auto">
-              <div v-if="aiChatHistory.length === 0" class="text-gray-400 text-center py-10">
-                开始对话，获取战术建议...
-              </div>
-              <div v-for="(msg, index) in aiChatHistory" :key="index" class="mb-3">
-                <div v-if="msg.role === 'user'" class="flex justify-end">
-                  <div class="bg-blue-500 text-white px-3 py-2 rounded-lg max-w-[80%]">
-                    {{ msg.content }}
+                <!-- 对话区域 -->
+                <div class="ai-chat-container bg-gray-50 rounded-lg p-3 h-[250px] overflow-auto">
+                  <div v-if="aiChatHistory.length === 0" class="text-gray-400 text-center py-10">
+                    开始对话，获取战术建议...
+                  </div>
+                  <div v-for="(msg, index) in aiChatHistory" :key="index" class="mb-3">
+                    <div v-if="msg.role === 'user'" class="flex justify-end">
+                      <div class="bg-blue-500 text-white px-3 py-2 rounded-lg max-w-[80%]">
+                        {{ msg.content }}
+                      </div>
+                    </div>
+                    <div v-else-if="msg.role === 'assistant'" class="flex justify-start">
+                      <div class="bg-white border px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap">
+                        {{ msg.content }}
+                      </div>
+                    </div>
+                    <div v-else class="flex justify-start">
+                      <div class="bg-red-100 text-red-600 px-3 py-2 rounded-lg max-w-[80%]">
+                        {{ msg.content }}
+                      </div>
+                    </div>
+                  </div>
+                  <div v-if="aiLoading" class="flex justify-start">
+                    <div class="bg-gray-200 px-3 py-2 rounded-lg">
+                      <span class="animate-pulse">思考中...</span>
+                    </div>
                   </div>
                 </div>
-                <div v-else-if="msg.role === 'assistant'" class="flex justify-start">
-                  <div class="bg-white border px-3 py-2 rounded-lg max-w-[80%] whitespace-pre-wrap">
-                    {{ msg.content }}
-                  </div>
-                </div>
-                <div v-else class="flex justify-start">
-                  <div class="bg-red-100 text-red-600 px-3 py-2 rounded-lg max-w-[80%]">
-                    {{ msg.content }}
-                  </div>
-                </div>
-              </div>
-              <div v-if="aiLoading" class="flex justify-start">
-                <div class="bg-gray-200 px-3 py-2 rounded-lg">
-                  <span class="animate-pulse">思考中...</span>
-                </div>
-              </div>
-            </div>
 
-            <!-- 输入区域 -->
-            <div class="flex gap-2">
-              <el-input
-                  v-model="aiMessage"
-                  placeholder="输入问题..."
-                  @keyup.enter="sendAiMessage"
-                  :disabled="aiLoading"
-              />
-              <el-button type="primary" @click="sendAiMessage" :loading="aiLoading">发送</el-button>
-              <el-button @click="clearAiHistory" :icon="Delete">清空</el-button>
-            </div>
-          </div>
+                <!-- 输入区域 -->
+                <div class="flex gap-2">
+                  <el-input
+                      v-model="aiMessage"
+                      placeholder="输入问题..."
+                      @keyup.enter="sendAiMessage"
+                      :disabled="aiLoading"
+                  />
+                  <el-button type="primary" @click="sendAiMessage" :loading="aiLoading">发送</el-button>
+                  <el-button @click="clearAiHistory" :icon="Delete">清空</el-button>
+                </div>
+              </div>
+            </el-tab-pane>
+
+            <!-- 语音设置选项卡 -->
+            <el-tab-pane label="语音设置" name="voice">
+              <div class="flex flex-col gap-4">
+                <div class="text-sm text-gray-600 mb-2">
+                  配置腾讯云语音识别服务，按住 Q 键即可语音输入
+                </div>
+
+                <!-- 当前配置状态 -->
+                <div class="p-3 bg-gray-100 rounded-lg">
+                  <div class="flex items-center gap-2 mb-2">
+                    <span class="text-sm font-medium">配置状态:</span>
+                    <span v-if="voiceConfig.configured" class="text-green-600 text-sm">已配置</span>
+                    <span v-else class="text-red-500 text-sm">未配置</span>
+                  </div>
+                  <div v-if="voiceConfig.configured" class="text-xs text-gray-500 space-y-1">
+                    <div>Secret ID: {{ voiceConfig.secret_id }}</div>
+                    <div>Secret Key: {{ voiceConfig.secret_key }}</div>
+                    <div>App ID: {{ voiceConfig.app_id }}</div>
+                    <div v-if="voiceConfig.hotword_id">热词表 ID: {{ voiceConfig.hotword_id }}</div>
+                  </div>
+                </div>
+
+                <!-- 配置输入表单 -->
+                <div class="space-y-3">
+                  <div>
+                    <label class="text-sm text-gray-600 block mb-1">Secret ID <span class="text-red-500">*</span></label>
+                    <el-input
+                        v-model="voiceConfigInput.secret_id"
+                        placeholder="腾讯云 API 密钥 ID"
+                        size="small"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-600 block mb-1">Secret Key <span class="text-red-500">*</span></label>
+                    <el-input
+                        v-model="voiceConfigInput.secret_key"
+                        placeholder="腾讯云 API 密钥密钥"
+                        type="password"
+                        show-password
+                        size="small"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-600 block mb-1">App ID <span class="text-red-500">*</span></label>
+                    <el-input
+                        v-model="voiceConfigInput.app_id"
+                        placeholder="腾讯云应用 ID"
+                        size="small"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-sm text-gray-600 block mb-1">热词表 ID（可选）</label>
+                    <el-input
+                        v-model="voiceConfigInput.hotword_id"
+                        placeholder="提高地图名识别准确率"
+                        size="small"
+                    />
+                  </div>
+                  <el-button type="primary" @click="saveVoiceConfig" class="w-full">
+                    保存配置
+                  </el-button>
+                </div>
+
+                <!-- 使用说明 -->
+                <div class="text-xs text-gray-500 p-3 bg-blue-50 rounded-lg">
+                  <div class="font-medium mb-1">使用说明：</div>
+                  <div>1. 登录腾讯云控制台 → 访问管理 → API密钥管理</div>
+                  <div>2. 创建或获取 SecretId 和 SecretKey</div>
+                  <div>3. 在语音识别控制台获取 AppID</div>
+                  <div>4. 配置完成后，按住 Q 键即可语音输入</div>
+                </div>
+              </div>
+            </el-tab-pane>
+          </el-tabs>
         </el-dialog>
         <div
             class="w-32 h-32 rounded-full flex justify-center items-center cursor-pointer"

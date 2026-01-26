@@ -75,6 +75,32 @@ async def health_check(request):
     })
 
 
+async def voice_chat(request):
+    """语音识别结果处理端点 - 供语音服务调用"""
+    try:
+        data = await request.json()
+        message = data.get("message", "")
+
+        if not message:
+            return JSONResponse({"error": "缺少 message 参数"}, status_code=400)
+
+        # 调用 AI 处理
+        result = await dispatch_tool("ai_chat", {"message": message})
+
+        response_text = ""
+        if result and len(result) > 0:
+            response_text = result[0].text
+
+        return JSONResponse({
+            "status": "ok",
+            "response": response_text
+        })
+
+    except Exception as e:
+        logger.error(f"voice_chat 错误: {e}")
+        return JSONResponse({"error": str(e)}, status_code=500)
+
+
 # 创建 Starlette 应用
 app = Starlette(
     debug=False,
@@ -82,6 +108,7 @@ app = Starlette(
         Mount("/sse", app=handle_sse_asgi),
         Mount("/messages", app=sse.handle_post_message),
         Route("/health", health_check),
+        Route("/voice_chat", voice_chat, methods=["POST"]),
     ],
     on_startup=[lambda: logger.info("MCP AI Server 启动中...")],
 )

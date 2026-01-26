@@ -174,6 +174,17 @@ def start_mcp_ai_server():
         print(f"[MCP AI服务] 启动失败: {e}")
 
 
+def start_voice_service():
+    """启动语音服务 - Push-to-Talk 模式"""
+    try:
+        from mcp_service.voice_service import VoiceService
+        print(f"[语音服务] 正在启动...")
+        service = VoiceService()
+        service.start()
+    except Exception as e:
+        print(f"[语音服务] 启动失败: {e}")
+
+
 def start_socket_server():
     # 运行websocket服务器
     asyncio.run(web_server())
@@ -397,6 +408,13 @@ def init_settings():
     if not redis_cli.exists("squad:ai:api_key"):
         redis_cli.set("squad:ai:api_key", "")
 
+    # 语音服务配置（腾讯云 ASR）
+    if not redis_cli.exists("squad:voice:secret_id"):
+        redis_cli.set("squad:voice:secret_id", "")
+        redis_cli.set("squad:voice:secret_key", "")
+        redis_cli.set("squad:voice:app_id", "")
+        redis_cli.set("squad:voice:hotword_id", "")
+
 
 def run_server():
     try:
@@ -444,6 +462,8 @@ if __name__ == '__main__':
     threading.Thread(target=listener_click).start()
     # 启动 MCP AI 服务
     threading.Thread(target=start_mcp_ai_server, daemon=True).start()
+    # 启动语音服务（Push-to-Talk）
+    threading.Thread(target=start_voice_service, daemon=True).start()
 
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     # 不需要真正发送数据，所以目的地址随便设置一个不存在的地址

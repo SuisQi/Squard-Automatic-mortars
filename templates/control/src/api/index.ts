@@ -73,3 +73,16 @@ export const set_ai_api_key = (api_key:string)=>{
 export const ai_chat = (message:string)=>{
     return axios.post(baseURL + "ai_chat", {message})
 }
+
+// 语音服务配置接口
+export const get_voice_config = ()=>{
+    return axios.get(baseURL + "get_voice_config")
+}
+export const set_voice_config = (config: {
+    secret_id: string,
+    secret_key: string,
+    app_id: string,
+    hotword_id?: string
+})=>{
+    return axios.post(baseURL + "set_voice_config", config)
+}

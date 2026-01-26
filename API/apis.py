@@ -920,3 +920,100 @@ def ai_chat():
     except Exception as e:
         log(f"AI 对话失败: {e}")
         return R(-1, f"AI 对话失败: {str(e)}")
+
+
+# ============================================================================
+# 语音服务配置接口
+# ============================================================================
+
+@mortar_blueprint.route("/get_voice_config", methods=["GET"])
+def get_voice_config():
+    """
+    获取语音服务配置（脱敏显示）
+
+    返回腾讯云 ASR 的配置信息，敏感字段脱敏处理。
+
+    返回:
+        {
+            "code": 0,
+            "data": {
+                "secret_id": "AKID***szud9",
+                "secret_key": "LTPB***oHX",
+                "app_id": "1258528840",
+                "hotword_id": "fcfa***ba3",
+                "configured": true
+            }
+        }
+    """
+    def mask_value(value, show_start=4, show_end=4):
+        """脱敏处理"""
+        if not value:
+            return ""
+        if len(value) <= show_start + show_end:
+            return "*" * len(value)
+        return value[:show_start] + "*" * (len(value) - show_start - show_end) + value[-show_end:]
+
+    secret_id = redis_cli.get("squad:voice:secret_id")
+    secret_key = redis_cli.get("squad:voice:secret_key")
+    app_id = redis_cli.get("squad:voice:app_id")
+    hotword_id = redis_cli.get("squad:voice:hotword_id")
+
+    # 解码 bytes
+    secret_id = secret_id.decode() if secret_id else ""
+    secret_key = secret_key.decode() if secret_key else ""
+    app_id = app_id.decode() if app_id else ""
+    hotword_id = hotword_id.decode() if hotword_id else ""
+
+    # 判断是否已配置（需要 secret_id, secret_key, app_id）
+    configured = bool(secret_id and secret_key and app_id)
+
+    return R(0, {
+        "secret_id": mask_value(secret_id),
+        "secret_key": mask_value(secret_key),
+        "app_id": app_id,  # app_id 不需要脱敏
+        "hotword_id": mask_value(hotword_id) if hotword_id else "",
+        "configured": configured
+    })
+
+
+@mortar_blueprint.route("/set_voice_config", methods=["POST"])
+def set_voice_config():
+    """
+    设置语音服务配置
+
+    配置腾讯云 ASR 的认证信息，用于语音转文字功能。
+
+    请求体:
+        {
+            "secret_id": str,    # 腾讯云 API 密钥 ID
+            "secret_key": str,   # 腾讯云 API 密钥密钥
+            "app_id": str,       # 腾讯云应用 ID
+            "hotword_id": str    # 热词表 ID（可选）
+        }
+
+    返回:
+        R(0) 成功
+        R(-1) 参数缺失
+    """
+    if not request.is_json:
+        return R(-1, "请求格式错误")
+
+    data = request.get_json()
+
+    secret_id = data.get("secret_id", "")
+    secret_key = data.get("secret_key", "")
+    app_id = data.get("app_id", "")
+    hotword_id = data.get("hotword_id", "")
+
+    # 验证必填字段
+    if not secret_id or not secret_key or not app_id:
+        return R(-1, "secret_id、secret_key、app_id 为必填项")
+
+    # 保存到 Redis
+    redis_cli.set("squad:voice:secret_id", secret_id)
+    redis_cli.set("squad:voice:secret_key", secret_key)
+    redis_cli.set("squad:voice:app_id", app_id)
+    redis_cli.set("squad:voice:hotword_id", hotword_id)
+
+    log("语音服务配置已更新")
+    return R(0)

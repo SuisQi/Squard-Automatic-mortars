@@ -248,13 +248,46 @@ async def handle_ai_chat(arguments: dict) -> list[TextContent]:
         )
 
         assistant_message = response.choices[0].message
+        finish_reason = response.choices[0].finish_reason
+
+        # 调试日志
+        logger.info(f"[AI] finish_reason={finish_reason}")
+        logger.info(f"[AI] tool_calls={assistant_message.tool_calls}")
 
         # 检查是否有工具调用
-        if assistant_message.tool_calls:
+        tool_calls = assistant_message.tool_calls
+
+        # GLM-4 SDK 有时会把 tool_calls 放在 content 中，需要手动解析
+        if not tool_calls and finish_reason == "tool_calls" and assistant_message.content:
+            content = assistant_message.content
+            # 尝试从 content 中提取 JSON 格式的工具调用
+            import re
+            # 查找 {"index":0,"finish_reason":"tool_calls"... 格式
+            json_match = re.search(r'\{"index":\d+,"finish_reason":"tool_calls".*\}$', content, re.DOTALL)
+            if json_match:
+                try:
+                    tool_data = json.loads(json_match.group())
+                    delta_tool_calls = tool_data.get("delta", {}).get("tool_calls", [])
+                    if delta_tool_calls:
+                        # 构造伪 tool_call 对象
+                        class FakeToolCall:
+                            def __init__(self, tc):
+                                self.id = tc.get("id", "")
+                                self.function = type('obj', (object,), {
+                                    'name': tc.get("function", {}).get("name", ""),
+                                    'arguments': tc.get("function", {}).get("arguments", "{}")
+                                })()
+                        tool_calls = [FakeToolCall(tc) for tc in delta_tool_calls]
+                        logger.info(f"[AI] 从 content 中解析到工具调用: {[tc.function.name for tc in tool_calls]}")
+                except Exception as e:
+                    logger.error(f"[AI] 解析 content 中的工具调用失败: {e}")
+
+        if tool_calls and len(tool_calls) > 0:
             tool_results = []
-            for tool_call in assistant_message.tool_calls:
+            for tool_call in tool_calls:
                 func_name = tool_call.function.name
                 func_args = json.loads(tool_call.function.arguments)
+                logger.info(f"[AI] 调用工具: {func_name}, 参数: {func_args}")
 
                 # 执行工具调用
                 if func_name == "set_map":
@@ -266,6 +299,7 @@ async def handle_ai_chat(arguments: dict) -> list[TextContent]:
                 else:
                     result = [TextContent(type="text", text=f"未知工具: {func_name}")]
 
+                logger.info(f"[AI] 工具结果: {result[0].text}")
                 tool_results.append({
                     "tool_call_id": tool_call.id,
                     "role": "tool",
