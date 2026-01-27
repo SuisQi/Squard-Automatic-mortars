@@ -225,6 +225,10 @@ async def echo(websocket, path):
                         "state": 1,
                         "ws": websocket
                     }  # 0表示停火，1表示正常
+                elif control_server_pool[room_session_id][user_session_id]['ws'] != websocket:
+                    # 用户通过新连接重新请求（新一轮开火），更新 websocket 并重置状态为 1
+                    control_server_pool[room_session_id][user_session_id]['ws'] = websocket
+                    control_server_pool[room_session_id][user_session_id]['state'] = 1
 
                 control_server = control_server_pool[room_session_id]
                 if control_server[user_session_id]['state'] == 0:
