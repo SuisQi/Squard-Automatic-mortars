@@ -486,7 +486,18 @@ export const getSolution = (state: StoreState, target: any,targetPos?:any) => {
     const weaponTranslation = getTranslation(weapon.transform)
     const weaponHeight = getHeight(state.heightmap, weaponTranslation)
     weaponTranslation[2] = weaponHeight +  weapon.heightOverGround;
-    const targetTranslation = getTranslation(target?.transform||targetPos);
+
+    // 如果有 target 对象，从 transform 中获取坐标；否则直接使用 targetPos（vec3）
+    let targetTranslation: vec3;
+    if (target?.transform) {
+        targetTranslation = getTranslation(target.transform);
+    } else if (targetPos) {
+        // targetPos 已经是 vec3 格式 [x, y, z]，直接使用
+        targetTranslation = vec3.clone(targetPos);
+    } else {
+        throw new Error("需要提供 target 或 targetPos");
+    }
+
     const targetHeight = getHeight(state.heightmap, targetTranslation)
     targetTranslation[2] = targetHeight;
     // 使用武器渲染器获取射击解决方案

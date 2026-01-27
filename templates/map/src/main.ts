@@ -130,6 +130,24 @@ setTimeout(() => {
         }
     })
 
+    // 注册 getSolution action 处理器，用于根据目标点坐标计算方位密位（协同开火用）
+    hl.regAction("getSolution", (res, param: { targetX: number, targetY: number }) => {
+        console.log("getSolution received:", param)
+        const state = store.getState()
+
+        // 创建目标点坐标
+        const targetPos: vec3 = [param.targetX, param.targetY, 0]
+
+        // 使用 getSolution 计算方位密位
+        const {solution, angleValue} = getSolution(state, null, targetPos)
+
+        res(JSON.stringify({
+            success: true,
+            dir: solution.dir,
+            angle: angleValue
+        }))
+    })
+
     hl.regAction("handlerData", (res, param: Array<Yolov5Detect>) => {
         console.log(param)
 

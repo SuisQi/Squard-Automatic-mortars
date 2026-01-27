@@ -233,9 +233,35 @@ async def echo(websocket, path):
                 if payload['type'] == "GET":
                     targetId = control.assign_fire_point(user_session_id)
 
+                    # 获取目标点坐标
+                    target_location = None
+                    if targetId:
+                        components = json.loads(redis_cli.get(f"squad:{room_session_id}:world:components").decode())
+                        components_dict = {}
+                        for k in components:
+                            components_dict[k] = {}
+                            for v in components[k]:
+                                components_dict[k][v[0]] = v[1]
+                        # 尝试不同类型的 key（整数优先，因为 transform_keys 是整数）
+                        transform_data = components_dict.get('transform', {})
+                        try:
+                            target_id_int = int(targetId)
+                            if target_id_int in transform_data:
+                                transform = transform_data[target_id_int]['transform']
+                                target_location = [transform[12], transform[13]]
+                        except (ValueError, TypeError):
+                            pass
+                        if target_location is None and targetId in transform_data:
+                            transform = transform_data[targetId]['transform']
+                            target_location = [transform[12], transform[13]]
+                        if target_location is None and str(targetId) in transform_data:
+                            transform = transform_data[str(targetId)]['transform']
+                            target_location = [transform[12], transform[13]]
+
                     await websocket.send(json.dumps({
                         "type": "INFO",
-                        "targetId": targetId
+                        "targetId": targetId,
+                        "targetLocation": target_location
                     }))
                     if control.check_and_notify_all_fp_assigned():
                         # 全部迫击炮设置为停火

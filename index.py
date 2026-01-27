@@ -258,12 +258,55 @@ async def fire_client(weapon, userId, sessionId):
                     else:
                         res = json.loads(result)
                         targetId = res['targetId']
+                        targetLocation = res.get('targetLocation')
                         if targetId:
-                            standard = redis_cli.hget("squad:fire_data:standard", targetId)
-                            if not standard:
-                                log(f"ID:{targetId}没有密位")
+                            # 通过 RPC 调用前端计算方位密位（基于本地武器位置）
+                            if targetLocation:
+                                try:
+                                    rpc_param = json.dumps({"targetX": targetLocation[0], "targetY": targetLocation[1]})
+                                    rpc_response = requests.post(
+                                        f"http://127.0.0.1:12080/go?group=map&action=getSolution&param={rpc_param}",
+                                        timeout=5,
+                                        proxies={}
+                                    )
+                                    # RPC 响应格式: {"clientId":"...","data":"{...}","group":"map","status":200}
+                                    # data 字段是嵌套的 JSON 字符串
+                                    response_json = json.loads(rpc_response.text)
+                                    if response_json.get('status') == 200 and response_json.get('data'):
+                                        rpc_result = json.loads(response_json['data'])
+                                        if rpc_result.get('success'):
+                                            # 精度处理：方位1位小数，密位根据武器类型
+                                            dir_value = round(rpc_result['dir'], 1)
+                                            # 直接从 Redis 读取当前武器类型来确定精度
+                                            current_weapon_type = redis_cli.get("squad:fire_data:control:weapon")
+                                            if current_weapon_type:
+                                                current_weapon_type = current_weapon_type.decode()
+                                            else:
+                                                current_weapon_type = "standardMortar"
+                                            # 根据武器类型设置精度：standardMortar=0, M121=2, 其他=1
+                                            if current_weapon_type == "standardMortar":
+                                                angle_value = int(rpc_result['angle'])
+                                            elif current_weapon_type == "M121":
+                                                angle_value = round(rpc_result['angle'], 2)
+                                            else:
+                                                angle_value = round(rpc_result['angle'], 1)
+                                            standard = {
+                                                'dir': dir_value,
+                                                'angle': angle_value
+                                            }
+                                        else:
+                                            log(f"RPC计算方位密位失败: {rpc_result}")
+                                            break
+                                    else:
+                                        log(f"RPC响应状态异常: {response_json}")
+                                        break
+                                except Exception as e:
+                                    log(f"RPC调用失败: {e}")
+                                    break
+                            else:
+                                log(f"ID:{targetId}没有坐标信息")
                                 break
-                            standard = json.loads(standard.decode())
+
                             # 如果不在范围内
                             if standard['angle'] == 0:
                                 websocket.send(json.dumps({

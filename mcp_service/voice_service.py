@@ -321,7 +321,7 @@ class VoiceService:
         asyncio.set_event_loop(self.loop)
 
         # 在 executor 中启动按键监听
-        self.loop.run_in_executor(None, self._ptt_listener_thread)
+        # self.loop.run_in_executor(None, self._ptt_listener_thread)
 
         # 启动事件处理循环
         self.loop.run_until_complete(self._event_loop())
