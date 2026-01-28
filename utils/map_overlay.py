@@ -174,24 +174,49 @@ class MapOverlay:
             return None
 
         # 8. 计算截图四角在原始底图上的位置
-        # H 是从 缩放截图 到 缩放底图 的变换
-        # 我们需要将 原始截图四角 变换到 原始底图坐标
         h, w = screenshot.shape[:2]
-
-        # 先将原始截图坐标缩放到匹配时使用的尺度
         corners_original = np.float32([[0, 0], [w, 0], [w, h], [0, h]]).reshape(-1, 1, 2)
         corners_scaled = corners_original * self.SCALE_FACTOR
-
-        # 使用 H 变换到缩放后的底图坐标
         corners_in_scaled_base = cv2.perspectiveTransform(corners_scaled, H)
-
-        # 还原到原始底图坐标
         transformed_corners = corners_in_scaled_base / self.SCALE_FACTOR
+        corners_list = transformed_corners.reshape(-1, 2).tolist()
 
-        # 9. 编码截图为 Base64
-        encode_params = [cv2.IMWRITE_JPEG_QUALITY, 80]
-        _, buffer = cv2.imencode('.jpg', screenshot, encode_params)
-        screenshot_base64 = base64.b64encode(buffer).decode('utf-8')
+        # 9. 在后端做透视变换，生成矩形图像
+        # 计算包围盒
+        xs = [c[0] for c in corners_list]
+        ys = [c[1] for c in corners_list]
+        min_x, max_x = int(min(xs)), int(max(xs))
+        min_y, max_y = int(min(ys)), int(max(ys))
+        out_w = max_x - min_x
+        out_h = max_y - min_y
+
+        # 限制输出尺寸防止内存问题和传输过大
+        max_size = 1024
+        scale = min(1.0, max_size / max(out_w, out_h))
+        out_w_scaled = int(out_w * scale)
+        out_h_scaled = int(out_h * scale)
+
+        # 构建从截图到输出矩形的透视变换矩阵
+        # 目标四角：相对于包围盒的坐标，并缩放
+        dst_corners = np.float32([
+            [(corners_list[0][0] - min_x) * scale, (corners_list[0][1] - min_y) * scale],
+            [(corners_list[1][0] - min_x) * scale, (corners_list[1][1] - min_y) * scale],
+            [(corners_list[2][0] - min_x) * scale, (corners_list[2][1] - min_y) * scale],
+            [(corners_list[3][0] - min_x) * scale, (corners_list[3][1] - min_y) * scale],
+        ])
+        # 源四角：截图的四角
+        src_corners = np.float32([[0, 0], [w, 0], [w, h], [0, h]])
+
+        # 计算透视变换矩阵
+        M = cv2.getPerspectiveTransform(src_corners, dst_corners)
+
+        # 执行透视变换
+        warped = cv2.warpPerspective(screenshot, M, (out_w_scaled, out_h_scaled))
+
+        # 10. 编码变换后的图像为 Base64 JPEG (高压缩率减小体积)
+        encode_params = [cv2.IMWRITE_JPEG_QUALITY, 70]
+        _, buffer = cv2.imencode('.jpg', warped, encode_params)
+        warped_base64 = base64.b64encode(buffer).decode('utf-8')
 
         inliers = int(mask.ravel().sum())
         elapsed = time.time() - start_time
@@ -199,12 +224,13 @@ class MapOverlay:
         log(f"[MapOverlay] 匹配成功: {len(good_matches)} 匹配, {inliers} 内点, 耗时: {elapsed:.2f}s")
 
         return {
-            'homography': H.tolist(),  # 返回缩放空间的 H
-            'corners': transformed_corners.reshape(-1, 2).tolist(),
-            'screenshotSize': [w, h],
             'matchCount': len(good_matches),
             'inliers': inliers,
-            'screenshotBase64': screenshot_base64
+            # 包围盒坐标（像素坐标）
+            'bounds': [min_x, min_y, max_x, max_y],
+            # 已透视变换的图像 (PNG with alpha)
+            'warpedBase64': warped_base64,
+            'warpedSize': [out_w_scaled, out_h_scaled]
         }
 
     def _capture_game_screen(self) -> Optional[np.ndarray]:

@@ -12,10 +12,9 @@ import {
  */
 export const defaultMapOverlayState: MapOverlayState = {
     enabled: true,
-    homography: null,
-    corners: null,
-    screenshotSize: null,
-    screenshotImage: null,
+    bounds: null,
+    warpedImage: null,
+    warpedSize: null,
     opacity: 0.8,
     matchCount: 0,
     inliers: 0,
@@ -33,10 +32,9 @@ export const mapOverlayReducer = (
         case MapOverlayActionType.SET_OVERLAY:
             return {
                 ...state,
-                homography: action.payload.homography,
-                corners: action.payload.corners,
-                screenshotSize: action.payload.screenshotSize,
-                screenshotImage: action.payload.screenshotImage,
+                bounds: action.payload.bounds,
+                warpedImage: action.payload.warpedImage,
+                warpedSize: action.payload.warpedSize,
                 matchCount: action.payload.matchCount,
                 inliers: action.payload.inliers,
                 lastUpdateTime: Date.now()
@@ -45,10 +43,9 @@ export const mapOverlayReducer = (
         case MapOverlayActionType.CLEAR_OVERLAY:
             return {
                 ...state,
-                homography: null,
-                corners: null,
-                screenshotSize: null,
-                screenshotImage: null,
+                bounds: null,
+                warpedImage: null,
+                warpedSize: null,
                 matchCount: 0,
                 inliers: 0
             };

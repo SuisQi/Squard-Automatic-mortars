@@ -20,6 +20,7 @@ import {getEntitiesByType} from "./world/world";
 import {Target} from "./world/types";
 import {getSolution} from "./common/mapData";
 import {setMapOverlay, clearMapOverlay} from "./mapoverlay/actions";
+import {clearMapOverlayCache} from "./render/mapOverlay";
 import {MapOverlayPayload} from "./mapoverlay/types";
 // 初始化国际化系统
 import "./i18n";
@@ -219,15 +220,14 @@ setTimeout(() => {
     hl.regAction("setMapOverlay", (res, param: MapOverlayPayload) => {
         console.log("setMapOverlay received:", param.matchCount, "matches,", param.inliers, "inliers")
 
-        // 创建 Image 对象加载截图
+        // 创建 Image 对象加载已透视变换的图像
         const img = new Image()
         img.onload = () => {
             // 图像加载完成后，dispatch action 更新状态
             dispatch(store, setMapOverlay({
-                homography: param.homography,
-                corners: param.corners,
-                screenshotSize: param.screenshotSize,
-                screenshotImage: img,
+                bounds: param.bounds,
+                warpedImage: img,
+                warpedSize: param.warpedSize,
                 matchCount: param.matchCount,
                 inliers: param.inliers
             }))
@@ -236,17 +236,18 @@ setTimeout(() => {
         }
 
         img.onerror = () => {
-            console.error("setMapOverlay: Failed to load screenshot image")
+            console.error("setMapOverlay: Failed to load warped image")
             res(JSON.stringify({ success: false, message: "图像加载失败" }))
         }
 
-        // 设置图像源 (Base64)
-        img.src = `data:image/jpeg;base64,${param.screenshotBase64}`
+        // 设置图像源 (JPEG)
+        img.src = `data:image/jpeg;base64,${param.warpedBase64}`
     })
 
     // 注册 clearMapOverlay action 处理器，用于清除地图贴图
     hl.regAction("clearMapOverlay", (res) => {
         console.log("clearMapOverlay: 清除地图贴图")
+        clearMapOverlayCache()  // 清除渲染缓存
         dispatch(store, clearMapOverlay())
         res(JSON.stringify({ success: true, message: "地图贴图已清除" }))
     })

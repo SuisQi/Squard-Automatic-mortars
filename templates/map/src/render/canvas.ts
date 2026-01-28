@@ -192,22 +192,31 @@ const drawBackground: (ctx: CanvasRenderingContext2D) => void =
   }
 
 /**
- * 绘制小地图
+ * 绘制小地图（仅底图纹理，不含网格）
+ * @param ctx Canvas绘制上下文
+ * @param minimap 小地图对象
+ */
+const drawMinimapTexture: (ctx: CanvasRenderingContext2D, minimap: Minimap) => void =
+  (ctx, minimap) => {
+    ctx.save()
+    applyTransform(ctx, minimap.transform)
+    drawTexture(ctx, minimap.transform, minimap.texture);
+    ctx.restore();
+  }
+
+/**
+ * 绘制小地图网格
  * @param ctx Canvas绘制上下文
  * @param minimap 小地图对象
  * @param zoom 缩放级别
  * @param settings 用户设置
  */
-const drawMinimap: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number, settings: UserSettings) => void =
+const drawMinimapGrid: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:number, settings: UserSettings) => void =
   (ctx, minimap, zoom, settings) => {
+    if(!settings.mapGrid) return;
     ctx.save()
     applyTransform(ctx, minimap.transform)
-    drawTexture(ctx, minimap.transform, minimap.texture);
-
-    // 如果启用网格显示
-    if(settings.mapGrid){
-      drawGrid(ctx, zoom, minimap.size, settings.mapId, settings.gridSpacing, settings.microGrid)
-    }
+    drawGrid(ctx, zoom, minimap.size, settings.mapId, settings.gridSpacing, settings.microGrid)
     ctx.restore();
   }
 
@@ -414,11 +423,12 @@ export const drawAll = (store: Store0) => {
     // 渲染顺序很重要：从底层到顶层
     drawBackground(ctx)                    // 1. 背景
     applyTransform(ctx, state.camera.transform)
-    drawMinimap(ctx, state.minimap, zoom, state.userSettings);        // 2. 小地图
-    drawCoordinateAxes(ctx, state.minimap, state.camera, state.userSettings); // 3. 坐标轴
-    drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);  // 4. 地形图
-    drawMapOverlay(ctx, state.mapOverlay, state.minimap);             // 4.5. 地图贴图 (F7)
-    drawContourmap(ctx, state.contourmap, state.userSettings);        // 5. 等高线图
+    drawMinimapTexture(ctx, state.minimap);                              // 2. 小地图底图
+    drawMapOverlay(ctx, state.mapOverlay, state.minimap);                // 2.5. 地图贴图 (F7) - 在网格之下
+    drawMinimapGrid(ctx, state.minimap, zoom, state.userSettings);       // 3. 小地图网格
+    drawCoordinateAxes(ctx, state.minimap, state.camera, state.userSettings); // 4. 坐标轴
+    drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);     // 5. 地形图
+    drawContourmap(ctx, state.contourmap, state.userSettings);           // 6. 等高线图
     // drawHeightmap(ctx, state.heightmap, state.userSettings);       // 5. 高度图（已禁用）
     drawWeapons(ctx, state.userSettings, state.camera, weapons);      // 6. 武器
     drawTargets(ctx, weapons, targets,state,dirDatas,state.session?.userId??"0"); // 7. 目标

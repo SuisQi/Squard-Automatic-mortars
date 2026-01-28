@@ -10,13 +10,12 @@ import {
 } from './types';
 
 /**
- * 设置贴图数据
+ * 设置贴图数据 (新格式 - 已透视变换)
  */
 export const setMapOverlay = (payload: {
-    homography: number[][];
-    corners: [number, number][];
-    screenshotSize: [number, number];
-    screenshotImage: HTMLImageElement;
+    bounds: [number, number, number, number];
+    warpedImage: HTMLImageElement;
+    warpedSize: [number, number];
     matchCount: number;
     inliers: number;
 }): SetOverlayAction => ({
