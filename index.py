@@ -31,6 +31,8 @@ from flask import Flask, jsonify
 
 from show_info import root, topmost_mail, topmost_orientation
 from utils.key_mouse_listener import KeyMouseListener
+from utils.map_overlay import MapOverlay
+from pynput import keyboard as pynput_keyboard
 # from utils.map_raning import MapRanging
 from utils.redis_connect import check_redis_service, redis_cli, is_port_in_use
 
@@ -338,11 +340,66 @@ def set_fire_state():
         redis_cli.set("squad:fire_data:control:state", 0)
 
 
+# 全局 MapOverlay 实例
+map_overlay = MapOverlay()
+
+
+def on_f7_pressed():
+    """F7 热键回调 - 执行地图贴图"""
+    try:
+        # 从 Redis 获取当前地图 ID
+        map_id = redis_cli.get("squad:map:current")
+        if map_id:
+            map_id = map_id.decode()
+        else:
+            map_id = "kokan"  # 默认地图
+
+        # 构建底图路径 (使用 minimap)
+        map_path = f"./templates/map/public/maps/{map_id}_minimap.webp"
+
+        # 如果 webp 不存在，尝试 jpg
+        if not os.path.exists(map_path):
+            map_path = f"./templates/map/public/maps/{map_id}_minimap.jpg"
+
+        if not os.path.exists(map_path):
+            log(f"[F7] 找不到地图文件: {map_id}")
+            return
+
+        # 执行贴图
+        map_overlay.overlay_to_frontend(map_path)
+
+    except Exception as e:
+        log(f"[F7] 执行失败: {e}")
+
+
+def on_f8_pressed():
+    """F8 热键回调 - 清除地图贴图"""
+    try:
+        response = requests.post(
+            "http://127.0.0.1:12080/go?group=map&action=clearMapOverlay",
+            timeout=5,
+            proxies={}
+        )
+        response_json = response.json()
+        if response_json.get('status') == 200:
+            log("[F8] 地图贴图已清除")
+        else:
+            log(f"[F8] 清除贴图失败: {response_json}")
+    except Exception as e:
+        log(f"[F8] 清除贴图失败: {e}")
+
+
 def listener_click():
     # m = MapRanging()
     threading.Thread(target=start_map).start()
     threading.Thread(target=start_control).start()
-    k = KeyMouseListener(ctrl_action=set_fire_state)
+
+    # 注册热键：Ctrl + 中键 切换开火状态，F7 执行地图贴图，F8 清除贴图
+    hotkey_actions = {
+        pynput_keyboard.Key.f7: on_f7_pressed,
+        pynput_keyboard.Key.f8: on_f8_pressed
+    }
+    k = KeyMouseListener(ctrl_action=set_fire_state, hotkey_actions=hotkey_actions)
     k.start()
 
 

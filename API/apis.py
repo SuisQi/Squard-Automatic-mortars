@@ -427,6 +427,15 @@ def set_map():
     m = MapRanging()
     m.set_map(f"./templates/map/public/{file_name}")
 
+    # 保存当前地图 ID 到 Redis（用于 F7 地图贴图功能）
+    # file_name 格式如 "maps/kokan_minimap.webp"，提取地图 ID
+    import re
+    match = re.match(r"maps/(.+?)_minimap\.", file_name)
+    if match:
+        map_id = match.group(1)
+        redis_cli.set("squad:map:current", map_id)
+        log(f"设置地图: {map_id}")
+
     return R(0)
 
 

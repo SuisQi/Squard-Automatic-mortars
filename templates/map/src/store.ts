@@ -20,6 +20,8 @@ import {DirDataAction, DirDataActionType, IconAction, IconActionType, SquareSele
 import {iconReducer} from "./world/components/icon";
 import {terrainmap} from "./terrainmap/reducer";
 import {TerrainmapAction} from "./terrainmap/types";
+import {mapOverlayReducer} from "./mapoverlay/reducer";
+import {MapOverlayAction} from "./mapoverlay/types";
 
 // https://github.com/reduxjs/redux-thunk/blob/master/test/typescript.ts
 const reducerObject = {
@@ -35,7 +37,8 @@ const reducerObject = {
   //replication: replicationReducer,
   session: sessionReducer,
   heightmap,
-    images:ImageReducer
+    images:ImageReducer,
+    mapOverlay: mapOverlayReducer
 }
 //type StoreAction = ActionFromReducersMapObject<typeof reducerObject>
 export type StoreAction
@@ -55,6 +58,7 @@ export type StoreAction
   | WeaponAction
     |SquareSelectionAction
 |DirDataAction
+|MapOverlayAction
 
 
 

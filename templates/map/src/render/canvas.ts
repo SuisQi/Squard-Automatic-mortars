@@ -31,6 +31,7 @@ import {drawSquare} from "./selection/square";
 import {drawLineSelection} from "./selection/line";
 import {Terrainmap} from "../terrainmap/types";
 import { getGridConstants } from "../constants/grid";
+import {drawMapOverlay} from "./mapOverlay";
 
 /**
  * 绘制直线
@@ -416,6 +417,7 @@ export const drawAll = (store: Store0) => {
     drawMinimap(ctx, state.minimap, zoom, state.userSettings);        // 2. 小地图
     drawCoordinateAxes(ctx, state.minimap, state.camera, state.userSettings); // 3. 坐标轴
     drawTerrainmap(ctx, state.terrainmap, zoom, state.userSettings);  // 4. 地形图
+    drawMapOverlay(ctx, state.mapOverlay, state.minimap);             // 4.5. 地图贴图 (F7)
     drawContourmap(ctx, state.contourmap, state.userSettings);        // 5. 等高线图
     // drawHeightmap(ctx, state.heightmap, state.userSettings);       // 5. 高度图（已禁用）
     drawWeapons(ctx, state.userSettings, state.camera, weapons);      // 6. 武器

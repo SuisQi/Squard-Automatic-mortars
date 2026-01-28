@@ -19,6 +19,8 @@ import {vec3} from "gl-matrix";
 import {getEntitiesByType} from "./world/world";
 import {Target} from "./world/types";
 import {getSolution} from "./common/mapData";
+import {setMapOverlay, clearMapOverlay} from "./mapoverlay/actions";
+import {MapOverlayPayload} from "./mapoverlay/types";
 // 初始化国际化系统
 import "./i18n";
 
@@ -211,6 +213,42 @@ setTimeout(() => {
         })
         res(JSON.stringify(data))
 
+    })
+
+    // 注册 setMapOverlay action 处理器，用于接收后端发送的地图贴图数据
+    hl.regAction("setMapOverlay", (res, param: MapOverlayPayload) => {
+        console.log("setMapOverlay received:", param.matchCount, "matches,", param.inliers, "inliers")
+
+        // 创建 Image 对象加载截图
+        const img = new Image()
+        img.onload = () => {
+            // 图像加载完成后，dispatch action 更新状态
+            dispatch(store, setMapOverlay({
+                homography: param.homography,
+                corners: param.corners,
+                screenshotSize: param.screenshotSize,
+                screenshotImage: img,
+                matchCount: param.matchCount,
+                inliers: param.inliers
+            }))
+
+            res(JSON.stringify({ success: true, message: "地图贴图已更新" }))
+        }
+
+        img.onerror = () => {
+            console.error("setMapOverlay: Failed to load screenshot image")
+            res(JSON.stringify({ success: false, message: "图像加载失败" }))
+        }
+
+        // 设置图像源 (Base64)
+        img.src = `data:image/jpeg;base64,${param.screenshotBase64}`
+    })
+
+    // 注册 clearMapOverlay action 处理器，用于清除地图贴图
+    hl.regAction("clearMapOverlay", (res) => {
+        console.log("clearMapOverlay: 清除地图贴图")
+        dispatch(store, clearMapOverlay())
+        res(JSON.stringify({ success: true, message: "地图贴图已清除" }))
     })
 }, 100)
 const $tooltip = document.getElementById('tooltip')!;
