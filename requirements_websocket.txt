@@ -1,0 +1,4 @@
+# websocket_start.py 的最小依赖
+websockets>=10.0
+redis>=4.0.0
+flask>=2.0.0
