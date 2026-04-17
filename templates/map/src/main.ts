@@ -44,7 +44,18 @@ store.dispatch(changeMap("kokan"))
 // Setting up render and controls
 setupEventsAndInit(store, perfRef)
 // store.subscribe(printState(store))
-store.subscribe(() => drawAll(store))
+
+// 使用 requestAnimationFrame 节流渲染，避免高频事件导致的卡顿
+let renderScheduled = false;
+store.subscribe(() => {
+  if (!renderScheduled) {
+    renderScheduled = true;
+    requestAnimationFrame(() => {
+      renderScheduled = false;
+      drawAll(store);
+    });
+  }
+})
 
 var fragment = new DocumentFragment();
 mapBaseOptions.forEach(o => {

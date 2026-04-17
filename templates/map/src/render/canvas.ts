@@ -220,6 +220,11 @@ const drawMinimapGrid: (ctx: CanvasRenderingContext2D, minimap: Minimap, zoom:nu
     ctx.restore();
   }
 
+// 复用的矩阵对象，避免每帧在循环中创建新对象
+const _tempMat4 = mat4.create();
+const _tempVec3 = vec3.create();
+const _tempVec3_2 = vec3.create();
+
 /**
  * 绘制坐标轴
  * 在地图顶部绘制横坐标（A-Z字母），在左侧绘制纵坐标（数字）
@@ -235,13 +240,16 @@ const drawCoordinateAxes: (ctx: CanvasRenderingContext2D, minimap: Minimap, came
     const { QUADRANT_SIZE } = gridConstants;
 
     // 获取地图左上角位置
-    const topleft = mat4.getTranslation(vec3.create(), minimap.transform);
+    const topleft = mat4.getTranslation(_tempVec3, minimap.transform);
     const mapWidth = minimap.size[0];
     const mapHeight = minimap.size[1];
 
     // 计算实际在地图范围内的象限数量
     const numQuadrantsX = Math.floor(mapWidth / QUADRANT_SIZE);
     const numQuadrantsY = Math.floor(mapHeight / QUADRANT_SIZE);
+
+    // 预计算相机缩放变换（只计算一次）
+    const scaleTransform = canvasScaleTransform(camera);
 
     ctx.save();
 
@@ -251,9 +259,12 @@ const drawCoordinateAxes: (ctx: CanvasRenderingContext2D, minimap: Minimap, came
       const y = topleft[1];
 
       ctx.save();
-      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(x, y, 0)));
-      applyTransform(ctx, canvasScaleTransform(camera));
-      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(0, -20, 0)));
+      // 复用临时向量和矩阵
+      _tempVec3_2[0] = x; _tempVec3_2[1] = y; _tempVec3_2[2] = 0;
+      applyTransform(ctx, mat4.fromTranslation(_tempMat4, _tempVec3_2));
+      applyTransform(ctx, scaleTransform);
+      _tempVec3_2[0] = 0; _tempVec3_2[1] = -20; _tempVec3_2[2] = 0;
+      applyTransform(ctx, mat4.fromTranslation(_tempMat4, _tempVec3_2));
 
       // 绘制字母（A=65），使用白色
       const letter = String.fromCharCode(65 + i);
@@ -267,9 +278,12 @@ const drawCoordinateAxes: (ctx: CanvasRenderingContext2D, minimap: Minimap, came
       const y = topleft[1] + j * QUADRANT_SIZE + QUADRANT_SIZE / 2;
 
       ctx.save();
-      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(x, y, 0)));
-      applyTransform(ctx, canvasScaleTransform(camera));
-      applyTransform(ctx, mat4.fromTranslation(mat4.create(), vec3.fromValues(-30, 0, 0)));
+      // 复用临时向量和矩阵
+      _tempVec3_2[0] = x; _tempVec3_2[1] = y; _tempVec3_2[2] = 0;
+      applyTransform(ctx, mat4.fromTranslation(_tempMat4, _tempVec3_2));
+      applyTransform(ctx, scaleTransform);
+      _tempVec3_2[0] = -30; _tempVec3_2[1] = 0; _tempVec3_2[2] = 0;
+      applyTransform(ctx, mat4.fromTranslation(_tempMat4, _tempVec3_2));
 
       // 绘制数字（从1开始），使用白色，字体更小
       const number = (j + 1).toString();
@@ -532,30 +546,53 @@ const fromTranslation: (x: number, y:number) => Transform =
 const fromScaling: (xy: number) => Transform =
   (xy) => mat4.fromScaling(mat4.create(), [xy, xy, 1])
 
+// 缓存 Canvas 设置，避免每帧重复计算
+let cachedDpr: number | null = null;
+let cachedWidth: number = 0;
+let cachedHeight: number = 0;
+
 /**
  * 设置Canvas高DPI支持
  * 根据设备像素比调整Canvas尺寸，确保在高分辨率屏幕上显示清晰
+ * 使用缓存避免每帧重复计算
  * @param canvas HTML Canvas元素
  * @returns Canvas 2D绘制上下文
  */
 function setupCanvas(canvas: HTMLCanvasElement) {
-  // 获取设备像素比，默认为1
-  const dpr = window.devicePixelRatio || 1;
+  // 获取设备像素比，默认为1（首次或 resize 时计算）
+  const dpr = cachedDpr ?? (cachedDpr = window.devicePixelRatio || 1);
   let ctx = canvas.getContext('2d')!;
 
   // 获取Canvas的CSS像素尺寸
   const rect = canvas.getBoundingClientRect();
-  
-  // 设置Canvas的实际像素尺寸
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  
-  // 缩放绘制上下文以保持变换完整性
-  ctx.scale(dpr, dpr);
-  
-  // 通过CSS强制显示尺寸（响应式）
-  canvas.style.width = "100%";
-  canvas.style.height = "100%";
-  
+  const newWidth = rect.width * dpr;
+  const newHeight = rect.height * dpr;
+
+  // 只在尺寸变化时重新设置 Canvas
+  if (newWidth !== cachedWidth || newHeight !== cachedHeight) {
+    cachedWidth = newWidth;
+    cachedHeight = newHeight;
+
+    // 设置Canvas的实际像素尺寸
+    canvas.width = newWidth;
+    canvas.height = newHeight;
+
+    // 通过CSS强制显示尺寸（响应式）
+    canvas.style.width = "100%";
+    canvas.style.height = "100%";
+  }
+
+  // 每帧都需要重置变换（因为 drawAll 会修改它）
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
   return ctx;
+}
+
+// 监听窗口 resize 事件，重置缓存
+if (typeof window !== 'undefined') {
+  window.addEventListener('resize', () => {
+    cachedDpr = null;
+    cachedWidth = 0;
+    cachedHeight = 0;
+  });
 }

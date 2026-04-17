@@ -49,6 +49,9 @@ const dragOrPan = (store: Store0, event: any) => {
     }
 }
 
+// 鼠标位置更新节流：只在空闲时更新tooltip用的位置
+let mouseMoveRAF: number | null = null;
+
 export const mouseMove = (store: Store0) => (e: MouseEvent) => {
 
     if (store.getState().iconToolState.selectionState === 2) {
@@ -66,10 +69,18 @@ export const mouseMove = (store: Store0) => (e: MouseEvent) => {
     if (store.getState().iconToolState.display)
         return
     if ((e.buttons & 1) === 1) {
+        // 拖拽时只执行拖拽逻辑，不更新mousePosition（减少状态更新）
         dragOrPan(store, e)
+        return;
     }
-    const mouseXY = event2canvas(e);
-    dispatch(store, newMousePosition(mouseXY[0], mouseXY[1]))
+    // 使用 requestAnimationFrame 节流鼠标位置更新
+    if (mouseMoveRAF === null) {
+        const mouseXY = event2canvas(e);
+        mouseMoveRAF = requestAnimationFrame(() => {
+            mouseMoveRAF = null;
+            dispatch(store, newMousePosition(mouseXY[0], mouseXY[1]))
+        });
+    }
 }
 
 const zoom = (store: Store0, targetElement: any, zoomLocation: vec3, desiredZoom: number) => {
